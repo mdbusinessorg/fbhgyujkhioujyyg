@@ -1,8 +1,10 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { Phone, ArrowUpRight, ShieldCheck, Clock, Users } from "lucide-react";
 import { Reveal } from "@/components/Reveal";
+import { site } from "@/lib/site";
 
 const features = [
   { icon: ShieldCheck, text: "Diagnóstico preciso e seguro" },
@@ -64,16 +66,16 @@ export function About() {
             </ul>
 
             <div className="mt-8 flex flex-wrap items-center gap-5">
-              <a href="#contacto" className="btn-primary">
-                Saber Mais <ArrowUpRight size={16} />
-              </a>
+              <Link href="/contacto" className="btn-primary">
+                Falar connosco <ArrowUpRight size={16} />
+              </Link>
               <div className="flex items-center gap-3">
                 <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary-50 text-primary">
                   <Phone size={18} />
                 </span>
                 <div>
                   <p className="text-xs text-body">Para qualquer questão</p>
-                  <p className="font-semibold text-ink">+351 211 234 567</p>
+                  <p className="font-semibold text-ink">{site.phone}</p>
                 </div>
               </div>
             </div>

@@ -2,7 +2,10 @@
 
 import { motion } from "framer-motion";
 import Image from "next/image";
+import Link from "next/link";
 import { ArrowUpRight, Award, HeartPulse, Activity, Stethoscope } from "lucide-react";
+import { site } from "@/lib/site";
+import { WhatsAppIcon } from "@/components/landing/WhatsAppFloat";
 
 export function Hero() {
   return (
@@ -46,12 +49,17 @@ export function Hero() {
           </p>
 
           <div className="mt-7 flex flex-wrap items-center gap-3">
-            <a href="#contacto" className="btn-primary">
-              Agendar Consulta <ArrowUpRight size={16} />
+            <a
+              href={site.whatsappBooking}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-[#25D366] px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-[#1ebe5b] hover:shadow-card active:scale-95"
+            >
+              <WhatsAppIcon size={16} /> Agendar no WhatsApp
             </a>
-            <a href="#servicos" className="btn-ghost">
+            <Link href="/especialidades" className="btn-ghost">
               Ver Especialidades
-            </a>
+            </Link>
           </div>
 
           <div className="mt-8 flex items-center gap-3 rounded-2xl bg-white/70 p-3 shadow-soft backdrop-blur-md">

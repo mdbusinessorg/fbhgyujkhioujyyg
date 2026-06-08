@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { HeartPulse } from "lucide-react";
+import { site } from "@/lib/site";
 
 export function Footer() {
   return (
@@ -16,18 +17,18 @@ export function Footer() {
               </span>
             </div>
             <p className="mt-4 text-sm leading-relaxed text-white/60">
-              Cuidados de saúde de excelência, centrados em si. Desde 2003 ao
-              serviço da comunidade.
+              Cuidados de saúde de excelência, centrados em si. Desde {site.foundedYear}
+              {" "}ao serviço da comunidade em {site.city}.
             </p>
           </div>
 
           <div>
             <h4 className="font-semibold text-white">Navegação</h4>
             <ul className="mt-4 space-y-2 text-sm">
-              <li><a href="#inicio" className="hover:text-white">Início</a></li>
-              <li><a href="#servicos" className="hover:text-white">Especialidades</a></li>
-              <li><a href="#sobre" className="hover:text-white">Sobre</a></li>
-              <li><a href="#contacto" className="hover:text-white">Contacto</a></li>
+              <li><Link href="/" className="hover:text-white">Início</Link></li>
+              <li><Link href="/especialidades" className="hover:text-white">Especialidades</Link></li>
+              <li><Link href="/sobre" className="hover:text-white">Sobre</Link></li>
+              <li><Link href="/contacto" className="hover:text-white">Contacto</Link></li>
             </ul>
           </div>
 
@@ -43,9 +44,10 @@ export function Footer() {
           <div>
             <h4 className="font-semibold text-white">Contacto</h4>
             <ul className="mt-4 space-y-2 text-sm text-white/60">
-              <li>Av. da Liberdade 154, Lisboa</li>
-              <li>+351 211 234 567</li>
-              <li>geral@clinicabemestar.pt</li>
+              <li>{site.address}</li>
+              <li>{site.city}</li>
+              <li><a href={site.whatsapp} target="_blank" rel="noopener noreferrer" className="hover:text-white">{site.phone}</a></li>
+              <li>{site.email}</li>
             </ul>
           </div>
         </div>

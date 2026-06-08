@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Reveal } from "@/components/Reveal";
 import { CheckCircle2, Loader2, MapPin, Mail, Phone, ArrowUpRight } from "lucide-react";
+import { site } from "@/lib/site";
+import { WhatsAppIcon } from "@/components/landing/WhatsAppFloat";
 
 type DoctorOption = { id: string; name: string; specialty: string };
 
@@ -65,7 +67,7 @@ export function Contact() {
                 <div>
                   <p className="text-sm font-semibold text-ink">Morada</p>
                   <p className="text-sm text-body">
-                    Av. da Liberdade 154, 1250-146 Lisboa
+                    {site.address}, {site.city}
                   </p>
                 </div>
               </div>
@@ -74,8 +76,8 @@ export function Contact() {
                   <Phone size={18} />
                 </span>
                 <div>
-                  <p className="text-sm font-semibold text-ink">Telefone</p>
-                  <p className="text-sm text-body">+351 211 234 567</p>
+                  <p className="text-sm font-semibold text-ink">Telefone / WhatsApp</p>
+                  <p className="text-sm text-body">{site.phone}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -84,9 +86,18 @@ export function Contact() {
                 </span>
                 <div>
                   <p className="text-sm font-semibold text-ink">Email</p>
-                  <p className="text-sm text-body">geral@clinicabemestar.pt</p>
+                  <p className="text-sm text-body">{site.email}</p>
                 </div>
               </div>
+
+              <a
+                href={site.whatsappBooking}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#25D366] px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-[#1ebe5b] active:scale-95"
+              >
+                <WhatsAppIcon size={18} /> Agendar pelo WhatsApp
+              </a>
             </div>
           </div>
         </Reveal>
@@ -128,12 +139,12 @@ export function Contact() {
                       type="email"
                       required
                       className="input"
-                      placeholder="ana@email.pt"
+                      placeholder="ana@email.ao"
                     />
                   </div>
                   <div>
                     <label className="label">Telefone</label>
-                    <input name="phone" className="input" placeholder="+351 ..." />
+                    <input name="phone" className="input" placeholder="+244 ..." />
                   </div>
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
