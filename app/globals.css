@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f0f8ff;
+  --foreground: #1a1a2e;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/70 backdrop-blur-xl border border-white/60 shadow-glass rounded-3xl;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-primary-600 hover:shadow-card active:scale-95 disabled:opacity-60 disabled:pointer-events-none;
+  }
+
+  .btn-accent {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-accent-dark active:scale-95;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-primary/20 bg-white px-6 py-3 text-sm font-semibold text-primary transition-all hover:bg-primary-50 active:scale-95;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-ink outline-none transition-all placeholder:text-gray-400 focus:border-primary focus:ring-2 focus:ring-primary/20;
+  }
+
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-ink;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold;
+  }
+
+  .stat-card {
+    @apply rounded-2xl bg-white p-5 shadow-soft;
+  }
+
+  .sidebar-link {
+    @apply flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium text-body transition-all hover:bg-primary-50 hover:text-primary;
+  }
+
+  .sidebar-link-active {
+    @apply bg-primary text-white shadow-card hover:bg-primary hover:text-white;
+  }
+
+  .table-th {
+    @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-body;
+  }
+
+  .table-td {
+    @apply px-4 py-3 text-sm text-ink;
+  }
+}
+
+/* scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #c5e3f7;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #7db8f6;
+}

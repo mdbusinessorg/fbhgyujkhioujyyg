@@ -1,0 +1,239 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN
+  DOCTOR
+  PATIENT
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PAID
+  PENDING
+  OVERDUE
+}
+
+enum ExamStatus {
+  REQUESTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum Urgency {
+  ROTINA
+  PRIORITARIO
+  URGENTE
+}
+
+enum MetricType {
+  PESO
+  ALTURA
+  PRESSAO
+  GLICEMIA
+}
+
+enum NotificationType {
+  LEMBRETE_CONSULTA
+  RENOVACAO_RECEITA
+  PAGAMENTO_PENDENTE
+  VALOR_ANORMAL
+  MENSAGEM
+  SISTEMA
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(PATIENT)
+  phone        String?
+  profilePhoto String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  patient       Patient?
+  doctor        Doctor?
+  notifications Notification[]
+  auditLogs     AuditLog[]     @relation("ActorLogs")
+}
+
+model Patient {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dob               DateTime?
+  gender            String?
+  address           String?
+  bloodType         String?
+  allergies         String?
+  chronicConditions String?
+  emergencyContact  String?
+  onboarded         Boolean  @default(false)
+  createdAt         DateTime @default(now())
+
+  appointments   Appointment[]
+  consultations  Consultation[]
+  payments       Payment[]
+  healthMetrics  HealthMetric[]
+  treatmentPlans TreatmentPlan[]
+}
+
+model Doctor {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specialty     String
+  crm           String   @unique
+  bio           String?
+  availableDays String?
+  availableHours String?
+  createdAt     DateTime @default(now())
+
+  appointments   Appointment[]
+  consultations  Consultation[]
+  treatmentPlans TreatmentPlan[]
+}
+
+model Appointment {
+  id        String            @id @default(cuid())
+  patientId String
+  patient   Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctorId  String
+  doctor    Doctor            @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  dateTime  DateTime
+  status    AppointmentStatus @default(PENDING)
+  reason    String?
+  notes     String?
+  createdBy String?
+  reminderSent Boolean        @default(false)
+  createdAt DateTime          @default(now())
+
+  consultation Consultation?
+}
+
+model Consultation {
+  id            String   @id @default(cuid())
+  appointmentId String   @unique
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  patientId     String
+  patient       Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctorId      String
+  doctor        Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  clinicalNotes String?
+  completedAt   DateTime?
+  createdAt     DateTime @default(now())
+
+  prescriptions Prescription[]
+  examRequests  ExamRequest[]
+  payment       Payment?
+}
+
+model Prescription {
+  id             String   @id @default(cuid())
+  consultationId String
+  consultation   Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+  medicationName String
+  dosage         String
+  frequency      String
+  durationDays   Int
+  instructions   String?
+  startDate      DateTime @default(now())
+  renewalAlertSent Boolean @default(false)
+  createdAt      DateTime @default(now())
+}
+
+model ExamRequest {
+  id             String     @id @default(cuid())
+  consultationId String
+  consultation   Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+  examName       String
+  urgency        Urgency    @default(ROTINA)
+  notes          String?
+  resultFileUrl  String?
+  status         ExamStatus @default(REQUESTED)
+  createdAt      DateTime   @default(now())
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  patientId      String
+  patient        Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  consultationId String?       @unique
+  consultation   Consultation? @relation(fields: [consultationId], references: [id], onDelete: SetNull)
+  amount         Decimal       @db.Decimal(10, 2)
+  status         PaymentStatus @default(PENDING)
+  description    String?
+  dueDate        DateTime?
+  paymentDate    DateTime?
+  invoiceUrl     String?
+  overdueFlagged Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+}
+
+model HealthMetric {
+  id        String     @id @default(cuid())
+  patientId String
+  patient   Patient    @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  type      MetricType
+  value     Float
+  valueSecondary Float?
+  unit      String
+  abnormal  Boolean    @default(false)
+  recordedAt DateTime  @default(now())
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType @default(SISTEMA)
+  title     String
+  message   String
+  isRead    Boolean          @default(false)
+  link      String?
+  createdAt DateTime         @default(now())
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  actorId      String?
+  actor        User?    @relation("ActorLogs", fields: [actorId], references: [id], onDelete: SetNull)
+  actorName    String?
+  action       String
+  targetEntity String
+  targetId     String?
+  metadata     String?
+  ipAddress    String?
+  timestamp    DateTime @default(now())
+}
+
+model TreatmentPlan {
+  id          String   @id @default(cuid())
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctorId    String?
+  doctor      Doctor?  @relation(fields: [doctorId], references: [id], onDelete: SetNull)
+  title       String
+  description String?
+  goals       String[]
+  startDate   DateTime @default(now())
+  endDate     DateTime?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
