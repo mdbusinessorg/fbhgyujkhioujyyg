@@ -72,7 +72,10 @@ export function DashboardShell({
           <Home size={18} /> Ver site
         </Link>
         <button
-          onClick={() => signOut({ callbackUrl: "/" })}
+          onClick={async () => {
+            await signOut({ redirect: false });
+            window.location.href = "/login";
+          }}
           className="sidebar-link w-full text-left text-red-500 hover:bg-red-50 hover:text-red-600"
         >
           <LogOut size={18} /> Terminar sessão

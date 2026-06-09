@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { HeartPulse, Menu, X } from "lucide-react";
+import { useSession, signOut } from "next-auth/react";
+import { HeartPulse, Menu, X, LayoutDashboard, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { site } from "@/lib/site";
 import { WhatsAppIcon } from "@/components/landing/WhatsAppFloat";
@@ -18,6 +19,8 @@ const links = [
 
 export function Navbar() {
   const pathname = usePathname();
+  const { status } = useSession();
+  const authed = status === "authenticated";
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -69,9 +72,26 @@ export function Navbar() {
         </div>
 
         <div className="hidden items-center gap-2 md:flex">
-          <Link href="/login" className="btn-ghost px-5 py-2.5">
-            Entrar
-          </Link>
+          {authed ? (
+            <>
+              <Link href="/go" className="btn-ghost px-5 py-2.5">
+                <LayoutDashboard size={16} /> Painel
+              </Link>
+              <button
+                onClick={async () => {
+                  await signOut({ redirect: false });
+                  window.location.href = "/login";
+                }}
+                className="btn-ghost px-5 py-2.5 text-red-500 hover:text-red-600"
+              >
+                <LogOut size={16} /> Sair
+              </button>
+            </>
+          ) : (
+            <Link href="/login" className="btn-ghost px-5 py-2.5">
+              Entrar
+            </Link>
+          )}
           <a href={site.whatsappBooking} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 rounded-full bg-[#25D366] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#1ebe5b] active:scale-95">
             <WhatsAppIcon size={16} /> Agendar
           </a>
@@ -103,9 +123,27 @@ export function Navbar() {
             </Link>
           ))}
           <div className="mt-2 flex flex-col gap-2">
-            <Link href="/login" onClick={() => setOpen(false)} className="btn-ghost w-full">
-              Entrar
-            </Link>
+            {authed ? (
+              <>
+                <Link href="/go" onClick={() => setOpen(false)} className="btn-ghost w-full">
+                  <LayoutDashboard size={16} /> Painel
+                </Link>
+                <button
+                  onClick={async () => {
+                    setOpen(false);
+                    await signOut({ redirect: false });
+                    window.location.href = "/login";
+                  }}
+                  className="btn-ghost w-full text-red-500 hover:text-red-600"
+                >
+                  <LogOut size={16} /> Sair
+                </button>
+              </>
+            ) : (
+              <Link href="/login" onClick={() => setOpen(false)} className="btn-ghost w-full">
+                Entrar
+              </Link>
+            )}
             <a href={site.whatsappBooking} target="_blank" rel="noopener noreferrer" className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#25D366] px-6 py-3 text-sm font-semibold text-white">
               <WhatsAppIcon size={16} /> Agendar no WhatsApp
             </a>
