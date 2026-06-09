@@ -6,9 +6,9 @@ export function cn(...classes: (string | false | null | undefined)[]) {
 
 export function formatCurrency(value: number | string) {
   const n = typeof value === "string" ? Number(value) : value;
-  return new Intl.NumberFormat("pt-PT", {
+  return new Intl.NumberFormat("pt-AO", {
     style: "currency",
-    currency: "EUR",
+    currency: "AOA",
   }).format(n || 0);
 }
 

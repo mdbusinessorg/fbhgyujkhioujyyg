@@ -58,7 +58,7 @@ export function CreatePaymentForm({ patients }: { patients: Option[] }) {
             </select>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div><label className="label">Valor (€)</label><input name="amount" type="number" step="0.01" required className="input" /></div>
+            <div><label className="label">Valor (Kz)</label><input name="amount" type="number" step="0.01" required className="input" /></div>
             <div>
               <label className="label">Estado</label>
               <select name="status" className="input" defaultValue="PENDING">

@@ -75,7 +75,7 @@ async function flagOverduePayments() {
       userId: p.patient.userId,
       type: "PAGAMENTO_PENDENTE",
       title: "Pagamento em atraso",
-      message: `O pagamento de ${Number(p.amount)}€ encontra-se em atraso. Regularize o quanto antes.`,
+      message: `O pagamento de ${Number(p.amount)} Kz encontra-se em atraso. Regularize o quanto antes.`,
       link: "/patient/payments",
     });
   }
@@ -112,7 +112,7 @@ async function weeklyReport() {
       userId: admin.id,
       type: "SISTEMA",
       title: "Relatório semanal",
-      message: `Semana: ${consults} consultas · ${Number(revenue._sum.amount ?? 0)}€ receita · ${newPatients} novos pacientes.`,
+      message: `Semana: ${consults} consultas · ${Number(revenue._sum.amount ?? 0)} Kz receita · ${newPatients} novos pacientes.`,
       link: "/admin/reports",
     });
     await sendEmail({
@@ -120,7 +120,7 @@ async function weeklyReport() {
       subject: "Relatório semanal — Clínica Bem Estar",
       html: emailTemplate(
         "Resumo semanal",
-        `Consultas realizadas: <strong>${consults}</strong><br>Receita recebida: <strong>${Number(revenue._sum.amount ?? 0)}€</strong><br>Novos pacientes: <strong>${newPatients}</strong>`,
+        `Consultas realizadas: <strong>${consults}</strong><br>Receita recebida: <strong>${Number(revenue._sum.amount ?? 0)} Kz</strong><br>Novos pacientes: <strong>${newPatients}</strong>`,
       ),
     });
   }

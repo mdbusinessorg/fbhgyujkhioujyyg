@@ -45,7 +45,7 @@ export async function PATCH(
         userId: payment.patient.userId,
         type: "PAGAMENTO_PENDENTE",
         title: "Pagamento confirmado",
-        message: `O seu pagamento de ${Number(payment.amount)}€ foi registado. Obrigado!`,
+        message: `O seu pagamento de ${Number(payment.amount)} Kz foi registado. Obrigado!`,
         link: "/patient/payments",
       });
     }

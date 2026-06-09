@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
         userId: payment.patient.userId,
         type: "PAGAMENTO_PENDENTE",
         title: "Novo pagamento registado",
-        message: `Tem um pagamento de ${d.amount}€ ${d.status === "OVERDUE" ? "em atraso" : "pendente"}.`,
+        message: `Tem um pagamento de ${d.amount} Kz ${d.status === "OVERDUE" ? "em atraso" : "pendente"}.`,
         link: "/patient/payments",
       });
     }
