@@ -165,6 +165,13 @@ async function main() {
     { examName: "Ressonância magnética cerebral", urgency: Urgency.URGENTE },
   ];
 
+  // Preços de consulta realistas (Kwanza) por especialidade
+  const consultaPreco: Record<string, number> = {
+    Cardiologia: 35000,
+    Neurologia: 40000,
+    "Medicina Geral e Familiar": 15000,
+  };
+
   for (let i = 0; i < 8; i++) {
     const patient = patients[i % patients.length];
     const doctor = doctors[i % doctors.length];
@@ -212,7 +219,7 @@ async function main() {
       data: {
         patientId: patient.id,
         consultationId: consultation.id,
-        amount: [45, 60, 75, 90][i % 4],
+        amount: consultaPreco[doctor.specialty] ?? 25000,
         status,
         description: `Consulta de ${doctor.specialty}`,
         dueDate: daysFromNow(status === PaymentStatus.OVERDUE ? -10 : 20),
