@@ -159,6 +159,42 @@ worker/         # automações node-cron
 
 ## ☁️ Deploy
 
-- **Frontend/API**: [Vercel](https://vercel.com) (importe o repositório e configure as variáveis de ambiente).
-- **Base de dados**: [Supabase](https://supabase.com) (use o pooler de transações no `DATABASE_URL`).
-- **Worker cron**: execute `npm run cron` num serviço persistente (ex.: Railway) — Vercel não mantém processos cron longos.
+### Opção A — Vercel (recomendado)
+
+1. Faça login em [vercel.com](https://vercel.com) e clique **Add New → Project**.
+2. Importe o repositório (ou faça upload do ZIP).
+3. Na secção **Environment Variables** adicione:
+   | Variável | Valor |
+   |---|---|
+   | `DATABASE_URL` | `postgresql://postgres.<REF>:<PASS>@aws-0-<REGION>.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1` |
+   | `DIRECT_URL` | `postgresql://postgres.<REF>:<PASS>@aws-0-<REGION>.pooler.supabase.com:5432/postgres` |
+   | `NEXTAUTH_URL` | `https://<SEU-PROJETO>.vercel.app` |
+   | `NEXTAUTH_SECRET` | *(gere com `openssl rand -base64 32`)* |
+   | `NEXT_PUBLIC_SUPABASE_URL` | `https://<REF>.supabase.co` |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | *(a sua anon key do Supabase)* |
+4. Clique **Deploy**. Após o build, aceda ao URL do projeto.
+5. Popule os dados: localmente execute `npm run db:seed` com o mesmo `DATABASE_URL`.
+
+### Opção B — Netlify
+
+> ⚠️ Netlify tem suporte limitado para Next.js App Router. Use o plugin `@netlify/plugin-nextjs`.
+
+1. Faça login em [netlify.com](https://netlify.com), **Add New Site → Deploy manually** (arraste o ZIP).
+2. Instale o plugin: `npm install @netlify/plugin-nextjs` e crie um `netlify.toml`:
+   ```toml
+   [build]
+     command = "npm run build"
+     publish = ".next"
+   [[plugins]]
+     package = "@netlify/plugin-nextjs"
+   ```
+3. Configure as mesmas variáveis de ambiente listadas acima em **Site Settings → Environment Variables**.
+4. Faça redeploy.
+
+### Base de dados
+
+- [Supabase](https://supabase.com) — use o **Transaction Pooler** (porta 6543) no `DATABASE_URL` e o **Session Pooler** (porta 5432) no `DIRECT_URL`.
+
+### Worker cron (opcional)
+
+Execute `npm run cron` num serviço persistente (ex.: Railway) — Vercel/Netlify não mantêm processos cron longos.
