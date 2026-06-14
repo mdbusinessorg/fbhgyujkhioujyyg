@@ -79,8 +79,13 @@ export default function RegistarPage() {
       }
 
       setSuccess(true)
-    } catch {
-      setError('Erro de conexão. Verifica a tua internet.')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro desconhecido'
+      if (message.includes('Failed to fetch') || message.includes('NetworkError')) {
+        setError('Erro de rede. Verifica a tua ligação à internet e tenta novamente.')
+      } else {
+        setError('Erro ao criar conta: ' + message)
+      }
       setLoading(false)
     }
   }

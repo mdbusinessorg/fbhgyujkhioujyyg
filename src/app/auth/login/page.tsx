@@ -27,7 +27,13 @@ export default function LoginPage() {
       })
 
       if (authError) {
-        setError('Email ou senha incorretos. Tenta novamente.')
+        if (authError.message?.includes('Invalid login credentials')) {
+          setError('Email ou senha incorretos. Tenta novamente.')
+        } else if (authError.message?.includes('Email not confirmed')) {
+          setError('Confirma o teu email antes de fazer login. Verifica a tua caixa de entrada.')
+        } else {
+          setError(authError.message || 'Erro ao fazer login. Tenta novamente.')
+        }
         setLoading(false)
         return
       }
@@ -51,9 +57,16 @@ export default function LoginPage() {
         } else {
           window.location.href = '/dashboard/candidato/'
         }
+      } else {
+        window.location.href = '/dashboard/candidato/'
       }
-    } catch {
-      setError('Erro ao conectar. Verifica a tua ligação à internet.')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro desconhecido'
+      if (message.includes('Failed to fetch') || message.includes('NetworkError')) {
+        setError('Erro de rede. Verifica a tua ligação à internet e tenta novamente.')
+      } else {
+        setError('Erro ao processar login: ' + message)
+      }
       setLoading(false)
     }
   }
