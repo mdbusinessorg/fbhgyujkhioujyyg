@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
-import { MapPin, Clock, Briefcase, Star, DollarSign, ArrowLeft, GraduationCap, Building2, Send, FileText, CheckCircle } from 'lucide-react'
+import ApplicationForm from '@/components/ApplicationForm'
+import { MapPin, Clock, Briefcase, Star, DollarSign, ArrowLeft, GraduationCap, Building2, FileText, CheckCircle } from 'lucide-react'
 
 export function generateStaticParams() {
   return ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'].map((id) => ({ id }))
@@ -157,10 +158,7 @@ export default function VagaDetalhe({ params }: { params: { id: string } }) {
                 </div>
               </div>
 
-              <Link href="/auth/registar/" className="btn-primary w-full flex items-center justify-center gap-2">
-                <Send size={18} />
-                Candidatar-me
-              </Link>
+              <ApplicationForm vagaId={params.id} vagaTitulo={job.titulo} />
 
               <div className="card p-4 bg-blue-50 border-blue-100">
                 <h3 className="font-semibold text-sm text-blue-800 mb-2">Documentos necessários</h3>

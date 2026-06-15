@@ -34,6 +34,19 @@ interface Utilizador {
   created_at: string
 }
 
+interface VagaPendente {
+  id: string
+  titulo: string
+  empresa_nome: string
+  area: string
+  localizacao: string
+  salario: string
+  is_prioritaria: boolean
+  created_at: string
+  recrutador_id: string
+  users?: { nome: string; email: string }
+}
+
 interface Stats {
   totalUsers: number
   totalVagas: number
@@ -44,7 +57,8 @@ interface Stats {
 }
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'recrutadores' | 'subscricoes' | 'utilizadores' | 'config'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'recrutadores' | 'vagas' | 'subscricoes' | 'utilizadores' | 'config'>('overview')
+  const [vagasPendentes, setVagasPendentes] = useState<VagaPendente[]>([])
   const [pendentes, setPendentes] = useState<Recrutador[]>([])
   const [subscricoes, setSubscricoes] = useState<Subscricao[]>([])
   const [utilizadores, setUtilizadores] = useState<Utilizador[]>([])
@@ -108,6 +122,14 @@ export default function AdminDashboard() {
         .order('data_inicio', { ascending: false })
       setSubscricoes(allSubs || [])
 
+      // Load pending vagas
+      const { data: pendingVagas } = await supabase
+        .from('vagas')
+        .select('*, users:recrutador_id(nome, email)')
+        .eq('status', 'em_analise')
+        .order('created_at', { ascending: false })
+      setVagasPendentes(pendingVagas || [])
+
       // Stats
       const candidatos = (allUsers || []).filter(u => u.role === 'candidato').length
       const recrutadores = (allUsers || []).filter(u => u.role === 'recrutador').length
@@ -156,6 +178,26 @@ export default function AdminDashboard() {
     if (!error) {
       setPendentes(pendentes.filter(r => r.id !== id))
       setUtilizadores(utilizadores.filter(u => u.id !== id))
+    }
+  }
+
+  const aprovarVaga = async (id: string) => {
+    const { error } = await supabase
+      .from('vagas')
+      .update({ status: 'aberta' })
+      .eq('id', id)
+    if (!error) {
+      setVagasPendentes(vagasPendentes.filter(v => v.id !== id))
+    }
+  }
+
+  const rejeitarVaga = async (id: string) => {
+    const { error } = await supabase
+      .from('vagas')
+      .update({ status: 'encerrada' })
+      .eq('id', id)
+    if (!error) {
+      setVagasPendentes(vagasPendentes.filter(v => v.id !== id))
     }
   }
 
@@ -210,6 +252,7 @@ export default function AdminDashboard() {
                 {[
                   { key: 'overview', label: 'Visão Geral', icon: BarChart3 },
                   { key: 'recrutadores', label: 'Aprovar Recrutadores', icon: UserCheck, badge: pendentes.length },
+                  { key: 'vagas', label: 'Aprovar Vagas', icon: Briefcase, badge: vagasPendentes.length },
                   { key: 'subscricoes', label: 'Subscrições', icon: CreditCard },
                   { key: 'utilizadores', label: 'Utilizadores', icon: Users },
                   { key: 'config', label: 'Configurações', icon: Settings },
@@ -345,6 +388,15 @@ export default function AdminDashboard() {
                               <button onClick={() => setActiveTab('recrutadores')} className="text-sm font-medium text-yellow-600 hover:underline">Ver</button>
                             </div>
                           )}
+                          {vagasPendentes.length > 0 && (
+                            <div className="flex items-center justify-between bg-orange-50 rounded-xl p-3">
+                              <div className="flex items-center gap-2">
+                                <Briefcase size={18} className="text-orange-600" />
+                                <span className="text-sm text-orange-700">{vagasPendentes.length} vaga(s) aguardando aprovação</span>
+                              </div>
+                              <button onClick={() => setActiveTab('vagas')} className="text-sm font-medium text-orange-600 hover:underline">Ver</button>
+                            </div>
+                          )}
                           {subscricoes.filter(s => s.status === 'pendente').length > 0 && (
                             <div className="flex items-center justify-between bg-blue-50 rounded-xl p-3">
                               <div className="flex items-center gap-2">
@@ -354,7 +406,7 @@ export default function AdminDashboard() {
                               <button onClick={() => setActiveTab('subscricoes')} className="text-sm font-medium text-blue-600 hover:underline">Ver</button>
                             </div>
                           )}
-                          {pendentes.length === 0 && subscricoes.filter(s => s.status === 'pendente').length === 0 && (
+                          {pendentes.length === 0 && vagasPendentes.length === 0 && subscricoes.filter(s => s.status === 'pendente').length === 0 && (
                             <div className="flex items-center gap-2 bg-green-50 rounded-xl p-3">
                               <Star size={18} className="text-green-600" />
                               <span className="text-sm text-green-700">Tudo em dia! Nenhuma acção pendente.</span>
@@ -406,6 +458,58 @@ export default function AdminDashboard() {
                                   </button>
                                   <button
                                     onClick={() => rejeitarRecrutador(r.id)}
+                                    className="flex items-center gap-1 bg-red-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-red-600 transition-colors"
+                                  >
+                                    <XCircle size={16} />
+                                    Rejeitar
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {activeTab === 'vagas' && (
+                    <div className="card overflow-hidden">
+                      <div className="p-5 border-b border-gray-100">
+                        <h2 className="font-heading font-semibold text-lg flex items-center gap-2">
+                          <Briefcase size={22} className="text-k10-accent" />
+                          Vagas Pendentes de Aprovação
+                        </h2>
+                        <p className="text-gray-500 text-sm mt-1">Vagas criadas por recrutadores que aguardam aprovação antes de ficarem visíveis.</p>
+                      </div>
+
+                      {vagasPendentes.length === 0 ? (
+                        <div className="p-8 text-center">
+                          <CheckCircle size={40} className="text-k10-green mx-auto mb-3" />
+                          <h3 className="font-semibold text-gray-700 mb-1">Nenhuma vaga pendente</h3>
+                          <p className="text-gray-500 text-sm">Todas as vagas foram aprovadas ou rejeitadas.</p>
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-gray-100">
+                          {vagasPendentes.map((v) => (
+                            <div key={v.id} className="p-5 hover:bg-gray-50 transition-colors">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div>
+                                  <h3 className="font-medium text-gray-900">{v.titulo}</h3>
+                                  <p className="text-sm text-gray-600">{v.empresa_nome} • {v.area}</p>
+                                  <p className="text-xs text-gray-400">{v.localizacao} • {v.salario || 'Salário não definido'} • {formatDate(v.created_at)}</p>
+                                  {v.users && <p className="text-xs text-blue-600 mt-1">Recrutador: {(v.users as any).nome} ({(v.users as any).email})</p>}
+                                  {v.is_prioritaria && <span className="badge bg-k10-gold/10 text-k10-gold text-xs mt-1">Destaque</span>}
+                                </div>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => aprovarVaga(v.id)}
+                                    className="flex items-center gap-1 bg-green-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-green-600 transition-colors"
+                                  >
+                                    <CheckCircle size={16} />
+                                    Aprovar
+                                  </button>
+                                  <button
+                                    onClick={() => rejeitarVaga(v.id)}
                                     className="flex items-center gap-1 bg-red-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-red-600 transition-colors"
                                   >
                                     <XCircle size={16} />

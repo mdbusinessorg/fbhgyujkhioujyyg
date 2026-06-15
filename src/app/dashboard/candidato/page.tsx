@@ -184,8 +184,13 @@ export default function CandidatoDashboard() {
       .upload(filePath, file, { upsert: true })
     if (!error) {
       await loadDocuments()
+      alert('Documento carregado com sucesso!')
     } else {
-      alert('Erro ao carregar documento: ' + error.message)
+      if (error.message.includes('not found') || error.message.includes('Bucket')) {
+        alert('O bucket de armazenamento "documentos" não existe. Contacta o administrador para criar o bucket no Supabase Storage.')
+      } else {
+        alert('Erro ao carregar documento: ' + error.message)
+      }
     }
     setUploading(false)
   }

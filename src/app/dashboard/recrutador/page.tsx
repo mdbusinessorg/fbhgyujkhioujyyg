@@ -57,8 +57,14 @@ export default function RecrutadorDashboard() {
       .eq('email', session.user.email)
       .single()
     
-    if (!user || !user.aprovado) {
+    if (!user) {
       window.location.href = '/'
+      return
+    }
+    if (!user.aprovado) {
+      setLoading(false)
+      setUserId('pending')
+      setUserName(user.nome)
       return
     }
 
@@ -115,13 +121,13 @@ export default function RecrutadorDashboard() {
       localizacao: novaVaga.localizacao,
       prazo: novaVaga.prazo,
       is_prioritaria: isPrioritaria,
-      status: 'aberta'
+      status: 'em_analise'
     })
 
     if (error) {
       setPublishMsg('Erro ao publicar vaga: ' + error.message)
     } else {
-      setPublishMsg(isPrioritaria ? 'Vaga prioritária publicada com sucesso!' : 'Vaga publicada com sucesso!')
+      setPublishMsg('Vaga enviada para aprovação do administrador!')
       setNovaVaga({ titulo: '', area: '', nivel_minimo: '', localizacao: '', salario: '', prazo: '', descricao: '', experiencia_requerida: '', empresa_nome: '' })
       loadData()
       setTimeout(() => { setActiveTab('vagas'); setPublishMsg('') }, 2000)
@@ -169,6 +175,27 @@ export default function RecrutadorDashboard() {
           <div className="text-center">
             <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
             <p className="text-gray-500 text-sm">A carregar...</p>
+          </div>
+        </main>
+      </>
+    )
+  }
+
+  if (userId === 'pending') {
+    return (
+      <>
+        <Navbar />
+        <main className="pt-16 min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="card p-8 max-w-md text-center">
+            <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Clock size={32} className="text-yellow-600" />
+            </div>
+            <h2 className="font-heading font-bold text-xl text-gray-800 mb-2">Conta Pendente de Aprovação</h2>
+            <p className="text-gray-600 text-sm mb-4">
+              Olá, {userName}! A tua conta de recrutador está a aguardar aprovação pelo administrador.
+              Receberás acesso ao painel assim que for aprovada.
+            </p>
+            <p className="text-xs text-gray-400">Isto geralmente demora até 24 horas.</p>
           </div>
         </main>
       </>
