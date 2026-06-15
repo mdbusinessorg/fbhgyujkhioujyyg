@@ -1,13 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import JobCard from '@/components/JobCard'
 import { Search, SlidersHorizontal, MapPin, Briefcase } from 'lucide-react'
 import { AREAS, NIVEIS_ACADEMICOS, PROVINCIAS_ANGOLA } from '@/lib/types'
+import { supabase } from '@/lib/supabase'
 
-const allJobs = [
+const fallbackJobs = [
   { id: '1', titulo: 'Analista Financeiro Sénior', empresa_nome: 'Banco BAI', area: 'Economia e Finanças', localizacao: 'Luanda', salario: '450.000 Kz', prazo: '30 Jun 2025', nivel_minimo: 'Licenciatura', is_prioritaria: true, status: 'aberta' },
   { id: '2', titulo: 'Desenvolvedor Full-Stack', empresa_nome: 'Unitel', area: 'Tecnologia da Informação', localizacao: 'Luanda', salario: '380.000 Kz', prazo: '15 Jul 2025', nivel_minimo: 'Licenciatura', is_prioritaria: false, status: 'aberta' },
   { id: '3', titulo: 'Engenheiro de Petróleo Jr.', empresa_nome: 'Sonangol', area: 'Petróleo e Gás', localizacao: 'Cabinda', salario: '600.000 Kz', prazo: '20 Jul 2025', nivel_minimo: 'Licenciatura', is_prioritaria: true, status: 'aberta' },
@@ -28,6 +29,30 @@ export default function VagasPage() {
   const [selectedProvincia, setSelectedProvincia] = useState('')
   const [selectedNivel, setSelectedNivel] = useState('')
   const [showFilters, setShowFilters] = useState(false)
+  const [allJobs, setAllJobs] = useState(fallbackJobs)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadJobs()
+  }, [])
+
+  const loadJobs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('vagas')
+        .select('*')
+        .eq('status', 'aberta')
+        .order('is_prioritaria', { ascending: false })
+        .order('created_at', { ascending: false })
+      
+      if (data && data.length > 0 && !error) {
+        setAllJobs(data)
+      }
+    } catch {
+      // fallback to mock data
+    }
+    setLoading(false)
+  }
 
   const filteredJobs = allJobs.filter((job) => {
     const matchesSearch = job.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||

@@ -1,13 +1,76 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Menu, X, User, LogIn, Briefcase, Search, Shield, BookOpen } from 'lucide-react'
+import { Menu, X, User, LogIn, Briefcase, Search, BookOpen, LogOut, LayoutDashboard } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
+
+interface UserData {
+  role: string
+  nome: string
+}
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
-  const [isLoggedIn] = useState(false)
+  const [user, setUser] = useState<UserData | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          const { data: userData } = await supabase
+            .from('users')
+            .select('role, nome')
+            .eq('email', session.user.email)
+            .single()
+          if (userData) {
+            setUser(userData)
+          } else {
+            setUser({ role: 'candidato', nome: session.user.email || '' })
+          }
+        }
+      } catch {
+        // silently fail
+      }
+      setLoading(false)
+    }
+    checkSession()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('role, nome')
+          .eq('email', session.user.email)
+          .single()
+        if (userData) {
+          setUser(userData)
+        } else {
+          setUser({ role: 'candidato', nome: session.user.email || '' })
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    setUser(null)
+    window.location.href = '/'
+  }
+
+  const getDashboardLink = () => {
+    if (!user) return '/dashboard/candidato/'
+    if (user.role === 'admin') return '/dashboard/admin/'
+    if (user.role === 'recrutador') return '/dashboard/recrutador/'
+    return '/dashboard/candidato/'
+  }
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100">
@@ -36,11 +99,22 @@ export default function Navbar() {
           </div>
 
           <div className="hidden md:flex items-center gap-3">
-            {isLoggedIn ? (
-              <Link href="/dashboard/candidato/" className="flex items-center gap-2 text-gray-600 hover:text-k10-accent transition-colors">
-                <User size={18} />
-                <span className="text-sm font-medium">Meu Painel</span>
-              </Link>
+            {loading ? (
+              <div className="w-20 h-8 bg-gray-100 rounded-lg animate-pulse" />
+            ) : user ? (
+              <div className="flex items-center gap-3">
+                <Link href={getDashboardLink()} className="flex items-center gap-2 text-gray-600 hover:text-k10-accent transition-colors">
+                  <LayoutDashboard size={16} />
+                  <span className="text-sm font-medium">Meu Painel</span>
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-1.5 text-gray-500 hover:text-red-500 transition-colors text-sm"
+                >
+                  <LogOut size={16} />
+                  Sair
+                </button>
+              </div>
             ) : (
               <>
                 <Link href="/auth/login/" className="flex items-center gap-1.5 text-gray-600 hover:text-k10-accent transition-colors font-medium text-sm">
@@ -76,13 +150,31 @@ export default function Navbar() {
               Pesquisar
             </Link>
             <hr className="border-gray-100" />
-            <Link href="/auth/login/" className="flex items-center gap-2 py-2 text-gray-600 hover:text-k10-accent" onClick={() => setIsOpen(false)}>
-              <LogIn size={18} />
-              Entrar
-            </Link>
-            <Link href="/auth/registar/" className="btn-primary text-center block text-sm" onClick={() => setIsOpen(false)}>
-              Criar Conta
-            </Link>
+            {user ? (
+              <>
+                <Link href={getDashboardLink()} className="flex items-center gap-2 py-2 text-gray-600 hover:text-k10-accent" onClick={() => setIsOpen(false)}>
+                  <LayoutDashboard size={18} />
+                  Meu Painel
+                </Link>
+                <button
+                  onClick={() => { handleLogout(); setIsOpen(false) }}
+                  className="flex items-center gap-2 py-2 text-red-500 w-full"
+                >
+                  <LogOut size={18} />
+                  Sair
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/auth/login/" className="flex items-center gap-2 py-2 text-gray-600 hover:text-k10-accent" onClick={() => setIsOpen(false)}>
+                  <LogIn size={18} />
+                  Entrar
+                </Link>
+                <Link href="/auth/registar/" className="btn-primary text-center block text-sm" onClick={() => setIsOpen(false)}>
+                  Criar Conta
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}

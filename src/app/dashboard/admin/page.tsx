@@ -1,39 +1,190 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import Navbar from '@/components/Navbar'
-import { Users, Briefcase, TrendingUp, Shield, CheckCircle, XCircle, Clock, Eye, CreditCard, BarChart3, Settings, LogOut, UserCheck, UserX, AlertTriangle, DollarSign, Star, Bell } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
+import { Users, Briefcase, TrendingUp, Shield, CheckCircle, XCircle, Clock, Eye, CreditCard, BarChart3, Settings, LogOut, UserCheck, AlertTriangle, DollarSign, Star, Bell } from 'lucide-react'
 
-const mockRecrutadoresPendentes = [
-  { id: '1', nome: 'TechAngola Lda', email: 'rh@techangola.ao', data_registo: '12 Jun 2025', telefone: '+244 923 456 789' },
-  { id: '2', nome: 'Construções ABC', email: 'admin@construcoesabc.ao', data_registo: '11 Jun 2025', telefone: '+244 912 345 678' },
-  { id: '3', nome: 'Clínica Saúde Plus', email: 'contacto@saudeplus.ao', data_registo: '10 Jun 2025', telefone: '+244 945 678 901' },
-]
+interface Recrutador {
+  id: string
+  nome: string
+  email: string
+  telefone: string
+  created_at: string
+}
 
-const mockSubscricoes = [
-  { id: '1', user: 'Maria Santos', email: 'maria@email.com', plano: 'Premium', valor: '1.000 Kz', status: 'ativa', data_inicio: '01 Jun 2025', data_fim: '01 Jul 2025' },
-  { id: '2', user: 'Pedro Neto', email: 'pedro@email.com', plano: 'Premium', valor: '1.000 Kz', status: 'ativa', data_inicio: '05 Jun 2025', data_fim: '05 Jul 2025' },
-  { id: '3', user: 'Ana Luísa', email: 'ana@email.com', plano: 'Trial', valor: '0 Kz', status: 'expirada', data_inicio: '08 Jun 2025', data_fim: '10 Jun 2025' },
-  { id: '4', user: 'Banco BAI', email: 'rh@bai.ao', plano: 'Recrutador', valor: '25.000 Kz', status: 'ativa', data_inicio: '01 Mai 2025', data_fim: '01 Ago 2025' },
-  { id: '5', user: 'Carlos Alberto', email: 'carlos@email.com', plano: 'Premium', valor: '1.000 Kz', status: 'pendente', data_inicio: '14 Jun 2025', data_fim: '14 Jul 2025' },
-]
+interface Subscricao {
+  id: string
+  plano: string
+  valor: number
+  status: string
+  data_inicio: string
+  data_fim: string
+  user_id: string
+  users?: { nome: string; email: string }
+}
 
-const mockUtilizadores = [
-  { id: '1', nome: 'Maria Santos', email: 'maria@email.com', role: 'candidato', area: 'Economia e Finanças', status: 'activo', criado: '01 Jun 2025' },
-  { id: '2', nome: 'Pedro Neto', email: 'pedro@email.com', role: 'candidato', area: 'Economia e Finanças', status: 'activo', criado: '05 Jun 2025' },
-  { id: '3', nome: 'Banco BAI', email: 'rh@bai.ao', role: 'recrutador', area: '-', status: 'activo', criado: '15 Mai 2025' },
-  { id: '4', nome: 'Ana Luísa', email: 'ana@email.com', role: 'candidato', area: 'Contabilidade', status: 'trial expirado', criado: '08 Jun 2025' },
-  { id: '5', nome: 'Unitel', email: 'rh@unitel.ao', role: 'recrutador', area: '-', status: 'activo', criado: '10 Mai 2025' },
-]
+interface Utilizador {
+  id: string
+  nome: string
+  email: string
+  role: string
+  aprovado: boolean
+  created_at: string
+}
+
+interface Stats {
+  totalUsers: number
+  totalVagas: number
+  totalCandidaturas: number
+  totalCandidatos: number
+  totalRecrutadores: number
+  subsAtivas: number
+}
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<'overview' | 'recrutadores' | 'subscricoes' | 'utilizadores' | 'config'>('overview')
-  const [pendentes, setPendentes] = useState(mockRecrutadoresPendentes)
+  const [pendentes, setPendentes] = useState<Recrutador[]>([])
+  const [subscricoes, setSubscricoes] = useState<Subscricao[]>([])
+  const [utilizadores, setUtilizadores] = useState<Utilizador[]>([])
+  const [stats, setStats] = useState<Stats>({ totalUsers: 0, totalVagas: 0, totalCandidaturas: 0, totalCandidatos: 0, totalRecrutadores: 0, subsAtivas: 0 })
+  const [loading, setLoading] = useState(true)
+  const [authChecked, setAuthChecked] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
 
-  const aprovarRecrutador = (id: string) => {
-    setPendentes(pendentes.filter((r) => r.id !== id))
+  useEffect(() => {
+    checkAdmin()
+  }, [])
+
+  useEffect(() => {
+    if (isAdmin) {
+      loadData()
+    }
+  }, [isAdmin])
+
+  const checkAdmin = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.user) {
+      window.location.href = '/auth/login/'
+      return
+    }
+    const { data: userData } = await supabase
+      .from('users')
+      .select('role')
+      .eq('email', session.user.email)
+      .single()
+    if (userData?.role === 'admin') {
+      setIsAdmin(true)
+    } else {
+      window.location.href = '/'
+    }
+    setAuthChecked(true)
+  }
+
+  const loadData = async () => {
+    setLoading(true)
+    try {
+      // Load pending recruiters
+      const { data: recrutadoresPendentes } = await supabase
+        .from('users')
+        .select('*')
+        .eq('role', 'recrutador')
+        .eq('aprovado', false)
+        .order('created_at', { ascending: false })
+      setPendentes(recrutadoresPendentes || [])
+
+      // Load all users
+      const { data: allUsers } = await supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false })
+      setUtilizadores(allUsers || [])
+
+      // Load subscriptions (join with users)
+      const { data: allSubs } = await supabase
+        .from('subscriptions')
+        .select('*, users(nome, email)')
+        .order('data_inicio', { ascending: false })
+      setSubscricoes(allSubs || [])
+
+      // Stats
+      const candidatos = (allUsers || []).filter(u => u.role === 'candidato').length
+      const recrutadores = (allUsers || []).filter(u => u.role === 'recrutador').length
+
+      const { count: vagasCount } = await supabase
+        .from('vagas')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'aberta')
+
+      const { count: candidaturasCount } = await supabase
+        .from('candidaturas')
+        .select('*', { count: 'exact', head: true })
+
+      const subsAtivas = (allSubs || []).filter(s => s.status === 'ativa').length
+
+      setStats({
+        totalUsers: (allUsers || []).length,
+        totalVagas: vagasCount || 0,
+        totalCandidaturas: candidaturasCount || 0,
+        totalCandidatos: candidatos,
+        totalRecrutadores: recrutadores,
+        subsAtivas
+      })
+    } catch (err) {
+      console.error('Error loading admin data:', err)
+    }
+    setLoading(false)
+  }
+
+  const aprovarRecrutador = async (id: string) => {
+    const { error } = await supabase
+      .from('users')
+      .update({ aprovado: true })
+      .eq('id', id)
+    if (!error) {
+      setPendentes(pendentes.filter(r => r.id !== id))
+      setUtilizadores(utilizadores.map(u => u.id === id ? { ...u, aprovado: true } : u))
+    }
+  }
+
+  const rejeitarRecrutador = async (id: string) => {
+    const { error } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', id)
+    if (!error) {
+      setPendentes(pendentes.filter(r => r.id !== id))
+      setUtilizadores(utilizadores.filter(u => u.id !== id))
+    }
+  }
+
+  const aprovarSubscricao = async (id: string) => {
+    const { error } = await supabase
+      .from('subscriptions')
+      .update({ status: 'ativa' })
+      .eq('id', id)
+    if (!error) {
+      setSubscricoes(subscricoes.map(s => s.id === id ? { ...s, status: 'ativa' } : s))
+    }
+  }
+
+  if (!authChecked || (!isAdmin && !loading)) {
+    return (
+      <>
+        <Navbar />
+        <main className="pt-16 min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-8 h-8 border-2 border-k10-accent border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-gray-500 text-sm">A verificar acesso...</p>
+          </div>
+        </main>
+      </>
+    )
+  }
+
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString('pt-AO', { day: '2-digit', month: 'short', year: 'numeric' })
   }
 
   return (
@@ -92,343 +243,345 @@ export default function AdminDashboard() {
             </aside>
 
             <div className="flex-1">
-
-              {activeTab === 'overview' && (
+              {loading ? (
+                <div className="card p-12 text-center">
+                  <div className="w-8 h-8 border-2 border-k10-accent border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                  <p className="text-gray-500 text-sm">A carregar dados...</p>
+                </div>
+              ) : (
                 <>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    <div className="stat-card">
-                      <Users size={22} className="text-blue-500 mb-2" />
-                      <span className="text-2xl font-bold text-k10-primary">2.156</span>
-                      <span className="text-xs text-gray-500">Total Utilizadores</span>
-                    </div>
-                    <div className="stat-card">
-                      <Briefcase size={22} className="text-k10-green mb-2" />
-                      <span className="text-2xl font-bold text-k10-primary">487</span>
-                      <span className="text-xs text-gray-500">Vagas Activas</span>
-                    </div>
-                    <div className="stat-card">
-                      <TrendingUp size={22} className="text-k10-accent mb-2" />
-                      <span className="text-2xl font-bold text-k10-primary">1.340</span>
-                      <span className="text-xs text-gray-500">Candidaturas</span>
-                    </div>
-                    <div className="stat-card">
-                      <DollarSign size={22} className="text-k10-gold mb-2" />
-                      <span className="text-2xl font-bold text-k10-primary">892k Kz</span>
-                      <span className="text-xs text-gray-500">Receita Mensal</span>
-                    </div>
-                  </div>
+                  {activeTab === 'overview' && (
+                    <>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div className="stat-card">
+                          <Users size={22} className="text-blue-500 mb-2" />
+                          <span className="text-2xl font-bold text-k10-primary">{stats.totalUsers}</span>
+                          <span className="text-xs text-gray-500">Total Utilizadores</span>
+                        </div>
+                        <div className="stat-card">
+                          <Briefcase size={22} className="text-k10-green mb-2" />
+                          <span className="text-2xl font-bold text-k10-primary">{stats.totalVagas}</span>
+                          <span className="text-xs text-gray-500">Vagas Activas</span>
+                        </div>
+                        <div className="stat-card">
+                          <TrendingUp size={22} className="text-k10-accent mb-2" />
+                          <span className="text-2xl font-bold text-k10-primary">{stats.totalCandidaturas}</span>
+                          <span className="text-xs text-gray-500">Candidaturas</span>
+                        </div>
+                        <div className="stat-card">
+                          <DollarSign size={22} className="text-k10-gold mb-2" />
+                          <span className="text-2xl font-bold text-k10-primary">{stats.subsAtivas}</span>
+                          <span className="text-xs text-gray-500">Subscrições Activas</span>
+                        </div>
+                      </div>
 
-                  <div className="grid md:grid-cols-2 gap-6 mb-6">
-                    <div className="card p-6">
-                      <h3 className="font-heading font-semibold mb-4">Distribuição de Utilizadores</h3>
-                      <div className="space-y-4">
-                        <div>
-                          <div className="flex justify-between text-sm mb-1">
-                            <span className="text-gray-600">Candidatos</span>
-                            <span className="font-medium">1.890</span>
-                          </div>
-                          <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                            <div className="h-full bg-blue-500 rounded-full" style={{ width: '87%' }} />
+                      <div className="grid md:grid-cols-2 gap-6 mb-6">
+                        <div className="card p-6">
+                          <h3 className="font-heading font-semibold mb-4">Distribuição de Utilizadores</h3>
+                          <div className="space-y-4">
+                            <div>
+                              <div className="flex justify-between text-sm mb-1">
+                                <span className="text-gray-600">Candidatos</span>
+                                <span className="font-medium">{stats.totalCandidatos}</span>
+                              </div>
+                              <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                                <div className="h-full bg-blue-500 rounded-full" style={{ width: `${stats.totalUsers > 0 ? (stats.totalCandidatos / stats.totalUsers * 100) : 0}%` }} />
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex justify-between text-sm mb-1">
+                                <span className="text-gray-600">Recrutadores</span>
+                                <span className="font-medium">{stats.totalRecrutadores}</span>
+                              </div>
+                              <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                                <div className="h-full bg-k10-green rounded-full" style={{ width: `${stats.totalUsers > 0 ? (stats.totalRecrutadores / stats.totalUsers * 100) : 0}%` }} />
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex justify-between text-sm mb-1">
+                                <span className="text-gray-600">Pendentes</span>
+                                <span className="font-medium text-k10-accent">{pendentes.length}</span>
+                              </div>
+                              <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                                <div className="h-full bg-k10-accent rounded-full" style={{ width: `${stats.totalUsers > 0 ? (pendentes.length / stats.totalUsers * 100) : 0}%` }} />
+                              </div>
+                            </div>
                           </div>
                         </div>
-                        <div>
-                          <div className="flex justify-between text-sm mb-1">
-                            <span className="text-gray-600">Recrutadores</span>
-                            <span className="font-medium">156</span>
-                          </div>
-                          <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                            <div className="h-full bg-k10-green rounded-full" style={{ width: '7%' }} />
-                          </div>
-                        </div>
-                        <div>
-                          <div className="flex justify-between text-sm mb-1">
-                            <span className="text-gray-600">Recrutadores Pendentes</span>
-                            <span className="font-medium text-k10-accent">{pendentes.length}</span>
-                          </div>
-                          <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                            <div className="h-full bg-k10-accent rounded-full" style={{ width: '2%' }} />
+
+                        <div className="card p-6">
+                          <h3 className="font-heading font-semibold mb-4">Subscrições</h3>
+                          <div className="space-y-4">
+                            {['trial', 'premium', 'recrutador'].map(plano => {
+                              const count = subscricoes.filter(s => s.plano === plano && s.status === 'ativa').length
+                              return (
+                                <div key={plano}>
+                                  <div className="flex justify-between text-sm mb-1">
+                                    <span className="text-gray-600 capitalize">{plano === 'premium' ? 'Candidato Premium' : plano === 'recrutador' ? 'Recrutador' : 'Trial Gratuito'}</span>
+                                    <span className="font-medium">{count}</span>
+                                  </div>
+                                  <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                                    <div className={`h-full rounded-full ${plano === 'premium' ? 'bg-k10-gold' : plano === 'recrutador' ? 'bg-purple-500' : 'bg-gray-400'}`} style={{ width: `${subscricoes.length > 0 ? (count / Math.max(subscricoes.length, 1) * 100) : 0}%` }} />
+                                  </div>
+                                </div>
+                              )
+                            })}
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="card p-6">
-                      <h3 className="font-heading font-semibold mb-4">Subscrições Activas</h3>
-                      <div className="space-y-4">
-                        <div>
-                          <div className="flex justify-between text-sm mb-1">
-                            <span className="text-gray-600">Candidato Premium (1.000 Kz)</span>
-                            <span className="font-medium">342</span>
-                          </div>
-                          <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                            <div className="h-full bg-k10-gold rounded-full" style={{ width: '65%' }} />
-                          </div>
-                        </div>
-                        <div>
-                          <div className="flex justify-between text-sm mb-1">
-                            <span className="text-gray-600">Recrutador Empresarial</span>
-                            <span className="font-medium">89</span>
-                          </div>
-                          <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                            <div className="h-full bg-purple-500 rounded-full" style={{ width: '17%' }} />
-                          </div>
-                        </div>
-                        <div>
-                          <div className="flex justify-between text-sm mb-1">
-                            <span className="text-gray-600">Trial Gratuito</span>
-                            <span className="font-medium">98</span>
-                          </div>
-                          <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                            <div className="h-full bg-gray-400 rounded-full" style={{ width: '18%' }} />
-                          </div>
+                      <div className="card p-6">
+                        <h3 className="font-heading font-semibold mb-4 flex items-center gap-2">
+                          <AlertTriangle size={18} className="text-k10-accent" />
+                          Alertas e Acções Pendentes
+                        </h3>
+                        <div className="space-y-3">
+                          {pendentes.length > 0 && (
+                            <div className="flex items-center justify-between bg-yellow-50 rounded-xl p-3">
+                              <div className="flex items-center gap-2">
+                                <UserCheck size={18} className="text-yellow-600" />
+                                <span className="text-sm text-yellow-700">{pendentes.length} recrutador(es) aguardando aprovação</span>
+                              </div>
+                              <button onClick={() => setActiveTab('recrutadores')} className="text-sm font-medium text-yellow-600 hover:underline">Ver</button>
+                            </div>
+                          )}
+                          {subscricoes.filter(s => s.status === 'pendente').length > 0 && (
+                            <div className="flex items-center justify-between bg-blue-50 rounded-xl p-3">
+                              <div className="flex items-center gap-2">
+                                <CreditCard size={18} className="text-blue-600" />
+                                <span className="text-sm text-blue-700">{subscricoes.filter(s => s.status === 'pendente').length} subscrição(ões) pendentes</span>
+                              </div>
+                              <button onClick={() => setActiveTab('subscricoes')} className="text-sm font-medium text-blue-600 hover:underline">Ver</button>
+                            </div>
+                          )}
+                          {pendentes.length === 0 && subscricoes.filter(s => s.status === 'pendente').length === 0 && (
+                            <div className="flex items-center gap-2 bg-green-50 rounded-xl p-3">
+                              <Star size={18} className="text-green-600" />
+                              <span className="text-sm text-green-700">Tudo em dia! Nenhuma acção pendente.</span>
+                            </div>
+                          )}
                         </div>
                       </div>
-                      <div className="mt-4 bg-green-50 rounded-xl p-3">
-                        <p className="text-green-700 text-sm font-medium">Receita este mês: 892.000 Kz</p>
-                        <p className="text-green-600 text-xs">+12% vs mês anterior</p>
-                      </div>
-                    </div>
-                  </div>
+                    </>
+                  )}
 
-                  <div className="card p-6">
-                    <h3 className="font-heading font-semibold mb-4 flex items-center gap-2">
-                      <AlertTriangle size={18} className="text-k10-accent" />
-                      Alertas e Acções Pendentes
-                    </h3>
-                    <div className="space-y-3">
-                      {pendentes.length > 0 && (
-                        <div className="flex items-center justify-between bg-yellow-50 rounded-xl p-3">
-                          <div className="flex items-center gap-2">
-                            <UserCheck size={18} className="text-yellow-600" />
-                            <span className="text-sm text-yellow-700">{pendentes.length} recrutador(es) aguardando aprovação</span>
-                          </div>
-                          <button onClick={() => setActiveTab('recrutadores')} className="text-sm font-medium text-yellow-600 hover:underline">Ver</button>
+                  {activeTab === 'recrutadores' && (
+                    <div className="card overflow-hidden">
+                      <div className="p-5 border-b border-gray-100">
+                        <h2 className="font-heading font-semibold text-lg flex items-center gap-2">
+                          <UserCheck size={22} className="text-k10-accent" />
+                          Recrutadores Pendentes de Aprovação
+                        </h2>
+                        <p className="text-gray-500 text-sm mt-1">Aprova ou rejeita perfis de recrutadores para publicarem vagas na plataforma.</p>
+                      </div>
+                      
+                      {pendentes.length === 0 ? (
+                        <div className="p-8 text-center">
+                          <CheckCircle size={40} className="text-k10-green mx-auto mb-3" />
+                          <h3 className="font-semibold text-gray-700 mb-1">Tudo em dia!</h3>
+                          <p className="text-gray-500 text-sm">Não há recrutadores pendentes de aprovação.</p>
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-gray-100">
+                          {pendentes.map((r) => (
+                            <div key={r.id} className="p-5 hover:bg-gray-50 transition-colors">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                                    <Briefcase size={22} className="text-blue-600" />
+                                  </div>
+                                  <div>
+                                    <h3 className="font-medium text-gray-900">{r.nome}</h3>
+                                    <p className="text-xs text-gray-500">{r.email}</p>
+                                    <p className="text-xs text-gray-400">{r.telefone && `Tel: ${r.telefone} • `}Registado: {formatDate(r.created_at)}</p>
+                                  </div>
+                                </div>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => aprovarRecrutador(r.id)}
+                                    className="flex items-center gap-1 bg-green-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-green-600 transition-colors"
+                                  >
+                                    <CheckCircle size={16} />
+                                    Aprovar
+                                  </button>
+                                  <button
+                                    onClick={() => rejeitarRecrutador(r.id)}
+                                    className="flex items-center gap-1 bg-red-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-red-600 transition-colors"
+                                  >
+                                    <XCircle size={16} />
+                                    Rejeitar
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       )}
-                      <div className="flex items-center justify-between bg-blue-50 rounded-xl p-3">
-                        <div className="flex items-center gap-2">
-                          <CreditCard size={18} className="text-blue-600" />
-                          <span className="text-sm text-blue-700">5 subscrições a expirar nos próximos 3 dias</span>
-                        </div>
-                        <button onClick={() => setActiveTab('subscricoes')} className="text-sm font-medium text-blue-600 hover:underline">Ver</button>
-                      </div>
-                      <div className="flex items-center justify-between bg-green-50 rounded-xl p-3">
-                        <div className="flex items-center gap-2">
-                          <Star size={18} className="text-green-600" />
-                          <span className="text-sm text-green-700">12 novas vagas prioritárias publicadas esta semana</span>
-                        </div>
-                        <span className="text-sm text-green-500">60.000 Kz gerados</span>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {activeTab === 'recrutadores' && (
-                <div className="card overflow-hidden">
-                  <div className="p-5 border-b border-gray-100">
-                    <h2 className="font-heading font-semibold text-lg flex items-center gap-2">
-                      <UserCheck size={22} className="text-k10-accent" />
-                      Recrutadores Pendentes de Aprovação
-                    </h2>
-                    <p className="text-gray-500 text-sm mt-1">Aprova ou rejeita perfis de recrutadores para publicarem vagas na plataforma.</p>
-                  </div>
-                  
-                  {pendentes.length === 0 ? (
-                    <div className="p-8 text-center">
-                      <CheckCircle size={40} className="text-k10-green mx-auto mb-3" />
-                      <h3 className="font-semibold text-gray-700 mb-1">Tudo em dia!</h3>
-                      <p className="text-gray-500 text-sm">Não há recrutadores pendentes de aprovação.</p>
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-gray-100">
-                      {pendentes.map((r) => (
-                        <div key={r.id} className="p-5 hover:bg-gray-50 transition-colors">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                                <Briefcase size={22} className="text-blue-600" />
-                              </div>
-                              <div>
-                                <h3 className="font-medium text-gray-900">{r.nome}</h3>
-                                <p className="text-xs text-gray-500">{r.email}</p>
-                                <p className="text-xs text-gray-400">Telefone: {r.telefone} • Registado: {r.data_registo}</p>
-                              </div>
-                            </div>
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => aprovarRecrutador(r.id)}
-                                className="flex items-center gap-1 bg-green-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-green-600 transition-colors"
-                              >
-                                <CheckCircle size={16} />
-                                Aprovar
-                              </button>
-                              <button
-                                onClick={() => aprovarRecrutador(r.id)}
-                                className="flex items-center gap-1 bg-red-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-red-600 transition-colors"
-                              >
-                                <XCircle size={16} />
-                                Rejeitar
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
                     </div>
                   )}
-                </div>
-              )}
 
-              {activeTab === 'subscricoes' && (
-                <div className="card overflow-hidden">
-                  <div className="p-5 border-b border-gray-100">
-                    <h2 className="font-heading font-semibold text-lg flex items-center gap-2">
-                      <CreditCard size={22} className="text-k10-gold" />
-                      Gestão de Subscrições
-                    </h2>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Utilizador</th>
-                          <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Plano</th>
-                          <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Valor</th>
-                          <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Período</th>
-                          <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Status</th>
-                          <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Acções</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {mockSubscricoes.map((s) => (
-                          <tr key={s.id} className="hover:bg-gray-50 transition-colors">
-                            <td className="px-4 py-3">
-                              <p className="font-medium text-sm text-gray-900">{s.user}</p>
-                              <p className="text-xs text-gray-500">{s.email}</p>
-                            </td>
-                            <td className="px-4 py-3">
-                              <span className={`badge ${
-                                s.plano === 'Premium' ? 'bg-k10-gold/10 text-k10-gold' :
-                                s.plano === 'Recrutador' ? 'bg-purple-100 text-purple-700' :
-                                'bg-gray-100 text-gray-600'
-                              }`}>{s.plano}</span>
-                            </td>
-                            <td className="px-4 py-3 text-sm text-gray-700">{s.valor}</td>
-                            <td className="px-4 py-3 text-xs text-gray-500">{s.data_inicio} — {s.data_fim}</td>
-                            <td className="px-4 py-3">
-                              <span className={
-                                s.status === 'ativa' ? 'badge-success' :
-                                s.status === 'expirada' ? 'badge-danger' :
-                                'badge-warning'
-                              }>{s.status}</span>
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="flex gap-1">
-                                {s.status === 'pendente' && (
-                                  <button className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100" title="Aprovar">
-                                    <CheckCircle size={14} />
-                                  </button>
-                                )}
-                                <button className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100" title="Ver detalhes">
-                                  <Eye size={14} />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
+                  {activeTab === 'subscricoes' && (
+                    <div className="card overflow-hidden">
+                      <div className="p-5 border-b border-gray-100">
+                        <h2 className="font-heading font-semibold text-lg flex items-center gap-2">
+                          <CreditCard size={22} className="text-k10-gold" />
+                          Gestão de Subscrições
+                        </h2>
+                      </div>
+                      {subscricoes.length === 0 ? (
+                        <div className="p-8 text-center">
+                          <CreditCard size={40} className="text-gray-300 mx-auto mb-3" />
+                          <p className="text-gray-500 text-sm">Ainda não há subscrições registadas.</p>
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Utilizador</th>
+                                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Plano</th>
+                                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Valor</th>
+                                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Período</th>
+                                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Status</th>
+                                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Acções</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {subscricoes.map((s) => (
+                                <tr key={s.id} className="hover:bg-gray-50 transition-colors">
+                                  <td className="px-4 py-3">
+                                    <p className="font-medium text-sm text-gray-900">{(s as any).users?.nome || 'N/A'}</p>
+                                    <p className="text-xs text-gray-500">{(s as any).users?.email || ''}</p>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <span className={`badge ${
+                                      s.plano === 'premium' ? 'bg-k10-gold/10 text-k10-gold' :
+                                      s.plano === 'recrutador' ? 'bg-purple-100 text-purple-700' :
+                                      'bg-gray-100 text-gray-600'
+                                    }`}>{s.plano}</span>
+                                  </td>
+                                  <td className="px-4 py-3 text-sm text-gray-700">{s.valor.toLocaleString()} Kz</td>
+                                  <td className="px-4 py-3 text-xs text-gray-500">{formatDate(s.data_inicio)} — {formatDate(s.data_fim)}</td>
+                                  <td className="px-4 py-3">
+                                    <span className={
+                                      s.status === 'ativa' ? 'badge-success' :
+                                      s.status === 'expirada' ? 'badge-danger' :
+                                      'badge-warning'
+                                    }>{s.status}</span>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="flex gap-1">
+                                      {s.status === 'pendente' && (
+                                        <button onClick={() => aprovarSubscricao(s.id)} className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100" title="Aprovar">
+                                          <CheckCircle size={14} />
+                                        </button>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-              {activeTab === 'utilizadores' && (
-                <div className="card overflow-hidden">
-                  <div className="p-5 border-b border-gray-100">
-                    <h2 className="font-heading font-semibold text-lg flex items-center gap-2">
-                      <Users size={22} className="text-blue-500" />
-                      Todos os Utilizadores
-                    </h2>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Nome</th>
-                          <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Tipo</th>
-                          <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Área</th>
-                          <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Status</th>
-                          <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Registado</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {mockUtilizadores.map((u) => (
-                          <tr key={u.id} className="hover:bg-gray-50 transition-colors">
-                            <td className="px-4 py-3">
-                              <p className="font-medium text-sm text-gray-900">{u.nome}</p>
-                              <p className="text-xs text-gray-500">{u.email}</p>
-                            </td>
-                            <td className="px-4 py-3">
-                              <span className={`badge ${
-                                u.role === 'candidato' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
-                              }`}>{u.role === 'candidato' ? 'Candidato' : 'Recrutador'}</span>
-                            </td>
-                            <td className="px-4 py-3 text-sm text-gray-600">{u.area}</td>
-                            <td className="px-4 py-3">
-                              <span className={u.status === 'activo' ? 'badge-success' : 'badge-warning'}>{u.status}</span>
-                            </td>
-                            <td className="px-4 py-3 text-xs text-gray-500">{u.criado}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
+                  {activeTab === 'utilizadores' && (
+                    <div className="card overflow-hidden">
+                      <div className="p-5 border-b border-gray-100">
+                        <h2 className="font-heading font-semibold text-lg flex items-center gap-2">
+                          <Users size={22} className="text-blue-500" />
+                          Todos os Utilizadores ({utilizadores.length})
+                        </h2>
+                      </div>
+                      {utilizadores.length === 0 ? (
+                        <div className="p-8 text-center">
+                          <Users size={40} className="text-gray-300 mx-auto mb-3" />
+                          <p className="text-gray-500 text-sm">Ainda não há utilizadores registados.</p>
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Nome</th>
+                                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Tipo</th>
+                                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Status</th>
+                                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Registado</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {utilizadores.map((u) => (
+                                <tr key={u.id} className="hover:bg-gray-50 transition-colors">
+                                  <td className="px-4 py-3">
+                                    <p className="font-medium text-sm text-gray-900">{u.nome}</p>
+                                    <p className="text-xs text-gray-500">{u.email}</p>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <span className={`badge ${
+                                      u.role === 'admin' ? 'bg-k10-primary/10 text-k10-primary' :
+                                      u.role === 'candidato' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
+                                    }`}>{u.role === 'candidato' ? 'Candidato' : u.role === 'recrutador' ? 'Recrutador' : 'Admin'}</span>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <span className={u.aprovado ? 'badge-success' : 'badge-warning'}>{u.aprovado ? 'Aprovado' : 'Pendente'}</span>
+                                  </td>
+                                  <td className="px-4 py-3 text-xs text-gray-500">{formatDate(u.created_at)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-              {activeTab === 'config' && (
-                <div className="space-y-4">
-                  <div className="card p-6">
-                    <h2 className="font-heading font-semibold text-lg mb-4">Configurações da Plataforma</h2>
+                  {activeTab === 'config' && (
                     <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Email do Administrador</label>
-                        <input type="email" className="input-field" defaultValue="matiasdomingos158@gmail.com" disabled />
+                      <div className="card p-6">
+                        <h2 className="font-heading font-semibold text-lg mb-4">Configurações da Plataforma</h2>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Email do Administrador</label>
+                            <input type="email" className="input-field" defaultValue="matiasdomingos158@gmail.com" disabled />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Telefone de Contacto</label>
+                            <input type="text" className="input-field" defaultValue="+244 934 859 240" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Preço Candidato Premium (Kz)</label>
+                            <input type="number" className="input-field" defaultValue="1000" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Preço Vaga Prioritária (Kz)</label>
+                            <input type="number" className="input-field" defaultValue="5000" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Dias de Trial Gratuito</label>
+                            <input type="number" className="input-field" defaultValue="2" />
+                          </div>
+                        </div>
+                        <button className="btn-primary mt-6">Guardar Configurações</button>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Telefone de Contacto</label>
-                        <input type="text" className="input-field" defaultValue="+244 934 859 240" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Preço Candidato Premium (Kz)</label>
-                        <input type="number" className="input-field" defaultValue="1000" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Preço Vaga Prioritária (Kz)</label>
-                        <input type="number" className="input-field" defaultValue="5000" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Dias de Trial Gratuito</label>
-                        <input type="number" className="input-field" defaultValue="2" />
+
+                      <div className="card p-6 border-l-4 border-k10-accent">
+                        <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                          <Bell size={18} className="text-k10-accent" />
+                          Notificações do Admin
+                        </h3>
+                        <p className="text-gray-500 text-sm mb-3">Recebes notificações em matiasdomingos158@gmail.com quando:</p>
+                        <ul className="space-y-2 text-sm text-gray-600">
+                          <li className="flex items-center gap-2"><CheckCircle size={14} className="text-k10-green" /> Um novo recrutador se regista</li>
+                          <li className="flex items-center gap-2"><CheckCircle size={14} className="text-k10-green" /> Uma subscrição é criada ou expira</li>
+                          <li className="flex items-center gap-2"><CheckCircle size={14} className="text-k10-green" /> Uma vaga prioritária é publicada</li>
+                          <li className="flex items-center gap-2"><CheckCircle size={14} className="text-k10-green" /> Relatório semanal de métricas</li>
+                        </ul>
                       </div>
                     </div>
-                    <button className="btn-primary mt-6">Guardar Configurações</button>
-                  </div>
-
-                  <div className="card p-6 border-l-4 border-k10-accent">
-                    <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                      <Bell size={18} className="text-k10-accent" />
-                      Notificações do Admin
-                    </h3>
-                    <p className="text-gray-500 text-sm mb-3">Recebes notificações em matiasdomingos158@gmail.com quando:</p>
-                    <ul className="space-y-2 text-sm text-gray-600">
-                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-k10-green" /> Um novo recrutador se regista</li>
-                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-k10-green" /> Uma subscrição é criada ou expira</li>
-                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-k10-green" /> Uma vaga prioritária é publicada</li>
-                      <li className="flex items-center gap-2"><CheckCircle size={14} className="text-k10-green" /> Relatório semanal de métricas</li>
-                    </ul>
-                  </div>
-                </div>
+                  )}
+                </>
               )}
             </div>
           </div>

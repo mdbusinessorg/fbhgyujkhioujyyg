@@ -1,23 +1,41 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import Navbar from '@/components/Navbar'
-import { Briefcase, FileText, Users, Bell, TrendingUp, Clock, CheckCircle, XCircle, Eye, Send, LogOut, User, Star, Settings } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
+import { Briefcase, FileText, Bell, TrendingUp, Clock, CheckCircle, XCircle, Eye, Send, LogOut, User, Star, Settings } from 'lucide-react'
 
-const mockCandidaturas = [
-  { id: '1', vaga: 'Analista Financeiro Sénior', empresa: 'Banco BAI', status: 'em_analise', data: '10 Jun 2025' },
-  { id: '2', vaga: 'Contador Certificado', empresa: 'Ernst & Young Angola', status: 'enviada', data: '08 Jun 2025' },
-  { id: '3', vaga: 'Gestor Financeiro', empresa: 'BFA', status: 'aprovada', data: '01 Jun 2025' },
-  { id: '4', vaga: 'Auditor Interno', empresa: 'KPMG Angola', status: 'recusada', data: '25 Mai 2025' },
-]
+interface Candidatura {
+  id: string
+  status: string
+  data_candidatura: string
+  vagas?: { titulo: string; empresa_nome: string }
+}
 
-const mockVagasRecomendadas = [
-  { id: '5', titulo: 'Analista de Crédito', empresa: 'Banco Económico', localizacao: 'Luanda', prazo: '20 Jul 2025' },
-  { id: '6', titulo: 'Controller Financeiro', empresa: 'Sonangol', localizacao: 'Luanda', prazo: '15 Jul 2025' },
-  { id: '7', titulo: 'Gestor de Tesouraria', empresa: 'Standard Bank', localizacao: 'Luanda', prazo: '25 Jul 2025' },
-]
+interface Vaga {
+  id: string
+  titulo: string
+  empresa_nome: string
+  localizacao: string
+  prazo: string
+  salario: string
+  is_prioritaria: boolean
+}
+
+interface Profile {
+  area: string
+  nivel_academico: string
+  experiencias: string
+  competencias: string[]
+  score_completude: number
+}
+
+interface UserData {
+  id: string
+  nome: string
+  email: string
+}
 
 const statusConfig: Record<string, { label: string; class: string; icon: React.ElementType }> = {
   enviada: { label: 'Enviada', class: 'badge-info', icon: Send },
@@ -28,6 +46,128 @@ const statusConfig: Record<string, { label: string; class: string; icon: React.E
 
 export default function CandidatoDashboard() {
   const [activeTab, setActiveTab] = useState<'candidaturas' | 'vagas' | 'perfil'>('candidaturas')
+  const [candidaturas, setCandidaturas] = useState<Candidatura[]>([])
+  const [vagasRecomendadas, setVagasRecomendadas] = useState<Vaga[]>([])
+  const [profile, setProfile] = useState<Profile>({ area: '', nivel_academico: '', experiencias: '', competencias: [], score_completude: 0 })
+  const [userData, setUserData] = useState<UserData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [saveMsg, setSaveMsg] = useState('')
+
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  const loadData = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.user) {
+      window.location.href = '/auth/login/'
+      return
+    }
+
+    // Load user data
+    const { data: user } = await supabase
+      .from('users')
+      .select('id, nome, email')
+      .eq('email', session.user.email)
+      .single()
+    
+    if (user) {
+      setUserData(user)
+
+      // Load profile
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()
+      if (profileData) {
+        setProfile(profileData)
+      }
+
+      // Load candidaturas with vaga details
+      const { data: candidaturasData } = await supabase
+        .from('candidaturas')
+        .select('*, vagas(titulo, empresa_nome)')
+        .eq('candidato_id', user.id)
+        .order('data_candidatura', { ascending: false })
+      setCandidaturas(candidaturasData || [])
+
+      // Load recommended jobs (latest open jobs)
+      const { data: vagas } = await supabase
+        .from('vagas')
+        .select('*')
+        .eq('status', 'aberta')
+        .order('is_prioritaria', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(10)
+      setVagasRecomendadas(vagas || [])
+    }
+
+    setLoading(false)
+  }
+
+  const saveProfile = async () => {
+    if (!userData) return
+    setSaving(true)
+    setSaveMsg('')
+
+    const { error } = await supabase
+      .from('profiles')
+      .upsert({
+        user_id: userData.id,
+        area: profile.area,
+        nivel_academico: profile.nivel_academico,
+        experiencias: profile.experiencias,
+        competencias: profile.competencias,
+        score_completude: calculateScore()
+      }, { onConflict: 'user_id' })
+    
+    if (error) {
+      setSaveMsg('Erro ao guardar. Tenta novamente.')
+    } else {
+      setSaveMsg('Perfil guardado com sucesso!')
+    }
+    setSaving(false)
+    setTimeout(() => setSaveMsg(''), 3000)
+  }
+
+  const calculateScore = () => {
+    let score = 0
+    if (profile.area) score += 25
+    if (profile.nivel_academico) score += 25
+    if (profile.experiencias) score += 25
+    if (profile.competencias.length > 0) score += 25
+    return score
+  }
+
+  const candidatar = async (vagaId: string) => {
+    if (!userData) return
+    const { error } = await supabase
+      .from('candidaturas')
+      .insert({ vaga_id: vagaId, candidato_id: userData.id, status: 'enviada' })
+    if (!error) {
+      loadData()
+    }
+  }
+
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString('pt-AO', { day: '2-digit', month: 'short', year: 'numeric' })
+  }
+
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <main className="pt-16 min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-8 h-8 border-2 border-k10-accent border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-gray-500 text-sm">A carregar...</p>
+          </div>
+        </main>
+      </>
+    )
+  }
 
   return (
     <>
@@ -42,18 +182,17 @@ export default function CandidatoDashboard() {
                   <div className="w-16 h-16 bg-k10-accent/10 rounded-full flex items-center justify-center mx-auto mb-3">
                     <User size={28} className="text-k10-accent" />
                   </div>
-                  <h2 className="font-semibold text-gray-900">João Silva</h2>
-                  <p className="text-gray-500 text-sm">Economia e Finanças</p>
+                  <h2 className="font-semibold text-gray-900">{userData?.nome || 'Candidato'}</h2>
+                  <p className="text-gray-500 text-sm">{profile.area || 'Sem área definida'}</p>
                   <div className="mt-3">
                     <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
                       <span>Perfil</span>
-                      <span>75%</span>
+                      <span>{calculateScore()}%</span>
                     </div>
                     <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                      <div className="h-full bg-k10-green rounded-full" style={{ width: '75%' }} />
+                      <div className="h-full bg-k10-green rounded-full" style={{ width: `${calculateScore()}%` }} />
                     </div>
                   </div>
-                  <span className="badge-warning mt-3">Trial — 1 dia restante</span>
                 </div>
               </div>
 
@@ -90,22 +229,22 @@ export default function CandidatoDashboard() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div className="stat-card">
                   <Briefcase size={22} className="text-k10-accent mb-2" />
-                  <span className="text-2xl font-bold text-k10-primary">4</span>
+                  <span className="text-2xl font-bold text-k10-primary">{candidaturas.length}</span>
                   <span className="text-xs text-gray-500">Candidaturas</span>
                 </div>
                 <div className="stat-card">
-                  <Eye size={22} className="text-blue-500 mb-2" />
-                  <span className="text-2xl font-bold text-k10-primary">12</span>
-                  <span className="text-xs text-gray-500">Perfil visto</span>
+                  <CheckCircle size={22} className="text-k10-green mb-2" />
+                  <span className="text-2xl font-bold text-k10-primary">{candidaturas.filter(c => c.status === 'aprovada').length}</span>
+                  <span className="text-xs text-gray-500">Aprovadas</span>
                 </div>
                 <div className="stat-card">
-                  <Bell size={22} className="text-k10-gold mb-2" />
-                  <span className="text-2xl font-bold text-k10-primary">3</span>
-                  <span className="text-xs text-gray-500">Novas vagas</span>
+                  <Clock size={22} className="text-k10-gold mb-2" />
+                  <span className="text-2xl font-bold text-k10-primary">{candidaturas.filter(c => c.status === 'em_analise').length}</span>
+                  <span className="text-xs text-gray-500">Em Análise</span>
                 </div>
                 <div className="stat-card">
-                  <TrendingUp size={22} className="text-k10-green mb-2" />
-                  <span className="text-2xl font-bold text-k10-primary">75%</span>
+                  <TrendingUp size={22} className="text-blue-500 mb-2" />
+                  <span className="text-2xl font-bold text-k10-primary">{calculateScore()}%</span>
                   <span className="text-xs text-gray-500">Score perfil</span>
                 </div>
               </div>
@@ -115,29 +254,38 @@ export default function CandidatoDashboard() {
                   <div className="p-5 border-b border-gray-100">
                     <h2 className="font-heading font-semibold text-lg">As Minhas Candidaturas</h2>
                   </div>
-                  <div className="divide-y divide-gray-100">
-                    {mockCandidaturas.map((c) => {
-                      const config = statusConfig[c.status]
-                      const StatusIcon = config.icon
-                      return (
-                        <div key={c.id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-k10-primary/5 rounded-lg flex items-center justify-center">
-                              <Briefcase size={18} className="text-k10-accent" />
+                  {candidaturas.length === 0 ? (
+                    <div className="p-8 text-center">
+                      <Briefcase size={40} className="text-gray-300 mx-auto mb-3" />
+                      <h3 className="font-semibold text-gray-700 mb-1">Sem candidaturas</h3>
+                      <p className="text-gray-500 text-sm mb-4">Ainda não te candidataste a nenhuma vaga. Explora as vagas recomendadas!</p>
+                      <button onClick={() => setActiveTab('vagas')} className="btn-primary text-sm">Ver Vagas</button>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-gray-100">
+                      {candidaturas.map((c) => {
+                        const config = statusConfig[c.status] || statusConfig.enviada
+                        const StatusIcon = config.icon
+                        return (
+                          <div key={c.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-gray-50 transition-colors gap-2">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-k10-primary/5 rounded-lg flex items-center justify-center">
+                                <Briefcase size={18} className="text-k10-accent" />
+                              </div>
+                              <div>
+                                <h3 className="font-medium text-sm text-gray-900">{(c as any).vagas?.titulo || 'Vaga'}</h3>
+                                <p className="text-xs text-gray-500">{(c as any).vagas?.empresa_nome || ''} • {formatDate(c.data_candidatura)}</p>
+                              </div>
                             </div>
-                            <div>
-                              <h3 className="font-medium text-sm text-gray-900">{c.vaga}</h3>
-                              <p className="text-xs text-gray-500">{c.empresa} • {c.data}</p>
-                            </div>
+                            <span className={config.class + ' flex items-center gap-1 text-xs'}>
+                              <StatusIcon size={12} />
+                              {config.label}
+                            </span>
                           </div>
-                          <span className={config.class + ' flex items-center gap-1'}>
-                            <StatusIcon size={12} />
-                            {config.label}
-                          </span>
-                        </div>
-                      )
-                    })}
-                  </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -146,75 +294,106 @@ export default function CandidatoDashboard() {
                   <div className="card p-5 bg-blue-50 border-blue-100">
                     <div className="flex items-center gap-2 mb-2">
                       <Star size={18} className="text-blue-600" />
-                      <h3 className="font-semibold text-blue-800">Vagas Recomendadas para Ti</h3>
+                      <h3 className="font-semibold text-blue-800">Vagas Disponíveis</h3>
                     </div>
-                    <p className="text-blue-600 text-sm">Com base na tua área (Economia e Finanças) e nível académico.</p>
+                    <p className="text-blue-600 text-sm">Vagas abertas na plataforma. Vagas prioritárias aparecem primeiro.</p>
                   </div>
-                  {mockVagasRecomendadas.map((v) => (
-                    <div key={v.id} className="card p-4 hover:-translate-y-0.5 transition-all">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-medium text-gray-900">{v.titulo}</h3>
-                          <p className="text-sm text-gray-500">{v.empresa} • {v.localizacao}</p>
-                          <p className="text-xs text-gray-400 mt-1">Prazo: {v.prazo}</p>
-                        </div>
-                        <button className="btn-primary !py-2 !px-4 text-sm">Candidatar</button>
-                      </div>
+                  {vagasRecomendadas.length === 0 ? (
+                    <div className="card p-8 text-center">
+                      <Briefcase size={40} className="text-gray-300 mx-auto mb-3" />
+                      <p className="text-gray-500 text-sm">Ainda não há vagas publicadas. Volta em breve!</p>
                     </div>
-                  ))}
+                  ) : (
+                    vagasRecomendadas.map((v) => (
+                      <div key={v.id} className="card p-4 hover:-translate-y-0.5 transition-all">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-medium text-gray-900">{v.titulo}</h3>
+                              {v.is_prioritaria && <span className="badge bg-k10-gold/10 text-k10-gold text-xs">Destaque</span>}
+                            </div>
+                            <p className="text-sm text-gray-500">{v.empresa_nome} • {v.localizacao}</p>
+                            <div className="flex gap-3 mt-1">
+                              {v.salario && <p className="text-xs text-k10-green font-medium">{v.salario}</p>}
+                              <p className="text-xs text-gray-400">Prazo: {v.prazo}</p>
+                            </div>
+                          </div>
+                          <button onClick={() => candidatar(v.id)} className="btn-primary !py-2 !px-4 text-sm whitespace-nowrap">Candidatar-me</button>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               )}
 
               {activeTab === 'perfil' && (
                 <div className="card p-6">
                   <h2 className="font-heading font-semibold text-lg mb-4">Editar Perfil</h2>
+                  {saveMsg && (
+                    <div className={`text-sm p-3 rounded-xl mb-4 ${saveMsg.includes('sucesso') ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+                      {saveMsg}
+                    </div>
+                  )}
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
-                      <input type="text" defaultValue="João Silva" className="input-field" />
+                      <input type="text" value={userData?.nome || ''} className="input-field" disabled />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                      <input type="email" defaultValue="joao@email.com" className="input-field" disabled />
+                      <input type="email" value={userData?.email || ''} className="input-field" disabled />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Área de Formação</label>
-                      <select className="input-field" defaultValue="Economia e Finanças">
-                        <option>Economia e Finanças</option>
-                        <option>Tecnologia da Informação</option>
-                        <option>Engenharia</option>
-                        <option>Direito</option>
-                        <option>Saúde</option>
+                      <select className="input-field" value={profile.area} onChange={(e) => setProfile({ ...profile, area: e.target.value })}>
+                        <option value="">Seleciona a tua área</option>
+                        <option value="Economia e Finanças">Economia e Finanças</option>
+                        <option value="Tecnologia da Informação">Tecnologia da Informação</option>
+                        <option value="Engenharia">Engenharia</option>
+                        <option value="Direito">Direito</option>
+                        <option value="Saúde">Saúde</option>
+                        <option value="Administração">Administração</option>
+                        <option value="Marketing">Marketing</option>
+                        <option value="Educação">Educação</option>
+                        <option value="Comunicação">Comunicação</option>
+                        <option value="Construção Civil">Construção Civil</option>
                       </select>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Nível Académico</label>
-                      <select className="input-field" defaultValue="Licenciatura">
-                        <option>Ensino Médio</option>
-                        <option>Técnico Profissional</option>
-                        <option>Licenciatura</option>
-                        <option>Mestrado</option>
-                        <option>Doutoramento</option>
+                      <select className="input-field" value={profile.nivel_academico} onChange={(e) => setProfile({ ...profile, nivel_academico: e.target.value })}>
+                        <option value="">Seleciona o nível</option>
+                        <option value="Ensino Médio">Ensino Médio</option>
+                        <option value="Técnico Profissional">Técnico Profissional</option>
+                        <option value="Licenciatura">Licenciatura</option>
+                        <option value="Mestrado">Mestrado</option>
+                        <option value="Doutoramento">Doutoramento</option>
                       </select>
                     </div>
                     <div className="sm:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Experiências</label>
-                      <textarea className="input-field" rows={3} defaultValue="2 anos como assistente financeiro no BFA. Estágio na PwC Angola." />
+                      <textarea
+                        className="input-field"
+                        rows={3}
+                        value={profile.experiencias}
+                        onChange={(e) => setProfile({ ...profile, experiencias: e.target.value })}
+                        placeholder="Descreve as tuas experiências profissionais..."
+                      />
                     </div>
                     <div className="sm:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Competências</label>
-                      <input type="text" className="input-field" defaultValue="Excel, Análise Financeira, SAP, Power BI" />
-                    </div>
-                    <div className="sm:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Documentos</label>
-                      <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center">
-                        <FileText size={28} className="text-gray-400 mx-auto mb-2" />
-                        <p className="text-sm text-gray-500">Arrasta ficheiros ou clica para fazer upload</p>
-                        <p className="text-xs text-gray-400 mt-1">Diploma, certificados, portfólio (PDF, JPG, PNG)</p>
-                      </div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Competências (separadas por vírgula)</label>
+                      <input
+                        type="text"
+                        className="input-field"
+                        value={profile.competencias.join(', ')}
+                        onChange={(e) => setProfile({ ...profile, competencias: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+                        placeholder="Ex: Excel, Análise Financeira, SAP, Power BI"
+                      />
                     </div>
                   </div>
-                  <button className="btn-primary mt-6">Guardar Alterações</button>
+                  <button onClick={saveProfile} disabled={saving} className="btn-primary mt-6">
+                    {saving ? 'A guardar...' : 'Guardar Alterações'}
+                  </button>
                 </div>
               )}
             </div>
