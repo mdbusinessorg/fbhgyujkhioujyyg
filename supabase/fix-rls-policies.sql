@@ -53,6 +53,9 @@ ALTER TABLE mensagens ENABLE ROW LEVEL SECURITY;
 -- ===================== USERS =====================
 CREATE POLICY "Users visíveis para autenticados" ON users FOR SELECT USING (true);
 CREATE POLICY "Users podem editar o próprio" ON users FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Admin pode editar qualquer user" ON users FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
+);
 CREATE POLICY "Users inseríveis durante registo" ON users FOR INSERT WITH CHECK (true);
 CREATE POLICY "Admin pode apagar users" ON users FOR DELETE USING (
   EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
