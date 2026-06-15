@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import { supabase } from '@/lib/supabase'
-import { Briefcase, FileText, Bell, TrendingUp, Clock, CheckCircle, XCircle, Eye, Send, LogOut, User, Star, Settings } from 'lucide-react'
+import { Briefcase, FileText, Bell, TrendingUp, Clock, CheckCircle, XCircle, Eye, Send, LogOut, User, Star, Settings, Upload, Download, Trash2 } from 'lucide-react'
 
 interface Candidatura {
   id: string
@@ -45,7 +45,7 @@ const statusConfig: Record<string, { label: string; class: string; icon: React.E
 }
 
 export default function CandidatoDashboard() {
-  const [activeTab, setActiveTab] = useState<'candidaturas' | 'vagas' | 'perfil'>('candidaturas')
+  const [activeTab, setActiveTab] = useState<'candidaturas' | 'vagas' | 'documentos' | 'perfil'>('candidaturas')
   const [candidaturas, setCandidaturas] = useState<Candidatura[]>([])
   const [vagasRecomendadas, setVagasRecomendadas] = useState<Vaga[]>([])
   const [profile, setProfile] = useState<Profile>({ area: '', nivel_academico: '', experiencias: '', competencias: [], score_completude: 0 })
@@ -53,6 +53,8 @@ export default function CandidatoDashboard() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState('')
+  const [documents, setDocuments] = useState<string[]>([])
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -102,6 +104,14 @@ export default function CandidatoDashboard() {
         .order('created_at', { ascending: false })
         .limit(10)
       setVagasRecomendadas(vagas || [])
+
+      // Load documents
+      const { data: docs } = await supabase.storage
+        .from('documentos')
+        .list(`candidatos/${user.id}`, { limit: 10 })
+      if (docs) {
+        setDocuments(docs.map(f => f.name).filter(n => n !== '.emptyFolderPlaceholder'))
+      }
     }
 
     setLoading(false)
@@ -149,6 +159,48 @@ export default function CandidatoDashboard() {
     if (!error) {
       loadData()
     }
+  }
+
+  const loadDocuments = async () => {
+    if (!userData) return
+    const { data } = await supabase.storage
+      .from('documentos')
+      .list(`candidatos/${userData.id}`, { limit: 10 })
+    if (data) {
+      setDocuments(data.map(f => f.name))
+    }
+  }
+
+  const uploadDocument = async (file: File) => {
+    if (!userData) return
+    if (documents.length >= 2) {
+      alert('Máximo de 2 documentos permitido. Apaga um antes de carregar outro.')
+      return
+    }
+    setUploading(true)
+    const filePath = `candidatos/${userData.id}/${file.name}`
+    const { error } = await supabase.storage
+      .from('documentos')
+      .upload(filePath, file, { upsert: true })
+    if (!error) {
+      await loadDocuments()
+    } else {
+      alert('Erro ao carregar documento: ' + error.message)
+    }
+    setUploading(false)
+  }
+
+  const deleteDocument = async (fileName: string) => {
+    if (!userData) return
+    const filePath = `candidatos/${userData.id}/${fileName}`
+    await supabase.storage.from('documentos').remove([filePath])
+    await loadDocuments()
+  }
+
+  const getDocumentUrl = (fileName: string) => {
+    if (!userData) return ''
+    const { data } = supabase.storage.from('documentos').getPublicUrl(`candidatos/${userData.id}/${fileName}`)
+    return data.publicUrl
   }
 
   const formatDate = (date: string) => {
@@ -200,6 +252,7 @@ export default function CandidatoDashboard() {
                 {[
                   { key: 'candidaturas', label: 'Candidaturas', icon: Briefcase },
                   { key: 'vagas', label: 'Vagas Recomendadas', icon: Star },
+                  { key: 'documentos', label: 'Documentos', icon: Upload },
                   { key: 'perfil', label: 'Meu Perfil', icon: Settings },
                 ].map((item) => {
                   const Icon = item.icon
@@ -322,6 +375,76 @@ export default function CandidatoDashboard() {
                         </div>
                       </div>
                     ))
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'documentos' && (
+                <div className="card p-6">
+                  <h2 className="font-heading font-semibold text-lg mb-2">Os Meus Documentos</h2>
+                  <p className="text-gray-500 text-sm mb-6">Carrega até 2 documentos (CV e diploma) para os recrutadores poderem avaliar a tua candidatura.</p>
+                  
+                  {documents.length < 2 && (
+                    <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center mb-6 hover:border-k10-accent/50 transition-colors">
+                      <Upload size={32} className="text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-600 font-medium mb-1">Arrasta ou seleciona ficheiro</p>
+                      <p className="text-gray-400 text-xs mb-4">PDF, DOC ou imagem (máx. 5MB)</p>
+                      <label className="btn-primary text-sm cursor-pointer inline-block">
+                        {uploading ? 'A carregar...' : 'Selecionar Ficheiro'}
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                          disabled={uploading}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) uploadDocument(file)
+                            e.target.value = ''
+                          }}
+                        />
+                      </label>
+                    </div>
+                  )}
+
+                  {documents.length === 0 ? (
+                    <div className="text-center py-4">
+                      <FileText size={40} className="text-gray-300 mx-auto mb-2" />
+                      <p className="text-gray-500 text-sm">Nenhum documento carregado ainda.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {documents.map((doc) => (
+                        <div key={doc} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-k10-accent/10 rounded-lg flex items-center justify-center">
+                              <FileText size={18} className="text-k10-accent" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm text-gray-900">{doc}</p>
+                              <p className="text-xs text-gray-400">Documento carregado</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <a
+                              href={getDocumentUrl(doc)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-2 text-gray-400 hover:text-k10-accent transition-colors"
+                              title="Baixar"
+                            >
+                              <Download size={16} />
+                            </a>
+                            <button
+                              onClick={() => deleteDocument(doc)}
+                              className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                              title="Apagar"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               )}

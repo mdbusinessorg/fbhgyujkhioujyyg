@@ -108,7 +108,7 @@ export default function Pricing() {
                   href="/auth/registar/"
                   className={`block text-center py-3 rounded-xl font-semibold text-sm transition-all ${
                     plan.popular
-                      ? 'bg-k10-accent text-white hover:bg-red-600'
+                      ? 'bg-k10-accent text-white hover:bg-emerald-600'
                       : 'bg-k10-primary text-white hover:bg-k10-secondary'
                   }`}
                 >

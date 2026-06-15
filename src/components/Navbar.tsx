@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { Menu, X, User, LogIn, Briefcase, Search, BookOpen, LogOut, LayoutDashboard } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
@@ -77,9 +76,11 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <Link href="/" className="flex items-center gap-2">
-            <Image src="/k10-logo.png" alt="K10 Opportunities" width={40} height={40} className="rounded-lg" />
-            <span className="font-heading font-bold text-xl text-k10-primary">
-              K<span className="text-k10-accent">10</span>
+            <div className="w-9 h-9 bg-k10-accent rounded-xl flex items-center justify-center">
+              <span className="font-heading font-bold text-white text-sm">K10</span>
+            </div>
+            <span className="font-heading font-bold text-lg text-k10-primary hidden sm:block">
+              K10 <span className="text-k10-accent">Opportunities</span>
             </span>
           </Link>
 

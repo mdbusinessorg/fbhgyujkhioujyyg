@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import { supabase } from '@/lib/supabase'
-import { Briefcase, Users, TrendingUp, Eye, Plus, Star, Clock, CheckCircle, XCircle, LogOut, BarChart3, MessageSquare } from 'lucide-react'
+import { Briefcase, Users, TrendingUp, Eye, Plus, Star, Clock, CheckCircle, XCircle, LogOut, BarChart3, MessageSquare, Download, FileText } from 'lucide-react'
 import { AREAS, NIVEIS_ACADEMICOS, PROVINCIAS_ANGOLA } from '@/lib/types'
 
 interface VagaData {
@@ -23,6 +23,7 @@ interface CandidatoData {
   status: string
   data_candidatura: string
   vaga_id: string
+  candidato_id: string
   users?: { nome: string; email: string }
   vagas?: { titulo: string }
 }
@@ -136,6 +137,24 @@ export default function RecrutadorDashboard() {
     if (!error) {
       setCandidatos(candidatos.map(c => c.id === candidaturaId ? { ...c, status: newStatus } : c))
     }
+  }
+
+  const [candidateDocs, setCandidateDocs] = useState<Record<string, string[]>>({})
+
+  const loadCandidateDocuments = async (candidatoId: string) => {
+    if (candidateDocs[candidatoId]) return
+    const { data } = await supabase.storage
+      .from('documentos')
+      .list(`candidatos/${candidatoId}`, { limit: 10 })
+    if (data) {
+      const fileNames = data.map(f => f.name).filter(n => n !== '.emptyFolderPlaceholder')
+      setCandidateDocs(prev => ({ ...prev, [candidatoId]: fileNames }))
+    }
+  }
+
+  const getDocUrl = (candidatoId: string, fileName: string) => {
+    const { data } = supabase.storage.from('documentos').getPublicUrl(`candidatos/${candidatoId}/${fileName}`)
+    return data.publicUrl
   }
 
   const formatDate = (date: string) => {
@@ -291,35 +310,62 @@ export default function RecrutadorDashboard() {
                   ) : (
                     <div className="divide-y divide-gray-100">
                       {candidatos.map((c) => (
-                        <div key={c.id} className="p-4 hover:bg-gray-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-k10-accent/10 rounded-full flex items-center justify-center">
-                              <span className="font-bold text-k10-accent text-sm">{((c as any).users?.nome || 'C').charAt(0)}</span>
-                            </div>
-                            <div>
-                              <h3 className="font-medium text-sm text-gray-900">{(c as any).users?.nome || 'Candidato'}</h3>
-                              <p className="text-xs text-gray-500">{(c as any).users?.email || ''} • Vaga: {(c as any).vagas?.titulo || ''}</p>
-                              <p className="text-xs text-gray-400">{formatDate(c.data_candidatura)}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className={`text-xs px-2 py-1 rounded-full ${
-                              c.status === 'aprovada' ? 'bg-green-100 text-green-700' :
-                              c.status === 'recusada' ? 'bg-red-100 text-red-700' :
-                              c.status === 'em_analise' ? 'bg-yellow-100 text-yellow-700' :
-                              'bg-blue-100 text-blue-700'
-                            }`}>{c.status}</span>
-                            {c.status === 'enviada' && (
-                              <div className="flex gap-1">
-                                <button onClick={() => atualizarCandidatura(c.id, 'aprovada')} className="p-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-100" title="Aprovar">
-                                  <CheckCircle size={16} />
-                                </button>
-                                <button onClick={() => atualizarCandidatura(c.id, 'recusada')} className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100" title="Recusar">
-                                  <XCircle size={16} />
-                                </button>
+                        <div key={c.id} className="p-4 hover:bg-gray-50 transition-colors">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-k10-accent/10 rounded-full flex items-center justify-center">
+                                <span className="font-bold text-k10-accent text-sm">{((c as any).users?.nome || 'C').charAt(0)}</span>
                               </div>
-                            )}
+                              <div>
+                                <h3 className="font-medium text-sm text-gray-900">{(c as any).users?.nome || 'Candidato'}</h3>
+                                <p className="text-xs text-gray-500">{(c as any).users?.email || ''} • Vaga: {(c as any).vagas?.titulo || ''}</p>
+                                <p className="text-xs text-gray-400">{formatDate(c.data_candidatura)}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className={`text-xs px-2 py-1 rounded-full ${
+                                c.status === 'aprovada' ? 'bg-green-100 text-green-700' :
+                                c.status === 'recusada' ? 'bg-red-100 text-red-700' :
+                                c.status === 'em_analise' ? 'bg-yellow-100 text-yellow-700' :
+                                'bg-blue-100 text-blue-700'
+                              }`}>{c.status}</span>
+                              {c.status === 'enviada' && (
+                                <div className="flex gap-1">
+                                  <button onClick={() => atualizarCandidatura(c.id, 'aprovada')} className="p-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-100" title="Aprovar">
+                                    <CheckCircle size={16} />
+                                  </button>
+                                  <button onClick={() => atualizarCandidatura(c.id, 'recusada')} className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100" title="Recusar">
+                                    <XCircle size={16} />
+                                  </button>
+                                </div>
+                              )}
+                              <button onClick={() => loadCandidateDocuments(c.candidato_id)} className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100" title="Ver Documentos">
+                                <FileText size={16} />
+                              </button>
+                            </div>
                           </div>
+                          {candidateDocs[c.candidato_id] && (
+                            <div className="mt-3 ml-13 pl-13 border-l-2 border-gray-100 ml-[52px] pl-3">
+                              {candidateDocs[c.candidato_id].length === 0 ? (
+                                <p className="text-xs text-gray-400">Nenhum documento carregado.</p>
+                              ) : (
+                                <div className="flex flex-wrap gap-2">
+                                  {candidateDocs[c.candidato_id].map((doc) => (
+                                    <a
+                                      key={doc}
+                                      href={getDocUrl(c.candidato_id, doc)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs hover:bg-blue-100 transition-colors"
+                                    >
+                                      <Download size={12} />
+                                      {doc}
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>

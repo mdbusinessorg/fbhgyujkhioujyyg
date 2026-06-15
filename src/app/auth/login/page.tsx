@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { Mail, Lock, Eye, EyeOff, LogIn } from 'lucide-react'
@@ -78,7 +77,9 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           <div className="card p-8">
             <div className="text-center mb-8">
-              <Image src="/k10-logo.png" alt="K10" width={56} height={56} className="rounded-xl mx-auto mb-4" />
+              <div className="w-14 h-14 bg-k10-accent rounded-xl flex items-center justify-center mx-auto mb-4">
+                <span className="font-heading font-bold text-white text-lg">K10</span>
+              </div>
               <h1 className="font-heading text-2xl font-bold text-k10-primary">Bem-vindo de volta</h1>
               <p className="text-gray-500 text-sm mt-1">Entra na tua conta K10 Opportunities</p>
             </div>

@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import { Mail, Phone, MapPin } from 'lucide-react'
 
 export default function Footer() {
@@ -9,9 +8,11 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="col-span-1 md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
-              <Image src="/k10-logo.png" alt="K10" width={36} height={36} className="rounded-lg" />
+              <div className="w-9 h-9 bg-k10-accent rounded-xl flex items-center justify-center">
+                <span className="font-heading font-bold text-white text-sm">K10</span>
+              </div>
               <span className="font-heading font-bold text-lg">
-                K<span className="text-k10-accent">10</span> Opportunities
+                K10 <span className="text-k10-accent">Opportunities</span>
               </span>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed">

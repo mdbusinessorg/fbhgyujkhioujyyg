@@ -66,9 +66,9 @@ export default function VagaDetalhe({ params }: { params: { id: string } }) {
     <>
       <Navbar />
       <main className="pt-16 min-h-screen bg-gray-50">
-        <div className="gradient-hero py-10">
+        <div className="bg-k10-primary py-10">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <Link href="/vagas/" className="inline-flex items-center gap-1 text-gray-300 hover:text-white text-sm mb-4 transition-colors">
+            <Link href="/vagas/" className="inline-flex items-center gap-1 text-gray-400 hover:text-white text-sm mb-4 transition-colors">
               <ArrowLeft size={16} />
               Voltar às vagas
             </Link>
