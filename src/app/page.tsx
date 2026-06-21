@@ -4,7 +4,18 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Search, SlidersHorizontal, Heart, Bell, Menu, X, Briefcase, Home as HomeIcon, User, LogOut, Settings, FileText } from 'lucide-react'
+import { Search, SlidersHorizontal, Heart, Bell, Menu, X, Briefcase, Home as HomeIcon, User, LogOut, Settings, FileText, Star, MapPin, Monitor, Banknote, Stethoscope, Megaphone, Scale, GraduationCap, HardHat, Wrench } from 'lucide-react'
+
+const CATEGORIAS_HOME = [
+  { key: 'TI', label: 'Tecnologia', icon: Monitor, match: 'Tecnologia' },
+  { key: 'Financas', label: 'Finan\u00e7as', icon: Banknote, match: 'Finan\u00e7as' },
+  { key: 'Engenharia', label: 'Engenharia', icon: HardHat, match: 'Engenharia' },
+  { key: 'Saude', label: 'Sa\u00fade', icon: Stethoscope, match: 'Sa\u00fade' },
+  { key: 'Marketing', label: 'Marketing', icon: Megaphone, match: 'Marketing' },
+  { key: 'Direito', label: 'Direito', icon: Scale, match: 'Direito' },
+  { key: 'Educacao', label: 'Educa\u00e7\u00e3o', icon: GraduationCap, match: 'Educa\u00e7\u00e3o' },
+  { key: 'Petroleo', label: 'Petr\u00f3leo', icon: Wrench, match: 'Petr\u00f3leo' },
+]
 
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -177,6 +188,54 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* Categories */}
+        <section className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-ms-dark">Categorias</h2>
+            <Link href="/vagas/" className="text-xs text-ms-blue font-medium">Ver todas</Link>
+          </div>
+          <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
+            {CATEGORIAS_HOME.map(cat => {
+              const Icon = cat.icon
+              return (
+                <Link key={cat.key} href={`/vagas/`} className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-ms-surface transition-colors">
+                  <div className="w-10 h-10 bg-ms-purple-light rounded-full flex items-center justify-center">
+                    <Icon size={18} className="text-ms-purple" />
+                  </div>
+                  <span className="text-[10px] text-ms-dark font-medium text-center leading-tight">{cat.label}</span>
+                </Link>
+              )
+            })}
+          </div>
+        </section>
+
+        {/* Vagas em Destaque */}
+        {vagas.filter(v => v.is_prioritaria).length > 0 && (
+          <section className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Star size={16} className="text-amber-500 fill-amber-500" />
+              <h2 className="text-sm font-semibold text-ms-dark">Vagas em Destaque</h2>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {vagas.filter(v => v.is_prioritaria).map(job => (
+                <Link key={job.id} href={`/vagas/detalhe/?id=${job.id}`} className="flex-shrink-0 w-64">
+                  <div className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl p-4 h-full hover:shadow-md transition-shadow relative">
+                    <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full mb-2">
+                      <Star size={8} className="fill-amber-500 text-amber-500" /> DESTAQUE
+                    </span>
+                    <h3 className="text-sm font-semibold text-ms-dark truncate">{job.titulo}</h3>
+                    <p className="text-xs text-ms-gray mt-0.5">{job.empresa_nome}</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      {job.localizacao && <span className="inline-flex items-center gap-0.5 text-[10px] text-ms-gray"><MapPin size={9} />{job.localizacao}</span>}
+                      {job.salario && <span className="text-[10px] font-medium text-green-700">{job.salario}</span>}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* Vagas Disponíveis (real from Supabase) */}
         <section>
           <div className="flex items-center justify-between mb-3">
@@ -192,7 +251,7 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="space-y-3 lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-4 lg:space-y-0">
-              {vagas.filter(v => v.titulo?.toLowerCase().includes(searchQuery.toLowerCase()) || !searchQuery).map((job) => (
+              {vagas.filter(v => !v.is_prioritaria && (v.titulo?.toLowerCase().includes(searchQuery.toLowerCase()) || !searchQuery)).map((job) => (
                 <Link key={job.id} href={`/vagas/detalhe/?id=${job.id}`} className="block">
                   <div className="bg-ms-surface rounded-xl p-4 flex items-start gap-3 hover:shadow-sm transition-shadow">
                     <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center flex-shrink-0 border border-ms-border">
