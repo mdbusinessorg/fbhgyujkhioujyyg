@@ -2,525 +2,333 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import Navbar from '@/components/Navbar'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Briefcase, Users, TrendingUp, Eye, Plus, Star, Clock, CheckCircle, XCircle, LogOut, BarChart3, MessageSquare, Download, FileText } from 'lucide-react'
-import { AREAS, NIVEIS_ACADEMICOS, PROVINCIAS_ANGOLA } from '@/lib/types'
-
-interface VagaData {
-  id: string
-  titulo: string
-  area: string
-  status: string
-  is_prioritaria: boolean
-  prazo: string
-  visualizacoes: number
-  created_at: string
-}
-
-interface CandidatoData {
-  id: string
-  status: string
-  data_candidatura: string
-  vaga_id: string
-  candidato_id: string
-  users?: { nome: string; email: string }
-  vagas?: { titulo: string }
-}
+import BottomNav from '@/components/BottomNav'
+import { Search, Bell, Briefcase, Users, Plus, Eye, TrendingUp, Download, FileText, CheckCircle, XCircle, Clock } from 'lucide-react'
+import { AREAS, PROVINCIAS_ANGOLA } from '@/lib/types'
 
 export default function RecrutadorDashboard() {
-  const [activeTab, setActiveTab] = useState<'vagas' | 'candidatos' | 'nova_vaga' | 'analytics'>('vagas')
-  const [novaVaga, setNovaVaga] = useState({ titulo: '', area: '', nivel_minimo: '', localizacao: '', salario: '', prazo: '', descricao: '', experiencia_requerida: '', empresa_nome: '' })
-  const [vagas, setVagas] = useState<VagaData[]>([])
-  const [candidatos, setCandidatos] = useState<CandidatoData[]>([])
-  const [userId, setUserId] = useState<string | null>(null)
   const [userName, setUserName] = useState('')
   const [loading, setLoading] = useState(true)
-  const [publishing, setPublishing] = useState(false)
-  const [publishMsg, setPublishMsg] = useState('')
-  const [vagaCandCounts, setVagaCandCounts] = useState<Record<string, number>>({})
+  const [aprovado, setAprovado] = useState(false)
+  const [activeTab, setActiveTab] = useState('home')
+  const [vagas, setVagas] = useState<any[]>([])
+  const [candidatos, setCandidatos] = useState<any[]>([])
+  const [daysRemaining, setDaysRemaining] = useState<number | null>(null)
+  const [subPlano, setSubPlano] = useState('pro')
+  const router = useRouter()
 
-  useEffect(() => {
-    loadData()
-  }, [])
+  // Form for new vaga
+  const [novaVaga, setNovaVaga] = useState({
+    titulo: '', area: AREAS[0], descricao: '', requisitos: '',
+    localizacao: PROVINCIAS_ANGOLA[0], salario: '', prazo: '', is_prioritaria: false,
+  })
+
+  useEffect(() => { loadData() }, [])
 
   const loadData = async () => {
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session?.user) {
-      window.location.href = '/auth/login/'
-      return
-    }
+    if (!session) { router.push('/auth/login/'); return }
 
-    const { data: user } = await supabase
-      .from('users')
-      .select('id, nome, aprovado')
-      .eq('email', session.user.email)
-      .single()
-    
-    if (!user) {
-      window.location.href = '/'
-      return
-    }
-    if (!user.aprovado) {
-      setLoading(false)
-      setUserId('pending')
-      setUserName(user.nome)
-      return
-    }
+    const { data: user } = await supabase.from('users').select('*').eq('email', session.user.email).single()
+    if (!user || user.role !== 'recrutador') { router.push('/'); return }
 
-    setUserId(user.id)
-    setUserName(user.nome)
+    setUserName(user.nome || 'Recrutador')
+    setAprovado(user.aprovado || false)
 
-    // Load vagas
-    const { data: vagasData } = await supabase
-      .from('vagas')
-      .select('*')
-      .eq('recrutador_id', user.id)
-      .order('created_at', { ascending: false })
-    setVagas(vagasData || [])
+    if (user.aprovado) {
+      const { data: vagasData } = await supabase.from('vagas').select('*').eq('recrutador_id', user.id).order('created_at', { ascending: false })
+      setVagas(vagasData || [])
 
-    // Load candidaturas for this recruiter's vagas
-    const vagaIds = (vagasData || []).map(v => v.id)
-    if (vagaIds.length > 0) {
-      const { data: candidaturasData } = await supabase
+      const { data: candsData } = await supabase
         .from('candidaturas')
-        .select('*, users:candidato_id(nome, email), vagas:vaga_id(titulo)')
-        .in('vaga_id', vagaIds)
+        .select('*, users:candidato_id(nome, email), vagas(titulo)')
+        .in('vaga_id', (vagasData || []).map(v => v.id))
         .order('data_candidatura', { ascending: false })
-      setCandidatos(candidaturasData || [])
+      setCandidatos(candsData || [])
 
-      // Count candidaturas per vaga
-      const counts: Record<string, number> = {}
-      for (const c of (candidaturasData || [])) {
-        counts[c.vaga_id] = (counts[c.vaga_id] || 0) + 1
+      // Subscription
+      const { data: sub } = await supabase.from('subscriptions').select('*').eq('user_id', user.id).order('data_inicio', { ascending: false }).limit(1).single()
+      if (sub) {
+        const days = Math.ceil((new Date(sub.data_fim).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+        setDaysRemaining(days > 0 ? days : 0)
+        setSubPlano(sub.plano || 'pro')
       }
-      setVagaCandCounts(counts)
     }
 
     setLoading(false)
   }
 
-  const publicarVaga = async (isPrioritaria: boolean) => {
-    if (!userId) return
-    if (!novaVaga.titulo || !novaVaga.area || !novaVaga.nivel_minimo || !novaVaga.localizacao || !novaVaga.prazo || !novaVaga.descricao) {
-      setPublishMsg('Preenche todos os campos obrigatórios.')
-      return
-    }
-    setPublishing(true)
-    setPublishMsg('')
+  const handlePublicarVaga = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
 
-    const { error } = await supabase.from('vagas').insert({
-      recrutador_id: userId,
-      empresa_nome: novaVaga.empresa_nome || userName,
-      titulo: novaVaga.titulo,
-      descricao: novaVaga.descricao,
-      area: novaVaga.area,
-      nivel_minimo: novaVaga.nivel_minimo,
-      experiencia_requerida: novaVaga.experiencia_requerida,
-      salario: novaVaga.salario,
-      localizacao: novaVaga.localizacao,
-      prazo: novaVaga.prazo,
-      is_prioritaria: isPrioritaria,
-      status: 'em_analise'
+    const { data: user } = await supabase.from('users').select('id').eq('email', session.user.email).single()
+    if (!user) return
+
+    await supabase.from('vagas').insert({
+      ...novaVaga,
+      recrutador_id: user.id,
+      empresa_nome: userName,
+      status: 'em_analise',
     })
 
-    if (error) {
-      setPublishMsg('Erro ao publicar vaga: ' + error.message)
-    } else {
-      setPublishMsg('Vaga enviada para aprovação do administrador!')
-      setNovaVaga({ titulo: '', area: '', nivel_minimo: '', localizacao: '', salario: '', prazo: '', descricao: '', experiencia_requerida: '', empresa_nome: '' })
-      loadData()
-      setTimeout(() => { setActiveTab('vagas'); setPublishMsg('') }, 2000)
-    }
-    setPublishing(false)
+    alert('Vaga submetida para aprovação!')
+    setActiveTab('home')
+    loadData()
   }
 
-  const atualizarCandidatura = async (candidaturaId: string, newStatus: string) => {
-    const { error } = await supabase
-      .from('candidaturas')
-      .update({ status: newStatus })
-      .eq('id', candidaturaId)
-    if (!error) {
-      setCandidatos(candidatos.map(c => c.id === candidaturaId ? { ...c, status: newStatus } : c))
-    }
-  }
-
-  const [candidateDocs, setCandidateDocs] = useState<Record<string, string[]>>({})
-
-  const loadCandidateDocuments = async (candidatoId: string) => {
-    if (candidateDocs[candidatoId]) return
-    const { data } = await supabase.storage
-      .from('documentos')
-      .list(`candidatos/${candidatoId}`, { limit: 10 })
-    if (data) {
-      const fileNames = data.map(f => f.name).filter(n => n !== '.emptyFolderPlaceholder')
-      setCandidateDocs(prev => ({ ...prev, [candidatoId]: fileNames }))
-    }
-  }
-
-  const getDocUrl = (candidatoId: string, fileName: string) => {
-    const { data } = supabase.storage.from('documentos').getPublicUrl(`candidatos/${candidatoId}/${fileName}`)
-    return data.publicUrl
-  }
-
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('pt-AO', { day: '2-digit', month: 'short', year: 'numeric' })
+  const handleCandidatoAction = async (candidaturaId: string, status: string) => {
+    await supabase.from('candidaturas').update({ status }).eq('id', candidaturaId)
+    loadData()
   }
 
   if (loading) {
     return (
-      <>
-        <Navbar />
-        <main className="pt-16 min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-gray-500 text-sm">A carregar...</p>
-          </div>
-        </main>
-      </>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-ms-purple border-t-transparent rounded-full animate-spin" />
+      </div>
     )
   }
 
-  if (userId === 'pending') {
+  if (!aprovado) {
     return (
-      <>
-        <Navbar />
-        <main className="pt-16 min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="card p-8 max-w-md text-center">
-            <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Clock size={32} className="text-yellow-600" />
-            </div>
-            <h2 className="font-heading font-bold text-xl text-gray-800 mb-2">Conta Pendente de Aprovação</h2>
-            <p className="text-gray-600 text-sm mb-4">
-              Olá, {userName}! A tua conta de recrutador está a aguardar aprovação pelo administrador.
-              Receberás acesso ao painel assim que for aprovada.
-            </p>
-            <p className="text-xs text-gray-400">Isto geralmente demora até 24 horas.</p>
+      <div className="min-h-screen bg-white flex items-center justify-center px-4">
+        <div className="text-center max-w-sm">
+          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Clock size={28} className="text-amber-600" />
           </div>
-        </main>
-      </>
+          <h2 className="text-xl font-bold text-ms-dark mb-2">Conta Pendente</h2>
+          <p className="text-sm text-ms-gray mb-4">A tua conta de recrutador está a aguardar aprovação pelo administrador. Receberás acesso ao painel assim que for aprovada.</p>
+          <Link href="/" className="text-sm text-ms-blue font-medium">← Voltar ao início</Link>
+        </div>
+      </div>
     )
   }
 
-  const totalVisualizacoes = vagas.reduce((acc, v) => acc + (v.visualizacoes || 0), 0)
+  const vagasActivas = vagas.filter(v => v.status === 'aberta').length
 
   return (
-    <>
-      <Navbar />
-      <main className="pt-16 min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col lg:flex-row gap-6">
+    <div className="min-h-screen bg-white pb-20 lg:pb-0 lg:pl-60">
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:flex lg:flex-col w-60 h-screen fixed left-0 top-0 bg-white border-r border-ms-border z-40">
+        <div className="p-6 border-b border-ms-border">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-ms-blue rounded-lg flex items-center justify-center">
+              <Briefcase size={16} className="text-white" />
+            </div>
+            <span className="font-bold text-lg text-ms-blue">MÔ SALO</span>
+          </Link>
+        </div>
+        <div className="px-6 py-4 border-b border-ms-border">
+          <p className="text-sm font-medium text-ms-dark">{userName}</p>
+          <p className="text-xs text-ms-gray">Recrutador</p>
+        </div>
+        <nav className="flex-1 py-4 px-3">
+          {[
+            { key: 'home', icon: Briefcase, label: 'Início' },
+            { key: 'vagas', icon: Eye, label: 'Minhas Vagas' },
+            { key: 'candidatos', icon: Users, label: 'Candidatos' },
+            { key: 'nova_vaga', icon: Plus, label: 'Publicar Vaga' },
+          ].map(item => {
+            const Icon = item.icon
+            return (
+              <button key={item.key} onClick={() => setActiveTab(item.key)}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium mb-1 transition-colors ${
+                  activeTab === item.key ? 'bg-ms-purple-light text-ms-purple' : 'text-ms-gray hover:bg-ms-surface'
+                }`}>
+                <Icon size={18} /> {item.label}
+              </button>
+            )
+          })}
+        </nav>
+      </aside>
 
-            <aside className="lg:w-64 flex-shrink-0">
-              <div className="rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-violet-600 p-5 mb-4 text-white">
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <Briefcase size={28} className="text-white" />
-                  </div>
-                  <h2 className="font-semibold">{userName}</h2>
-                  <p className="text-white/70 text-sm">Recrutador Verificado</p>
-                  <span className="inline-block mt-2 px-3 py-0.5 bg-white/20 rounded-full text-xs text-white">Conta Activa</span>
-                </div>
+      <main className="px-4 pt-6 max-w-3xl mx-auto lg:pt-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-xl font-bold text-ms-dark">Olá, {userName}!</h1>
+            <p className="text-sm text-ms-gray">Painel do Recrutador</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="w-9 h-9 bg-ms-surface rounded-full flex items-center justify-center">
+              <Search size={16} className="text-ms-gray" />
+            </button>
+            <button className="w-9 h-9 bg-ms-surface rounded-full flex items-center justify-center relative">
+              <Bell size={16} className="text-ms-gray" />
+            </button>
+          </div>
+        </div>
+
+        {activeTab === 'home' && (
+          <>
+            {/* Stats Card */}
+            <div className="bg-gradient-to-br from-[#6C47FF] to-[#9B7BFF] rounded-2xl p-5 mb-6 text-white relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-8 translate-x-8" />
+              <p className="text-xs text-white/70 mb-1">Vagas Publicadas</p>
+              <p className="text-3xl font-bold mb-3">{vagasActivas}</p>
+              <div className="flex items-center justify-between">
+                <span className="text-xs bg-white/20 px-3 py-1 rounded-full">
+                  {candidatos.filter(c => c.status === 'enviada').length} candidaturas pendentes
+                </span>
+                <button onClick={() => setActiveTab('nova_vaga')} className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                  <Plus size={16} className="text-ms-purple" />
+                </button>
               </div>
+            </div>
 
-              <nav className="card overflow-hidden">
-                {[
-                  { key: 'vagas', label: 'Minhas Vagas', icon: Briefcase },
-                  { key: 'candidatos', label: 'Candidatos', icon: Users, badge: candidatos.filter(c => c.status === 'enviada').length },
-                  { key: 'nova_vaga', label: 'Publicar Vaga', icon: Plus },
-                  { key: 'analytics', label: 'Analytics', icon: BarChart3 },
-                ].map((item) => {
-                  const Icon = item.icon
-                  return (
-                    <button
-                      key={item.key}
-                      onClick={() => setActiveTab(item.key as typeof activeTab)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors border-l-4 relative ${
-                        activeTab === item.key
-                          ? 'bg-indigo-50 text-indigo-600 border-indigo-600'
-                          : 'text-gray-600 hover:bg-gray-50 border-transparent'
-                      }`}
-                    >
-                      <Icon size={18} />
-                      {item.label}
-                      {item.badge && item.badge > 0 && (
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 bg-indigo-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                          {item.badge}
-                        </span>
-                      )}
-                    </button>
-                  )
-                })}
-                <Link href="/" className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-red-500 hover:bg-red-50 border-l-4 border-transparent">
-                  <LogOut size={18} />
-                  Sair
-                </Link>
-              </nav>
-            </aside>
+            {/* Quick Actions */}
+            <div className="flex gap-3 overflow-x-auto pb-2 mb-6">
+              <button onClick={() => setActiveTab('nova_vaga')} className="flex-shrink-0 bg-ms-purple text-white rounded-xl px-5 py-4 min-w-[150px]">
+                <Plus size={20} className="mb-2" />
+                <p className="text-sm font-medium">Publicar Vaga</p>
+                <p className="text-[11px] text-white/70">Nova oportunidade</p>
+              </button>
+              <button onClick={() => setActiveTab('candidatos')} className="flex-shrink-0 bg-white border border-ms-purple/20 rounded-xl px-5 py-4 min-w-[150px]">
+                <Users size={20} className="text-ms-purple mb-2" />
+                <p className="text-sm font-medium text-ms-dark">Ver Candidatos</p>
+                <p className="text-[11px] text-ms-gray">{candidatos.length} total</p>
+              </button>
+              <button onClick={() => setActiveTab('vagas')} className="flex-shrink-0 bg-white border border-ms-border rounded-xl px-5 py-4 min-w-[150px]">
+                <TrendingUp size={20} className="text-ms-gray mb-2" />
+                <p className="text-sm font-medium text-ms-dark">Relatórios</p>
+                <p className="text-[11px] text-ms-gray">Estatísticas</p>
+              </button>
+            </div>
 
-            <div className="flex-1">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="gradient-card-purple rounded-2xl p-4 text-center">
-                  <Briefcase size={22} className="text-indigo-600 mx-auto mb-2" />
-                  <span className="text-2xl font-bold text-indigo-900">{vagas.filter(v => v.status === 'aberta').length}</span>
-                  <span className="text-xs text-indigo-600 block">Vagas Activas</span>
-                </div>
-                <div className="gradient-card-purple rounded-2xl p-4 text-center">
-                  <Users size={22} className="text-purple-600 mx-auto mb-2" />
-                  <span className="text-2xl font-bold text-indigo-900">{candidatos.length}</span>
-                  <span className="text-xs text-purple-600 block">Candidaturas</span>
-                </div>
-                <div className="gradient-card-purple rounded-2xl p-4 text-center">
-                  <Eye size={22} className="text-violet-600 mx-auto mb-2" />
-                  <span className="text-2xl font-bold text-indigo-900">{totalVisualizacoes}</span>
-                  <span className="text-xs text-violet-600 block">Visualizações</span>
-                </div>
-                <div className="gradient-card-purple rounded-2xl p-4 text-center">
-                  <TrendingUp size={22} className="text-indigo-600 mx-auto mb-2" />
-                  <span className="text-2xl font-bold text-indigo-900">{vagas.filter(v => v.is_prioritaria).length}</span>
-                  <span className="text-xs text-indigo-600 block">Em Destaque</span>
-                </div>
+            {/* Recent Candidatos */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-ms-dark">Candidatos Recentes</h3>
+                <button onClick={() => setActiveTab('candidatos')} className="text-xs text-ms-blue font-medium">Ver todos</button>
               </div>
-
-              {activeTab === 'vagas' && (
-                <div className="card overflow-hidden">
-                  <div className="p-5 border-b border-gray-100 flex justify-between items-center">
-                    <h2 className="font-heading font-semibold text-lg">Minhas Vagas</h2>
-                    <button onClick={() => setActiveTab('nova_vaga')} className="btn-primary !py-2 !px-4 text-sm flex items-center gap-1">
-                      <Plus size={16} /> Nova Vaga
-                    </button>
-                  </div>
-                  {vagas.length === 0 ? (
-                    <div className="p-8 text-center">
-                      <Briefcase size={40} className="text-gray-300 mx-auto mb-3" />
-                      <h3 className="font-semibold text-gray-700 mb-1">Sem vagas</h3>
-                      <p className="text-gray-500 text-sm mb-4">Ainda não publicaste nenhuma vaga.</p>
-                      <button onClick={() => setActiveTab('nova_vaga')} className="btn-primary text-sm">Publicar Vaga</button>
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-gray-100">
-                      {vagas.map((v) => (
-                        <div key={v.id} className="p-4 hover:bg-gray-50 transition-colors">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h3 className="font-medium text-gray-900">{v.titulo}</h3>
-                                {v.is_prioritaria && <Star size={14} className="text-k10-gold" fill="currentColor" />}
-                              </div>
-                              <p className="text-xs text-gray-500">{v.area} • Prazo: {v.prazo}</p>
-                            </div>
-                            <span className={v.status === 'aberta' ? 'badge-success' : 'badge-danger'}>
-                              {v.status === 'aberta' ? 'Aberta' : 'Encerrada'}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
-                            <span className="flex items-center gap-1"><Users size={12} /> {vagaCandCounts[v.id] || 0} candidaturas</span>
-                            <span className="flex items-center gap-1"><Eye size={12} /> {v.visualizacoes || 0} visualizações</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+              {candidatos.length === 0 ? (
+                <div className="bg-ms-surface rounded-xl p-6 text-center">
+                  <p className="text-sm text-ms-gray">Nenhum candidato ainda</p>
                 </div>
-              )}
-
-              {activeTab === 'candidatos' && (
-                <div className="card overflow-hidden">
-                  <div className="p-5 border-b border-gray-100">
-                    <h2 className="font-heading font-semibold text-lg">Candidatos Recebidos</h2>
-                  </div>
-                  {candidatos.length === 0 ? (
-                    <div className="p-8 text-center">
-                      <Users size={40} className="text-gray-300 mx-auto mb-3" />
-                      <p className="text-gray-500 text-sm">Ainda não recebeste candidaturas.</p>
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-gray-100">
-                      {candidatos.map((c) => (
-                        <div key={c.id} className="p-4 hover:bg-gray-50 transition-colors">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-k10-accent/10 rounded-full flex items-center justify-center">
-                                <span className="font-bold text-k10-accent text-sm">{((c as any).users?.nome || 'C').charAt(0)}</span>
-                              </div>
-                              <div>
-                                <h3 className="font-medium text-sm text-gray-900">{(c as any).users?.nome || 'Candidato'}</h3>
-                                <p className="text-xs text-gray-500">{(c as any).users?.email || ''} • Vaga: {(c as any).vagas?.titulo || ''}</p>
-                                <p className="text-xs text-gray-400">{formatDate(c.data_candidatura)}</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className={`text-xs px-2 py-1 rounded-full ${
-                                c.status === 'aprovada' ? 'bg-green-100 text-green-700' :
-                                c.status === 'recusada' ? 'bg-red-100 text-red-700' :
-                                c.status === 'em_analise' ? 'bg-yellow-100 text-yellow-700' :
-                                'bg-blue-100 text-blue-700'
-                              }`}>{c.status}</span>
-                              {c.status === 'enviada' && (
-                                <div className="flex gap-1">
-                                  <button onClick={() => atualizarCandidatura(c.id, 'aprovada')} className="p-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-100" title="Aprovar">
-                                    <CheckCircle size={16} />
-                                  </button>
-                                  <button onClick={() => atualizarCandidatura(c.id, 'recusada')} className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100" title="Recusar">
-                                    <XCircle size={16} />
-                                  </button>
-                                </div>
-                              )}
-                              <button onClick={() => loadCandidateDocuments(c.candidato_id)} className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100" title="Ver Documentos">
-                                <FileText size={16} />
-                              </button>
-                            </div>
-                          </div>
-                          {candidateDocs[c.candidato_id] && (
-                            <div className="mt-3 ml-13 pl-13 border-l-2 border-gray-100 ml-[52px] pl-3">
-                              {candidateDocs[c.candidato_id].length === 0 ? (
-                                <p className="text-xs text-gray-400">Nenhum documento carregado.</p>
-                              ) : (
-                                <div className="flex flex-wrap gap-2">
-                                  {candidateDocs[c.candidato_id].map((doc) => (
-                                    <a
-                                      key={doc}
-                                      href={getDocUrl(c.candidato_id, doc)}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs hover:bg-blue-100 transition-colors"
-                                    >
-                                      <Download size={12} />
-                                      {doc}
-                                    </a>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'nova_vaga' && (
-                <div className="card p-6">
-                  <h2 className="font-heading font-semibold text-lg mb-4">Publicar Nova Vaga</h2>
-                  {publishMsg && (
-                    <div className={`text-sm p-3 rounded-xl mb-4 ${publishMsg.includes('sucesso') ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-                      {publishMsg}
-                    </div>
-                  )}
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div className="sm:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Nome da Empresa</label>
-                      <input type="text" className="input-field" placeholder="Ex: Banco BAI" value={novaVaga.empresa_nome} onChange={(e) => setNovaVaga({...novaVaga, empresa_nome: e.target.value})} />
-                    </div>
-                    <div className="sm:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Título da Vaga *</label>
-                      <input type="text" className="input-field" placeholder="Ex: Analista Financeiro Sénior" value={novaVaga.titulo} onChange={(e) => setNovaVaga({...novaVaga, titulo: e.target.value})} />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Área *</label>
-                      <select className="input-field" value={novaVaga.area} onChange={(e) => setNovaVaga({...novaVaga, area: e.target.value})}>
-                        <option value="">Seleccionar área</option>
-                        {AREAS.map((a) => <option key={a} value={a}>{a}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Nível Mínimo *</label>
-                      <select className="input-field" value={novaVaga.nivel_minimo} onChange={(e) => setNovaVaga({...novaVaga, nivel_minimo: e.target.value})}>
-                        <option value="">Seleccionar nível</option>
-                        {NIVEIS_ACADEMICOS.map((n) => <option key={n} value={n}>{n}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Localização *</label>
-                      <select className="input-field" value={novaVaga.localizacao} onChange={(e) => setNovaVaga({...novaVaga, localizacao: e.target.value})}>
-                        <option value="">Seleccionar província</option>
-                        {PROVINCIAS_ANGOLA.map((p) => <option key={p} value={p}>{p}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Salário (Kz)</label>
-                      <input type="text" className="input-field" placeholder="Ex: 450.000 Kz" value={novaVaga.salario} onChange={(e) => setNovaVaga({...novaVaga, salario: e.target.value})} />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Experiência Requerida</label>
-                      <input type="text" className="input-field" placeholder="Ex: 3-5 anos" value={novaVaga.experiencia_requerida} onChange={(e) => setNovaVaga({...novaVaga, experiencia_requerida: e.target.value})} />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Prazo de Candidatura *</label>
-                      <input type="date" className="input-field" value={novaVaga.prazo} onChange={(e) => setNovaVaga({...novaVaga, prazo: e.target.value})} />
-                    </div>
-                    <div className="sm:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Descrição da Vaga *</label>
-                      <textarea className="input-field" rows={5} placeholder="Descreve a vaga, responsabilidades e requisitos..." value={novaVaga.descricao} onChange={(e) => setNovaVaga({...novaVaga, descricao: e.target.value})} />
-                    </div>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-3 mt-6">
-                    <button onClick={() => publicarVaga(false)} disabled={publishing} className="btn-primary flex items-center gap-2">
-                      <Plus size={18} />
-                      {publishing ? 'A publicar...' : 'Publicar Vaga'}
-                    </button>
-                    <button onClick={() => publicarVaga(true)} disabled={publishing} className="btn-outline flex items-center gap-2 text-sm">
-                      <Star size={16} />
-                      Publicar como Destaque (5.000 Kz)
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'analytics' && (
-                <div className="space-y-4">
-                  <div className="card p-6">
-                    <h2 className="font-heading font-semibold text-lg mb-4">Resumo de Performance</h2>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      <div className="bg-blue-50 rounded-xl p-4 text-center">
-                        <span className="text-2xl font-bold text-blue-600">{candidatos.length}</span>
-                        <p className="text-xs text-blue-500 mt-1">Total de Candidaturas</p>
+              ) : (
+                <div className="space-y-2">
+                  {candidatos.slice(0, 5).map((c) => (
+                    <div key={c.id} className="bg-ms-surface rounded-xl p-3 flex items-center gap-3">
+                      <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-ms-border flex-shrink-0">
+                        <Users size={16} className="text-ms-purple" />
                       </div>
-                      <div className="bg-green-50 rounded-xl p-4 text-center">
-                        <span className="text-2xl font-bold text-green-600">{totalVisualizacoes}</span>
-                        <p className="text-xs text-green-500 mt-1">Total de Visualizações</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-ms-dark truncate">{c.users?.nome || 'Candidato'}</p>
+                        <p className="text-xs text-ms-gray truncate">{c.vagas?.titulo}</p>
                       </div>
-                      <div className="bg-purple-50 rounded-xl p-4 text-center">
-                        <span className="text-2xl font-bold text-purple-600">{totalVisualizacoes > 0 ? ((candidatos.length / totalVisualizacoes) * 100).toFixed(1) : 0}%</span>
-                        <p className="text-xs text-purple-500 mt-1">Taxa de Candidatura</p>
-                      </div>
-                      <div className="bg-amber-50 rounded-xl p-4 text-center">
-                        <span className="text-2xl font-bold text-amber-600">{candidatos.filter(c => c.status === 'aprovada').length}</span>
-                        <p className="text-xs text-amber-500 mt-1">Aprovados</p>
-                      </div>
-                      <div className="bg-red-50 rounded-xl p-4 text-center">
-                        <span className="text-2xl font-bold text-red-600">{vagas.length}</span>
-                        <p className="text-xs text-red-500 mt-1">Vagas Publicadas</p>
-                      </div>
-                      <div className="bg-teal-50 rounded-xl p-4 text-center">
-                        <span className="text-2xl font-bold text-teal-600">{vagas.filter(v => v.is_prioritaria).length}</span>
-                        <p className="text-xs text-teal-500 mt-1">Vagas em Destaque</p>
-                      </div>
+                      <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
+                        c.status === 'aprovada' ? 'bg-green-100 text-green-700' :
+                        c.status === 'rejeitada' ? 'bg-red-100 text-red-700' :
+                        'bg-amber-100 text-amber-700'
+                      }`}>
+                        {c.status === 'aprovada' ? 'Aceite' : c.status === 'rejeitada' ? 'Rejeitado' : 'Pendente'}
+                      </span>
                     </div>
-                  </div>
-                  {vagas.length > 0 && (
-                    <div className="card p-6">
-                      <h3 className="font-semibold mb-3">Candidaturas por Vaga</h3>
-                      {vagas.map((v) => (
-                        <div key={v.id} className="mb-3">
-                          <div className="flex justify-between text-sm mb-1">
-                            <span className="text-gray-700">{v.titulo}</span>
-                            <span className="text-gray-500">{vagaCandCounts[v.id] || 0}</span>
-                          </div>
-                          <div className="w-full h-2.5 bg-gray-200 rounded-full overflow-hidden">
-                            <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.min(((vagaCandCounts[v.id] || 0) / Math.max(candidatos.length, 1)) * 100, 100)}%` }} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  ))}
                 </div>
               )}
             </div>
+          </>
+        )}
+
+        {activeTab === 'vagas' && (
+          <div>
+            <h2 className="text-lg font-bold text-ms-dark mb-4">As Minhas Vagas</h2>
+            {vagas.length === 0 ? (
+              <div className="bg-ms-surface rounded-xl p-8 text-center">
+                <p className="text-sm text-ms-gray">Nenhuma vaga publicada</p>
+                <button onClick={() => setActiveTab('nova_vaga')} className="text-sm text-ms-blue font-medium mt-2">Publicar primeira vaga →</button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {vagas.map(v => (
+                  <div key={v.id} className="bg-ms-surface rounded-xl p-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-ms-dark">{v.titulo}</p>
+                        <p className="text-xs text-ms-gray">{v.area} • {v.localizacao}</p>
+                      </div>
+                      <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
+                        v.status === 'aberta' ? 'bg-green-100 text-green-700' :
+                        v.status === 'em_analise' ? 'bg-amber-100 text-amber-700' :
+                        'bg-red-100 text-red-700'
+                      }`}>
+                        {v.status === 'aberta' ? 'Activa' : v.status === 'em_analise' ? 'Em análise' : 'Encerrada'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
+        )}
+
+        {activeTab === 'candidatos' && (
+          <div>
+            <h2 className="text-lg font-bold text-ms-dark mb-4">Candidatos</h2>
+            {candidatos.length === 0 ? (
+              <div className="bg-ms-surface rounded-xl p-8 text-center">
+                <p className="text-sm text-ms-gray">Nenhum candidato recebido</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {candidatos.map(c => (
+                  <div key={c.id} className="bg-ms-surface rounded-xl p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-ms-border flex-shrink-0">
+                        <Users size={16} className="text-ms-purple" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-ms-dark">{c.users?.nome || 'Candidato'}</p>
+                        <p className="text-xs text-ms-gray">{c.users?.email}</p>
+                        <p className="text-xs text-ms-blue mt-1">Vaga: {c.vagas?.titulo}</p>
+                        {c.status === 'enviada' && (
+                          <div className="flex gap-2 mt-2">
+                            <button onClick={() => handleCandidatoAction(c.id, 'aprovada')} className="text-xs px-3 py-1 rounded-lg bg-green-100 text-green-700 font-medium">Aprovar</button>
+                            <button onClick={() => handleCandidatoAction(c.id, 'rejeitada')} className="text-xs px-3 py-1 rounded-lg bg-red-100 text-red-700 font-medium">Rejeitar</button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'nova_vaga' && (
+          <div>
+            <h2 className="text-lg font-bold text-ms-dark mb-4">Publicar Vaga</h2>
+            <form onSubmit={handlePublicarVaga} className="space-y-4">
+              <input value={novaVaga.titulo} onChange={e => setNovaVaga({...novaVaga, titulo: e.target.value})} placeholder="Título da vaga" className="input-field" required />
+              <select value={novaVaga.area} onChange={e => setNovaVaga({...novaVaga, area: e.target.value})} className="input-field">
+                {AREAS.map(a => <option key={a} value={a}>{a}</option>)}
+              </select>
+              <select value={novaVaga.localizacao} onChange={e => setNovaVaga({...novaVaga, localizacao: e.target.value})} className="input-field">
+                {PROVINCIAS_ANGOLA.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+              <input value={novaVaga.salario} onChange={e => setNovaVaga({...novaVaga, salario: e.target.value})} placeholder="Salário (ex: 250.000 Kz)" className="input-field" />
+              <input type="date" value={novaVaga.prazo} onChange={e => setNovaVaga({...novaVaga, prazo: e.target.value})} className="input-field" />
+              <textarea value={novaVaga.descricao} onChange={e => setNovaVaga({...novaVaga, descricao: e.target.value})} placeholder="Descrição da vaga" className="input-field min-h-[100px]" required />
+              <textarea value={novaVaga.requisitos} onChange={e => setNovaVaga({...novaVaga, requisitos: e.target.value})} placeholder="Requisitos (um por linha)" className="input-field min-h-[80px]" />
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={novaVaga.is_prioritaria} onChange={e => setNovaVaga({...novaVaga, is_prioritaria: e.target.checked})} className="w-4 h-4 rounded border-ms-border text-ms-blue" />
+                <span className="text-sm text-ms-dark">Vaga em destaque (5.000 Kz)</span>
+              </label>
+              <button type="submit" className="w-full bg-ms-blue text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition-colors">
+                Submeter Vaga
+              </button>
+            </form>
+          </div>
+        )}
       </main>
-    </>
+
+      <BottomNav active="home" userRole="recrutador" />
+    </div>
   )
 }

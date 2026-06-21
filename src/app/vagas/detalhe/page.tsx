@@ -2,201 +2,183 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
-import Navbar from '@/components/Navbar'
-import Footer from '@/components/Footer'
-import ApplicationForm from '@/components/ApplicationForm'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { MapPin, Clock, Briefcase, Star, DollarSign, ArrowLeft, GraduationCap, Building2, FileText, CheckCircle } from 'lucide-react'
-
-interface VagaDetail {
-  id: string
-  titulo: string
-  empresa_nome: string
-  area: string
-  localizacao: string
-  salario: string
-  prazo: string
-  nivel_minimo: string
-  is_prioritaria: boolean
-  descricao: string
-  experiencia_requerida: string
-  status: string
-}
-
-export default function VagaDetalhePage() {
-  return (
-    <Suspense fallback={
-      <>
-        <Navbar />
-        <main className="pt-16 min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-k10-accent border-t-transparent rounded-full animate-spin" />
-        </main>
-      </>
-    }>
-      <VagaDetalheContent />
-    </Suspense>
-  )
-}
+import { ArrowLeft, Heart, Briefcase, MapPin, Building2, Send } from 'lucide-react'
 
 function VagaDetalheContent() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const vagaId = searchParams.get('id')
-  const [vaga, setVaga] = useState<VagaDetail | null>(null)
+  const [vaga, setVaga] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [notFound, setNotFound] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [userRole, setUserRole] = useState('')
+  const [userId, setUserId] = useState('')
+  const [mensagem, setMensagem] = useState('')
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(false)
 
   useEffect(() => {
-    if (vagaId) {
-      loadVaga(vagaId)
-    } else {
-      setNotFound(true)
+    const load = async () => {
+      if (!vagaId) { setLoading(false); return }
+
+      const { data } = await supabase.from('vagas').select('*').eq('id', vagaId).single()
+      if (data) setVaga(data)
+
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        setIsLoggedIn(true)
+        const { data: user } = await supabase.from('users').select('id, role').eq('email', session.user.email).single()
+        if (user) {
+          setUserRole(user.role)
+          setUserId(user.id)
+        }
+      }
       setLoading(false)
     }
+    load()
   }, [vagaId])
 
-  const loadVaga = async (id: string) => {
-    const { data, error } = await supabase
-      .from('vagas')
-      .select('*')
-      .eq('id', id)
-      .single()
+  const handleCandidatar = async () => {
+    if (!isLoggedIn) { router.push('/auth/registar/'); return }
+    if (!userId || !vagaId) return
 
-    if (data && !error) {
-      setVaga(data)
+    setSending(true)
+    const { error } = await supabase.from('candidaturas').insert({
+      vaga_id: vagaId,
+      candidato_id: userId,
+      mensagem,
+      status: 'enviada',
+      data_candidatura: new Date().toISOString(),
+    })
+
+    if (error) {
+      alert('Erro ao enviar candidatura: ' + error.message)
     } else {
-      setNotFound(true)
+      setSent(true)
     }
-    setLoading(false)
+    setSending(false)
   }
 
   if (loading) {
     return (
-      <>
-        <Navbar />
-        <main className="pt-16 min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-k10-accent border-t-transparent rounded-full animate-spin" />
-        </main>
-      </>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-ms-purple border-t-transparent rounded-full animate-spin" />
+      </div>
     )
   }
 
-  if (notFound || !vaga) {
+  if (!vaga) {
     return (
-      <>
-        <Navbar />
-        <main className="pt-16 min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
-            <Briefcase size={48} className="text-gray-300 mx-auto mb-4" />
-            <h2 className="font-heading text-xl font-bold text-gray-600 mb-2">Vaga não encontrada</h2>
-            <p className="text-gray-400 mb-4">Esta vaga pode ter sido removida ou encerrada.</p>
-            <Link href="/vagas/" className="btn-primary inline-flex items-center gap-2">
-              <ArrowLeft size={16} />
-              Ver Todas as Vagas
-            </Link>
-          </div>
-        </main>
-        <Footer />
-      </>
+      <div className="min-h-screen bg-white flex items-center justify-center px-4">
+        <div className="text-center">
+          <p className="text-ms-gray mb-4">Vaga não encontrada</p>
+          <Link href="/vagas/" className="text-ms-blue font-medium">← Voltar às vagas</Link>
+        </div>
+      </div>
     )
   }
 
   return (
-    <>
-      <Navbar />
-      <main className="pt-16 min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Link href="/vagas/" className="inline-flex items-center gap-1.5 text-gray-500 hover:text-k10-accent transition-colors text-sm mb-6">
-            <ArrowLeft size={16} />
-            Voltar às Vagas
-          </Link>
+    <div className="min-h-screen bg-white pb-24">
+      {/* Top Nav */}
+      <header className="sticky top-0 bg-white border-b border-ms-border z-50 px-4 py-3">
+        <div className="max-w-3xl mx-auto flex items-center justify-between">
+          <button onClick={() => router.back()}>
+            <ArrowLeft size={20} className="text-ms-dark" />
+          </button>
+          <span className="font-bold text-lg text-ms-blue">MÔ SALO</span>
+          <button>
+            <Heart size={20} className="text-ms-gray" />
+          </button>
+        </div>
+      </header>
 
-          <div className="grid lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <div className="card p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-14 h-14 rounded-xl bg-k10-accent/10 flex items-center justify-center">
-                      <Building2 size={28} className="text-k10-accent" />
-                    </div>
-                    <div>
-                      <p className="text-gray-500 text-sm">{vaga.empresa_nome}</p>
-                      <h1 className="font-heading text-xl font-bold text-k10-primary">{vaga.titulo}</h1>
-                    </div>
-                  </div>
-                  {vaga.is_prioritaria && (
-                    <span className="badge bg-k10-accent/10 text-k10-accent flex items-center gap-1">
-                      <Star size={12} fill="currentColor" />
-                      Destaque
-                    </span>
-                  )}
-                </div>
+      <main className="max-w-3xl mx-auto px-4 pt-6">
+        {/* Company & Title */}
+        <div className="text-center mb-6">
+          <div className="w-14 h-14 bg-ms-surface rounded-full flex items-center justify-center mx-auto mb-3 border border-ms-border">
+            <Briefcase size={24} className="text-ms-blue" />
+          </div>
+          <h1 className="text-xl font-bold text-ms-dark mb-1">{vaga.titulo}</h1>
+          <div className="flex items-center justify-center gap-2 text-sm text-ms-gray">
+            <MapPin size={14} /> {vaga.localizacao || 'Angola'}
+          </div>
+          <p className="text-sm text-ms-gray mt-1">{vaga.empresa_nome}</p>
+          {vaga.salario && (
+            <p className="text-sm font-semibold text-ms-blue mt-2">{vaga.salario}</p>
+          )}
+        </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <MapPin size={14} className="text-gray-400" />
-                    {vaga.localizacao}
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <GraduationCap size={14} className="text-gray-400" />
-                    {vaga.nivel_minimo}
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Clock size={14} className="text-gray-400" />
-                    {vaga.prazo}
-                  </div>
-                  {vaga.salario && (
-                    <div className="flex items-center gap-2 text-sm text-k10-accent font-medium">
-                      <DollarSign size={14} />
-                      {vaga.salario}
-                    </div>
-                  )}
-                </div>
+        {/* About */}
+        {vaga.descricao && (
+          <div className="mb-6">
+            <h2 className="text-sm font-semibold text-ms-dark mb-2">Sobre a Vaga</h2>
+            <p className="text-sm text-ms-gray leading-relaxed whitespace-pre-line">{vaga.descricao}</p>
+          </div>
+        )}
 
-                <div className="border-t pt-4">
-                  <h2 className="font-heading font-semibold text-gray-800 mb-2">Descrição</h2>
-                  <p className="text-gray-600 text-sm leading-relaxed">{vaga.descricao}</p>
-                </div>
+        {/* Requirements */}
+        {vaga.requisitos && (
+          <div className="mb-6">
+            <h2 className="text-sm font-semibold text-ms-dark mb-2">Requisitos</h2>
+            <ul className="space-y-1">
+              {vaga.requisitos.split('\n').filter(Boolean).map((req: string, i: number) => (
+                <li key={i} className="text-sm text-ms-gray flex items-start gap-2">
+                  <span className="w-1.5 h-1.5 bg-ms-purple rounded-full mt-1.5 flex-shrink-0" />
+                  {req}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
-                {vaga.experiencia_requerida && (
-                  <div className="border-t pt-4 mt-4">
-                    <h2 className="font-heading font-semibold text-gray-800 mb-2">Experiência Requerida</h2>
-                    <p className="text-gray-600 text-sm">{vaga.experiencia_requerida}</p>
-                  </div>
-                )}
+        {/* Application form */}
+        {sent ? (
+          <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+            <p className="text-sm font-medium text-green-700">Candidatura enviada com sucesso!</p>
+            <Link href="/dashboard/candidato/" className="text-xs text-ms-blue mt-2 inline-block">Ver as minhas candidaturas →</Link>
+          </div>
+        ) : isLoggedIn && userRole === 'candidato' ? (
+          <div className="mb-4">
+            <h2 className="text-sm font-semibold text-ms-dark mb-2">Mensagem (opcional)</h2>
+            <textarea
+              value={mensagem}
+              onChange={(e) => setMensagem(e.target.value)}
+              placeholder="Porquê queres esta vaga?"
+              className="input-field min-h-[80px] mb-3"
+            />
+          </div>
+        ) : null}
+      </main>
 
-                <div className="border-t pt-4 mt-4">
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <Briefcase size={14} />
-                    <span>Área: {vaga.area}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <ApplicationForm vagaId={vaga.id} vagaTitulo={vaga.titulo} />
-
-              <div className="card p-5">
-                <h3 className="font-semibold text-sm text-gray-800 mb-3 flex items-center gap-2">
-                  <FileText size={14} />
-                  Documentos Necessários
-                </h3>
-                <ul className="text-xs text-gray-600 space-y-1.5">
-                  <li>- Curriculum Vitae actualizado</li>
-                  <li>- Cópia do diploma ou certificado</li>
-                  <li>- Bilhete de Identidade</li>
-                  <li>- Carta de motivação (recomendado)</li>
-                </ul>
-                <Link href="/guia/" className="text-xs text-blue-600 hover:underline mt-2 inline-block font-medium">
-                  Ver Guia Completo do Candidato →
-                </Link>
-              </div>
-            </div>
+      {/* Sticky bottom bar */}
+      {!sent && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-ms-border p-4 z-50">
+          <div className="max-w-3xl mx-auto flex gap-3">
+            <button className="flex-shrink-0 border border-ms-border px-4 py-3 rounded-xl text-sm font-medium text-ms-dark hover:bg-ms-surface">
+              Guardar
+            </button>
+            <button
+              onClick={handleCandidatar}
+              disabled={sending}
+              className="flex-1 bg-ms-blue text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              <Send size={16} />
+              {sending ? 'A enviar...' : isLoggedIn ? 'Candidatar Agora' : 'Registar para Candidatar'}
+            </button>
           </div>
         </div>
-      </main>
-      <Footer />
-    </>
+      )}
+    </div>
+  )
+}
+
+export default function VagaDetalhePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center"><div className="w-8 h-8 border-2 border-ms-purple border-t-transparent rounded-full animate-spin" /></div>}>
+      <VagaDetalheContent />
+    </Suspense>
   )
 }

@@ -1,169 +1,151 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Navbar from '@/components/Navbar'
-import Footer from '@/components/Footer'
-import JobCard from '@/components/JobCard'
-import { Search, SlidersHorizontal, MapPin, Briefcase } from 'lucide-react'
-import { AREAS, NIVEIS_ACADEMICOS, PROVINCIAS_ANGOLA } from '@/lib/types'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-
-const fallbackJobs = [
-  { id: '1', titulo: 'Analista Financeiro Sénior', empresa_nome: 'Banco BAI', area: 'Economia e Finanças', localizacao: 'Luanda', salario: '450.000 Kz', prazo: '30 Jun 2025', nivel_minimo: 'Licenciatura', is_prioritaria: true, status: 'aberta' },
-  { id: '2', titulo: 'Desenvolvedor Full-Stack', empresa_nome: 'Unitel', area: 'Tecnologia da Informação', localizacao: 'Luanda', salario: '380.000 Kz', prazo: '15 Jul 2025', nivel_minimo: 'Licenciatura', is_prioritaria: false, status: 'aberta' },
-  { id: '3', titulo: 'Engenheiro de Petróleo Jr.', empresa_nome: 'Sonangol', area: 'Petróleo e Gás', localizacao: 'Cabinda', salario: '600.000 Kz', prazo: '20 Jul 2025', nivel_minimo: 'Licenciatura', is_prioritaria: true, status: 'aberta' },
-  { id: '4', titulo: 'Gestor de Marketing Digital', empresa_nome: 'Africell', area: 'Marketing e Comunicação', localizacao: 'Luanda', salario: '300.000 Kz', prazo: '25 Jun 2025', nivel_minimo: 'Licenciatura', is_prioritaria: false, status: 'aberta' },
-  { id: '5', titulo: 'Advogado Corporativo', empresa_nome: 'FBL Advogados', area: 'Direito', localizacao: 'Luanda', salario: '500.000 Kz', prazo: '10 Jul 2025', nivel_minimo: 'Mestrado', is_prioritaria: false, status: 'aberta' },
-  { id: '6', titulo: 'Enfermeiro/a Chefe', empresa_nome: 'Clínica Sagrada Esperança', area: 'Saúde', localizacao: 'Luanda', salario: '280.000 Kz', prazo: '05 Jul 2025', nivel_minimo: 'Licenciatura', is_prioritaria: true, status: 'aberta' },
-  { id: '7', titulo: 'Contador Certificado', empresa_nome: 'Ernst & Young Angola', area: 'Contabilidade e Auditoria', localizacao: 'Luanda', salario: '420.000 Kz', prazo: '28 Jun 2025', nivel_minimo: 'Licenciatura', is_prioritaria: false, status: 'aberta' },
-  { id: '8', titulo: 'Engenheiro Civil de Obra', empresa_nome: 'Odebrecht Angola', area: 'Construção Civil', localizacao: 'Benguela', salario: '550.000 Kz', prazo: '18 Jul 2025', nivel_minimo: 'Licenciatura', is_prioritaria: false, status: 'aberta' },
-  { id: '9', titulo: 'Gestor de Recursos Humanos', empresa_nome: 'Angola Telecom', area: 'Recursos Humanos', localizacao: 'Luanda', salario: '350.000 Kz', prazo: '12 Jul 2025', nivel_minimo: 'Licenciatura', is_prioritaria: false, status: 'aberta' },
-  { id: '10', titulo: 'Professor de Matemática', empresa_nome: 'Colégio Pitágoras', area: 'Educação', localizacao: 'Huambo', salario: '200.000 Kz', prazo: '30 Jun 2025', nivel_minimo: 'Licenciatura', is_prioritaria: false, status: 'aberta' },
-  { id: '11', titulo: 'Designer Gráfico Sénior', empresa_nome: 'Creative Studio AO', area: 'Artes e Design', localizacao: 'Luanda', salario: '250.000 Kz', prazo: '22 Jul 2025', nivel_minimo: 'Licenciatura', is_prioritaria: false, status: 'aberta' },
-  { id: '12', titulo: 'Técnico de Logística', empresa_nome: 'Maersk Angola', area: 'Logística e Transportes', localizacao: 'Luanda', salario: '320.000 Kz', prazo: '08 Jul 2025', nivel_minimo: 'Técnico Profissional', is_prioritaria: true, status: 'aberta' },
-]
+import { Search, SlidersHorizontal, Heart, Briefcase, ArrowLeft, Home as HomeIcon, User } from 'lucide-react'
 
 export default function VagasPage() {
-  const [searchTerm, setSearchTerm] = useState('')
-  const [selectedArea, setSelectedArea] = useState('')
-  const [selectedProvincia, setSelectedProvincia] = useState('')
-  const [selectedNivel, setSelectedNivel] = useState('')
-  const [showFilters, setShowFilters] = useState(false)
-  const [allJobs, setAllJobs] = useState(fallbackJobs)
-  const [loading, setLoading] = useState(true)
+  const [vagas, setVagas] = useState<any[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [activeFilter, setActiveFilter] = useState('Todas')
+
+  const filters = ['Todas', 'TI', 'Finanças', 'Engenharia', 'Saúde', 'Marketing']
 
   useEffect(() => {
-    loadJobs()
+    const loadVagas = async () => {
+      const { data } = await supabase.from('vagas').select('*').eq('status', 'aberta').order('created_at', { ascending: false })
+      if (data && data.length > 0) {
+        setVagas(data)
+      } else {
+        setVagas([
+          { id: '1', titulo: 'Analista Financeiro Sénior', empresa_nome: 'Banco BAI', area: 'Economia e Finanças', localizacao: 'Luanda', salario: '450.000 Kz', created_at: new Date().toISOString() },
+          { id: '2', titulo: 'Desenvolvedor Full-Stack', empresa_nome: 'Unitel', area: 'Tecnologia da Informação', localizacao: 'Luanda', salario: '380.000 Kz', created_at: new Date().toISOString() },
+          { id: '3', titulo: 'Engenheiro de Petróleo', empresa_nome: 'Sonangol', area: 'Engenharia', localizacao: 'Cabinda', salario: '600.000 Kz', created_at: new Date().toISOString() },
+          { id: '4', titulo: 'Designer UI/UX', empresa_nome: 'Africell', area: 'Artes e Design', localizacao: 'Luanda', salario: '300.000 Kz', created_at: new Date().toISOString() },
+          { id: '5', titulo: 'Gestor de Projectos', empresa_nome: 'Total Energies', area: 'Administração', localizacao: 'Luanda', salario: '500.000 Kz', created_at: new Date().toISOString() },
+          { id: '6', titulo: 'Contabilista Sénior', empresa_nome: 'Ernst & Young', area: 'Contabilidade e Auditoria', localizacao: 'Luanda', salario: '350.000 Kz', created_at: new Date().toISOString() },
+        ])
+      }
+    }
+    loadVagas()
   }, [])
 
-  const loadJobs = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('vagas')
-        .select('*')
-        .eq('status', 'aberta')
-        .order('is_prioritaria', { ascending: false })
-        .order('created_at', { ascending: false })
-      
-      if (data && data.length > 0 && !error) {
-        setAllJobs(data)
-      }
-    } catch {
-      // fallback to mock data
-    }
-    setLoading(false)
+  const filteredVagas = vagas.filter(v => {
+    const matchSearch = v.titulo.toLowerCase().includes(searchQuery.toLowerCase()) || v.empresa_nome?.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchFilter = activeFilter === 'Todas' || v.area?.includes(activeFilter)
+    return matchSearch && matchFilter
+  })
+
+  const getTimeAgo = (date: string) => {
+    const diff = Date.now() - new Date(date).getTime()
+    const mins = Math.floor(diff / 60000)
+    if (mins < 60) return `${mins} min atrás`
+    const hours = Math.floor(mins / 60)
+    if (hours < 24) return `${hours}h atrás`
+    const days = Math.floor(hours / 24)
+    return `${days} dia${days > 1 ? 's' : ''} atrás`
   }
 
-  const filteredJobs = allJobs.filter((job) => {
-    const matchesSearch = job.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.empresa_nome.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesArea = !selectedArea || job.area === selectedArea
-    const matchesProvincia = !selectedProvincia || job.localizacao === selectedProvincia
-    const matchesNivel = !selectedNivel || job.nivel_minimo === selectedNivel
-    return matchesSearch && matchesArea && matchesProvincia && matchesNivel
-  }).sort((a, b) => (b.is_prioritaria ? 1 : 0) - (a.is_prioritaria ? 1 : 0))
-
   return (
-    <>
-      <Navbar />
-      <main className="pt-16 min-h-screen bg-gray-50">
-        <div className="gradient-hero py-12">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h1 className="font-heading text-3xl font-bold text-white mb-2">Encontra a Tua Vaga</h1>
-            <p className="text-gray-300 mb-6">Pesquisa entre centenas de oportunidades em Angola</p>
+    <div className="min-h-screen bg-white pb-20 lg:pb-0">
+      {/* Top Nav */}
+      <header className="sticky top-0 bg-white border-b border-ms-border z-50 px-4 py-3">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <ArrowLeft size={20} className="text-ms-dark" />
+          </Link>
+          <span className="font-bold text-lg text-ms-blue">MÔ SALO</span>
+          <button>
+            <Heart size={20} className="text-ms-gray" />
+          </button>
+        </div>
+      </header>
 
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Cargo, empresa ou palavra-chave..."
-                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white placeholder-gray-400 focus:border-white/40 focus:ring-2 focus:ring-white/10 outline-none"
-                />
-              </div>
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 text-white py-3 px-5 rounded-xl hover:bg-white/20 transition-all"
-              >
-                <SlidersHorizontal size={18} />
-                Filtros
-              </button>
-            </div>
-
-            {showFilters && (
-              <div className="grid sm:grid-cols-3 gap-3 mt-4">
-                <div className="relative">
-                  <Briefcase size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <select
-                    value={selectedArea}
-                    onChange={(e) => setSelectedArea(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white appearance-none cursor-pointer"
-                  >
-                    <option value="" className="text-gray-900">Todas as áreas</option>
-                    {AREAS.map((a) => (
-                      <option key={a} value={a} className="text-gray-900">{a}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="relative">
-                  <MapPin size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <select
-                    value={selectedProvincia}
-                    onChange={(e) => setSelectedProvincia(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white appearance-none cursor-pointer"
-                  >
-                    <option value="" className="text-gray-900">Todas as províncias</option>
-                    {PROVINCIAS_ANGOLA.map((p) => (
-                      <option key={p} value={p} className="text-gray-900">{p}</option>
-                    ))}
-                  </select>
-                </div>
-                <select
-                  value={selectedNivel}
-                  onChange={(e) => setSelectedNivel(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white appearance-none cursor-pointer"
-                >
-                  <option value="" className="text-gray-900">Todos os níveis</option>
-                  {NIVEIS_ACADEMICOS.map((n) => (
-                    <option key={n} value={n} className="text-gray-900">{n}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
+      <main className="max-w-3xl mx-auto px-4 pt-4">
+        {/* Search */}
+        <div className="flex items-center gap-2 bg-ms-surface rounded-full px-4 py-3 mb-4 border-2 border-ms-blue/10 focus-within:border-ms-blue">
+          <Search size={18} className="text-ms-gray flex-shrink-0" />
+          <input
+            type="text"
+            placeholder="título da vaga ou palavra-chave"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="flex-1 bg-transparent outline-none text-sm text-ms-dark placeholder:text-ms-gray"
+          />
+          <button className="w-8 h-8 bg-ms-blue rounded-lg flex items-center justify-center flex-shrink-0">
+            <SlidersHorizontal size={14} className="text-white" />
+          </button>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex justify-between items-center mb-6">
-            <p className="text-gray-500 text-sm">{filteredJobs.length} vaga{filteredJobs.length !== 1 ? 's' : ''} encontrada{filteredJobs.length !== 1 ? 's' : ''}</p>
-            {(selectedArea || selectedProvincia || selectedNivel) && (
-              <button
-                onClick={() => { setSelectedArea(''); setSelectedProvincia(''); setSelectedNivel('') }}
-                className="text-k10-accent text-sm hover:underline"
-              >
-                Limpar filtros
-              </button>
-            )}
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredJobs.map((job) => (
-              <JobCard key={job.id} {...job} />
-            ))}
-          </div>
-
-          {filteredJobs.length === 0 && (
-            <div className="text-center py-16">
-              <Search size={48} className="text-gray-300 mx-auto mb-4" />
-              <h3 className="font-heading text-lg font-semibold text-gray-600 mb-2">Nenhuma vaga encontrada</h3>
-              <p className="text-gray-400 text-sm">Tenta ajustar os filtros ou pesquisar por outros termos</p>
-            </div>
-          )}
+        {/* Filter chips */}
+        <div className="flex gap-2 overflow-x-auto pb-3 mb-4">
+          {filters.map(f => (
+            <button
+              key={f}
+              onClick={() => setActiveFilter(f)}
+              className={`text-xs px-4 py-2 rounded-full whitespace-nowrap font-medium transition-colors ${
+                activeFilter === f ? 'bg-ms-blue text-white' : 'bg-ms-surface text-ms-gray border border-ms-border'
+              }`}
+            >
+              {f}
+            </button>
+          ))}
         </div>
+
+        {/* Job list */}
+        <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
+          {filteredVagas.map(v => (
+            <Link key={v.id} href={`/vagas/detalhe/?id=${v.id}`} className="block">
+              <div className="bg-ms-surface rounded-xl p-4 flex items-start gap-3 hover:shadow-sm transition-shadow">
+                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center flex-shrink-0 border border-ms-border">
+                  <Briefcase size={16} className="text-ms-blue" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-medium text-ms-dark truncate">{v.titulo}</h3>
+                  <p className="text-xs text-ms-gray">{v.empresa_nome}</p>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-[11px] text-ms-gray">{getTimeAgo(v.created_at)}</span>
+                    <span className="text-[11px] font-medium text-ms-blue bg-ms-blue/5 px-3 py-1 rounded-full">Candidatar</span>
+                  </div>
+                </div>
+                <button className="flex-shrink-0 mt-1">
+                  <Heart size={16} className="text-ms-gray" />
+                </button>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        {filteredVagas.length === 0 && (
+          <div className="text-center py-12">
+            <Briefcase size={32} className="text-ms-gray mx-auto mb-3" />
+            <p className="text-sm text-ms-gray">Nenhuma vaga encontrada</p>
+          </div>
+        )}
       </main>
-      <Footer />
-    </>
+
+      {/* Bottom Nav */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-ms-border z-50 lg:hidden">
+        <div className="flex items-center justify-around py-2 px-4 max-w-md mx-auto">
+          <Link href="/" className="flex flex-col items-center gap-0.5 py-1">
+            <HomeIcon size={22} className="text-gray-400" />
+            <span className="text-[10px] text-gray-400">Início</span>
+          </Link>
+          <Link href="/vagas/" className="flex flex-col items-center gap-0.5 py-1">
+            <Search size={22} className="text-ms-blue" />
+            <span className="text-[10px] text-ms-blue font-medium">Pesquisar</span>
+          </Link>
+          <Link href="/auth/login/" className="flex flex-col items-center gap-0.5 py-1">
+            <Heart size={22} className="text-gray-400" />
+            <span className="text-[10px] text-gray-400">Guardados</span>
+          </Link>
+          <Link href="/auth/login/" className="flex flex-col items-center gap-0.5 py-1">
+            <User size={22} className="text-gray-400" />
+            <span className="text-[10px] text-gray-400">Perfil</span>
+          </Link>
+        </div>
+      </nav>
+    </div>
   )
 }

@@ -9,23 +9,21 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        k10: {
-          primary: '#1a1a2e',
-          secondary: '#16213e',
-          accent: '#4f46e5',
-          gold: '#f5a623',
-          dark: '#0f0f23',
-          light: '#f8f9ff',
-          blue: '#4f46e5',
-          green: '#10b981',
-          red: '#ef4444',
-          purple: '#7c3aed',
-          violet: '#8b5cf6',
+        ms: {
+          blue: '#1A56FF',
+          purple: '#6C47FF',
+          'purple-light': '#EEF0FF',
+          surface: '#F5F7FA',
+          dark: '#1A1A2E',
+          gray: '#6B7280',
+          border: '#E5E7EB',
+          green: '#10B981',
+          amber: '#F59E0B',
+          red: '#EF4444',
         },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
-        heading: ['Poppins', 'system-ui', 'sans-serif'],
       },
     },
   },

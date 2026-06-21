@@ -3,7 +3,7 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'MÔ SALO — Encontre o Seu Emprego Ideal em Angola',
-  description: 'Plataforma de recrutamento inteligente angolana. Conectamos talentos às melhores oportunidades com vagas filtradas e comunidade profissional.',
+  description: 'Plataforma de recrutamento inteligente angolana. Conectamos talentos às melhores oportunidades.',
   keywords: 'emprego angola, vagas angola, recrutamento luanda, trabalho angola, mô salo',
 }
 
