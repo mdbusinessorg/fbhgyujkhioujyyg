@@ -55,6 +55,8 @@ export default function CandidatoDashboard() {
   const [saveMsg, setSaveMsg] = useState('')
   const [documents, setDocuments] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
+  const [trialExpired, setTrialExpired] = useState(false)
+  const [accessBlocked, setAccessBlocked] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -76,6 +78,30 @@ export default function CandidatoDashboard() {
     
     if (user) {
       setUserData(user)
+
+      // Check if access is blocked by admin
+      const { data: userFull } = await supabase
+        .from('users')
+        .select('aprovado')
+        .eq('id', user.id)
+        .single()
+      if (userFull && userFull.aprovado === false) {
+        setAccessBlocked(true)
+        setLoading(false)
+        return
+      }
+
+      // Check subscription status
+      const { data: sub } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('data_inicio', { ascending: false })
+        .limit(1)
+        .single()
+      if (sub && new Date(sub.data_fim) < new Date() && sub.status !== 'ativa') {
+        setTrialExpired(true)
+      }
 
       // Load profile
       const { data: profileData } = await supabase
@@ -220,6 +246,56 @@ export default function CandidatoDashboard() {
           <div className="text-center">
             <div className="w-8 h-8 border-2 border-k10-accent border-t-transparent rounded-full animate-spin mx-auto mb-3" />
             <p className="text-gray-500 text-sm">A carregar...</p>
+          </div>
+        </main>
+      </>
+    )
+  }
+
+  if (accessBlocked) {
+    return (
+      <>
+        <Navbar />
+        <main className="pt-16 min-h-screen bg-gray-50 flex items-center justify-center px-4">
+          <div className="card p-8 max-w-md text-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <XCircle size={32} className="text-red-600" />
+            </div>
+            <h2 className="font-heading font-bold text-xl text-gray-800 mb-2">Acesso Suspenso</h2>
+            <p className="text-gray-600 text-sm mb-4">
+              O teu acesso à plataforma foi suspenso pelo administrador. Para reactivar, efectua o pagamento:
+            </p>
+            <div className="bg-gray-50 rounded-xl p-4 text-left space-y-2 mb-4">
+              <p className="text-sm font-semibold text-gray-800">Pagamento — 1.000 Kz/mês</p>
+              <p className="text-xs text-gray-600"><strong>Multicaixa Express:</strong> 926 115 429</p>
+              <p className="text-xs text-gray-600"><strong>IBAN:</strong> 0005.0000.0626.9321.1011.5</p>
+            </div>
+            <p className="text-xs text-gray-400">Após pagamento, o acesso será reactivado em até 24h.</p>
+          </div>
+        </main>
+      </>
+    )
+  }
+
+  if (trialExpired) {
+    return (
+      <>
+        <Navbar />
+        <main className="pt-16 min-h-screen bg-gray-50 flex items-center justify-center px-4">
+          <div className="card p-8 max-w-md text-center">
+            <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Clock size={32} className="text-yellow-600" />
+            </div>
+            <h2 className="font-heading font-bold text-xl text-gray-800 mb-2">Trial Expirado</h2>
+            <p className="text-gray-600 text-sm mb-4">
+              O teu período de teste gratuito de 2 dias terminou. Para continuar a usar a plataforma, efectua o pagamento:
+            </p>
+            <div className="bg-gray-50 rounded-xl p-4 text-left space-y-2 mb-4">
+              <p className="text-sm font-semibold text-gray-800">Plano Mensal — 1.000 Kz/mês</p>
+              <p className="text-xs text-gray-600"><strong>Multicaixa Express:</strong> 926 115 429</p>
+              <p className="text-xs text-gray-600"><strong>IBAN:</strong> 0005.0000.0626.9321.1011.5</p>
+            </div>
+            <p className="text-xs text-gray-400">Após confirmação do pagamento, o teu acesso será reactivado automaticamente.</p>
           </div>
         </main>
       </>

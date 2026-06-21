@@ -613,6 +613,7 @@ export default function AdminDashboard() {
                                 <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Tipo</th>
                                 <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Status</th>
                                 <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Registado</th>
+                                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-3">Acções</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
@@ -632,6 +633,26 @@ export default function AdminDashboard() {
                                     <span className={u.aprovado ? 'badge-success' : 'badge-warning'}>{u.aprovado ? 'Aprovado' : 'Pendente'}</span>
                                   </td>
                                   <td className="px-4 py-3 text-xs text-gray-500">{formatDate(u.created_at)}</td>
+                                  <td className="px-4 py-3">
+                                    {u.role !== 'admin' && (
+                                      <button
+                                        onClick={async () => {
+                                          const newStatus = !u.aprovado
+                                          const { error } = await supabase.from('users').update({ aprovado: newStatus }).eq('id', u.id)
+                                          if (!error) {
+                                            setUtilizadores(utilizadores.map(x => x.id === u.id ? { ...x, aprovado: newStatus } : x))
+                                          }
+                                        }}
+                                        className={`text-xs px-3 py-1 rounded-lg font-medium ${
+                                          u.aprovado
+                                            ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                                            : 'bg-green-100 text-green-700 hover:bg-green-200'
+                                        }`}
+                                      >
+                                        {u.aprovado ? 'Remover Acesso' : 'Dar Acesso'}
+                                      </button>
+                                    )}
+                                  </td>
                                 </tr>
                               ))}
                             </tbody>
