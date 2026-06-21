@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import SubscriptionBanner from '@/components/SubscriptionBanner'
 import SubscriptionModal from '@/components/SubscriptionModal'
-import { Search, Bell, Briefcase, FileText, User, Upload, ArrowRight, Clock, CheckCircle, XCircle, Plus, Eye, Sparkles, Lightbulb, Target, Award, AlertCircle, ChevronRight, Zap } from 'lucide-react'
+import { Search, Bell, Briefcase, FileText, User, Upload, ArrowRight, Clock, CheckCircle, XCircle, Plus, Eye, Sparkles, Lightbulb, Target, Award, AlertCircle, ChevronRight, Zap, LogOut, Menu, X } from 'lucide-react'
 
 export default function CandidatoDashboard() {
   const [userName, setUserName] = useState('')
@@ -28,6 +28,7 @@ export default function CandidatoDashboard() {
   const [aiImproveText, setAiImproveText] = useState('')
   const [aiImproveResult, setAiImproveResult] = useState('')
   const [aiImproveLoading, setAiImproveLoading] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -202,6 +203,11 @@ export default function CandidatoDashboard() {
     }, 2000)
   }
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push('/')
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -215,6 +221,45 @@ export default function CandidatoDashboard() {
       <SubscriptionModal show={showExpiredModal} onDismiss={() => setShowExpiredModal(false)} />
       {daysRemaining !== null && daysRemaining <= 7 && daysRemaining > 0 && (
         <SubscriptionBanner daysRemaining={daysRemaining} />
+      )}
+
+      {/* Mobile Menu */}
+      {showMenu && (
+        <div className="fixed inset-0 z-[60] lg:hidden">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowMenu(false)} />
+          <div className="absolute left-0 top-0 h-full w-72 bg-white shadow-xl p-6">
+            <div className="flex items-center justify-between mb-8">
+              <span className="font-bold text-lg text-ms-blue">MÔ SALO</span>
+              <button onClick={() => setShowMenu(false)}><X size={22} className="text-ms-dark" /></button>
+            </div>
+            <div className="mb-6 pb-4 border-b border-ms-border">
+              <p className="text-sm font-medium text-ms-dark">{userName}</p>
+              <p className="text-xs text-ms-gray">Candidato</p>
+            </div>
+            <nav className="space-y-1">
+              {[
+                { key: 'home', icon: Briefcase, label: 'Início' },
+                { key: 'ia', icon: Sparkles, label: 'IA & Dicas CV' },
+                { key: 'candidaturas', icon: FileText, label: 'Candidaturas' },
+                { key: 'documentos', icon: Upload, label: 'Documentos' },
+                { key: 'perfil', icon: User, label: 'Perfil' },
+              ].map(item => {
+                const Icon = item.icon
+                return (
+                  <button key={item.key} onClick={() => { setActiveTab(item.key); setShowMenu(false) }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium ${activeTab === item.key ? 'bg-ms-purple-light text-ms-purple' : 'text-ms-gray hover:bg-ms-surface'}`}>
+                    <Icon size={18} /> {item.label}
+                  </button>
+                )
+              })}
+            </nav>
+            <div className="absolute bottom-8 left-6 right-6">
+              <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-ms-red hover:bg-red-50">
+                <LogOut size={18} /> Terminar Sessão
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Desktop Sidebar */}
@@ -250,23 +295,32 @@ export default function CandidatoDashboard() {
             )
           })}
         </nav>
+        <div className="p-4 border-t border-ms-border">
+          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-ms-red hover:bg-red-50 transition-colors">
+            <LogOut size={18} /> Terminar Sessão
+          </button>
+        </div>
       </aside>
 
       {/* Main */}
       <main className="px-4 pt-6 max-w-3xl mx-auto lg:pt-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-xl font-bold text-ms-dark">Olá, {userName}!</h1>
-            <p className="text-sm text-ms-gray">Bem-vindo de volta</p>
+          <div className="flex items-center gap-3">
+            <button className="lg:hidden" onClick={() => setShowMenu(true)}>
+              <Menu size={22} className="text-ms-dark" />
+            </button>
+            <div>
+              <h1 className="text-xl font-bold text-ms-dark">Olá, {userName}!</h1>
+              <p className="text-sm text-ms-gray">Bem-vindo de volta</p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
-            <button className="w-9 h-9 bg-ms-surface rounded-full flex items-center justify-center">
-              <Search size={16} className="text-ms-gray" />
-            </button>
             <button className="w-9 h-9 bg-ms-surface rounded-full flex items-center justify-center relative">
               <Bell size={16} className="text-ms-gray" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-ms-red rounded-full" />
+              {candidaturas.filter(c => c.status === 'aprovada').length > 0 && (
+                <span className="absolute top-1 right-1 w-4 h-4 bg-ms-green text-white text-[9px] font-bold rounded-full flex items-center justify-center">{candidaturas.filter(c => c.status === 'aprovada').length}</span>
+              )}
             </button>
           </div>
         </div>

@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { ArrowLeft, Heart, Briefcase, MapPin, Building2, Send } from 'lucide-react'
+import { ArrowLeft, Heart, Briefcase, MapPin, Building2, Send, Upload } from 'lucide-react'
 
 function VagaDetalheContent() {
   const searchParams = useSearchParams()
@@ -18,6 +18,8 @@ function VagaDetalheContent() {
   const [mensagem, setMensagem] = useState('')
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
+  const [cvFile, setCvFile] = useState<File | null>(null)
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -45,6 +47,30 @@ function VagaDetalheContent() {
     if (!userId || !vagaId) return
 
     setSending(true)
+
+    // Upload CV if provided
+    if (cvFile) {
+      setUploading(true)
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        const path = `${session.user.id}/${Date.now()}-${cvFile.name}`
+        const { error: uploadError } = await supabase.storage.from('documentos').upload(path, cvFile)
+        if (!uploadError) {
+          const url = `https://gwnjigmsuqasvotsksmk.supabase.co/storage/v1/object/public/documentos/${path}`
+          // Save to profile
+          const { data: prof } = await supabase.from('profiles').select('documentos').eq('user_id', session.user.id).single()
+          const existingDocs = prof?.documentos || []
+          if (existingDocs.length < 2) {
+            await supabase.from('profiles').upsert({
+              user_id: session.user.id,
+              documentos: [...existingDocs, url],
+            }, { onConflict: 'user_id' })
+          }
+        }
+      }
+      setUploading(false)
+    }
+
     const { error } = await supabase.from('candidaturas').insert({
       vaga_id: vagaId,
       candidato_id: userId,
@@ -142,13 +168,28 @@ function VagaDetalheContent() {
           </div>
         ) : isLoggedIn && userRole === 'candidato' ? (
           <div className="mb-4">
-            <h2 className="text-sm font-semibold text-ms-dark mb-2">Mensagem (opcional)</h2>
+            <h2 className="text-sm font-semibold text-ms-dark mb-2">Candidatar-se</h2>
             <textarea
               value={mensagem}
               onChange={(e) => setMensagem(e.target.value)}
-              placeholder="Porquê queres esta vaga?"
+              placeholder="Porquê queres esta vaga? (opcional)"
               className="input-field min-h-[80px] mb-3"
             />
+            {/* Document Upload */}
+            <div className="mb-3">
+              <label className="block">
+                <div className="bg-ms-surface border border-dashed border-ms-border rounded-xl p-4 text-center cursor-pointer hover:border-ms-blue transition-colors">
+                  <Upload size={20} className="text-ms-gray mx-auto mb-1" />
+                  <p className="text-xs text-ms-gray">{cvFile ? cvFile.name : 'Anexar CV (PDF, opcional)'}</p>
+                </div>
+                <input type="file" className="hidden" accept=".pdf,.doc,.docx" onChange={(e) => setCvFile(e.target.files?.[0] || null)} />
+              </label>
+            </div>
+          </div>
+        ) : !isLoggedIn ? (
+          <div className="bg-ms-surface rounded-xl p-4 text-center mb-4">
+            <p className="text-sm text-ms-gray mb-2">Regista-te para te candidatar a esta vaga</p>
+            <Link href="/auth/registar/" className="text-sm text-ms-blue font-medium">Criar conta →</Link>
           </div>
         ) : null}
       </main>

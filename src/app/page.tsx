@@ -2,51 +2,122 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Search, SlidersHorizontal, Heart, Bell, Menu, MessageCircle, Briefcase, Home as HomeIcon, User } from 'lucide-react'
-
-const topCompanies = [
-  { name: 'Sonangol', vagas: 12, color: 'bg-yellow-100', letter: 'S' },
-  { name: 'Saipem', vagas: 8, color: 'bg-blue-100', letter: 'Sa' },
-  { name: 'SLB', vagas: 6, color: 'bg-green-100', letter: 'SL' },
-  { name: 'Total', vagas: 15, color: 'bg-red-100', letter: 'T' },
-  { name: 'Eni', vagas: 5, color: 'bg-orange-100', letter: 'E' },
-  { name: 'BAI', vagas: 9, color: 'bg-purple-100', letter: 'B' },
-  { name: 'Unitel', vagas: 7, color: 'bg-cyan-100', letter: 'U' },
-]
-
-const demoJobs = [
-  { id: '1', titulo: 'Analista Financeiro Sénior', empresa: 'Banco BAI', date: 'Hoje', area: 'Finanças' },
-  { id: '2', titulo: 'Desenvolvedor Full-Stack', empresa: 'Unitel', date: 'Hoje', area: 'TI' },
-  { id: '3', titulo: 'Engenheiro de Petróleo', empresa: 'Sonangol', date: '2 dias', area: 'Petróleo' },
-  { id: '4', titulo: 'Designer UI/UX', empresa: 'Africell', date: '3 dias', area: 'Design' },
-  { id: '5', titulo: 'Gestor de Projectos', empresa: 'Total Energies', date: 'Hoje', area: 'Gestão' },
-  { id: '6', titulo: 'Contabilista Sénior', empresa: 'Ernst & Young', date: '1 dia', area: 'Contabilidade' },
-]
+import { Search, SlidersHorizontal, Heart, Bell, Menu, X, Briefcase, Home as HomeIcon, User, LogOut, Settings, FileText } from 'lucide-react'
 
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userRole, setUserRole] = useState('')
+  const [userName, setUserName] = useState('')
+  const [showMenu, setShowMenu] = useState(false)
+  const [vagas, setVagas] = useState<any[]>([])
+  const router = useRouter()
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const init = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
         setIsLoggedIn(true)
-        const { data } = await supabase.from('users').select('role').eq('email', session.user.email).single()
-        if (data) setUserRole(data.role)
+        const { data } = await supabase.from('users').select('role, nome').eq('email', session.user.email).single()
+        if (data) {
+          setUserRole(data.role)
+          setUserName(data.nome || '')
+        }
+      }
+
+      // Load real vagas
+      const { data: vagasData } = await supabase.from('vagas').select('*').eq('status', 'aberta').order('created_at', { ascending: false }).limit(10)
+      if (vagasData && vagasData.length > 0) {
+        setVagas(vagasData)
       }
     }
-    checkAuth()
+    init()
   }, [])
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    setIsLoggedIn(false)
+    setUserRole('')
+    setUserName('')
+    setShowMenu(false)
+    router.push('/')
+  }
+
+  const getTimeAgo = (date: string) => {
+    const diff = Date.now() - new Date(date).getTime()
+    const hours = Math.floor(diff / 3600000)
+    if (hours < 1) return 'Agora'
+    if (hours < 24) return `${hours}h`
+    const days = Math.floor(hours / 24)
+    return `${days}d`
+  }
+
   return (
-    <div className="min-h-screen bg-white pb-20 lg:pb-0">
+    <div className="min-h-screen bg-white pb-20 lg:pb-0 lg:pl-60">
+      {/* Mobile Menu Overlay */}
+      {showMenu && (
+        <div className="fixed inset-0 z-[60] lg:hidden">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowMenu(false)} />
+          <div className="absolute left-0 top-0 h-full w-72 bg-white shadow-xl p-6">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-ms-blue rounded-lg flex items-center justify-center">
+                  <Briefcase size={16} className="text-white" />
+                </div>
+                <span className="font-bold text-lg text-ms-blue">MÔ SALO</span>
+              </div>
+              <button onClick={() => setShowMenu(false)}>
+                <X size={22} className="text-ms-dark" />
+              </button>
+            </div>
+
+            {isLoggedIn && (
+              <div className="mb-6 pb-4 border-b border-ms-border">
+                <p className="text-sm font-medium text-ms-dark">{userName || 'Utilizador'}</p>
+                <p className="text-xs text-ms-gray capitalize">{userRole}</p>
+              </div>
+            )}
+
+            <nav className="space-y-1">
+              <Link href="/" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-ms-dark bg-ms-surface" onClick={() => setShowMenu(false)}>
+                <HomeIcon size={18} /> Início
+              </Link>
+              <Link href="/vagas/" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface" onClick={() => setShowMenu(false)}>
+                <Search size={18} /> Pesquisar Vagas
+              </Link>
+              {isLoggedIn ? (
+                <>
+                  <Link href={`/dashboard/${userRole}/`} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface" onClick={() => setShowMenu(false)}>
+                    <Briefcase size={18} /> Dashboard
+                  </Link>
+                  <Link href={`/dashboard/${userRole}/?tab=perfil`} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface" onClick={() => setShowMenu(false)}>
+                    <User size={18} /> Perfil
+                  </Link>
+                  <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-ms-red hover:bg-red-50">
+                    <LogOut size={18} /> Terminar Sessão
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link href="/auth/login/" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-ms-blue hover:bg-ms-surface" onClick={() => setShowMenu(false)}>
+                    <User size={18} /> Entrar
+                  </Link>
+                  <Link href="/auth/registar/" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-ms-blue hover:bg-ms-surface" onClick={() => setShowMenu(false)}>
+                    <FileText size={18} /> Criar Conta
+                  </Link>
+                </>
+              )}
+            </nav>
+          </div>
+        </div>
+      )}
+
       {/* Top Nav */}
       <header className="sticky top-0 bg-white border-b border-ms-border z-50 px-4 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <button className="lg:hidden">
+          <button className="lg:hidden" onClick={() => setShowMenu(true)}>
             <Menu size={22} className="text-ms-dark" />
           </button>
           <Link href="/" className="flex items-center gap-2">
@@ -66,15 +137,11 @@ export default function HomePage() {
                 <Link href="/auth/registar/" className="hidden sm:block text-sm bg-ms-blue text-white px-4 py-2 rounded-lg font-medium">Registar</Link>
               </>
             )}
-            <button className="relative">
-              <Bell size={20} className="text-ms-gray" />
-              <span className="absolute -top-1 -right-1 w-2 h-2 bg-ms-red rounded-full" />
-            </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4">
+      <main className="max-w-7xl mx-auto px-4 lg:px-8">
         {/* Search Bar */}
         <div className="mt-4 mb-6">
           <div className="flex items-center gap-2 bg-ms-surface rounded-full px-4 py-3">
@@ -86,56 +153,64 @@ export default function HomePage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="flex-1 bg-transparent outline-none text-sm text-ms-dark placeholder:text-ms-gray"
             />
-            <button className="w-8 h-8 bg-ms-blue rounded-lg flex items-center justify-center flex-shrink-0">
+            <Link href="/vagas/" className="w-8 h-8 bg-ms-blue rounded-lg flex items-center justify-center flex-shrink-0">
               <SlidersHorizontal size={14} className="text-white" />
-            </button>
+            </Link>
           </div>
         </div>
 
-        {/* Empresas de Topo */}
-        <section className="mb-8">
-          <h2 className="text-sm font-semibold text-ms-dark mb-3">Empresas de Topo</h2>
-          <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-            {topCompanies.map((company) => (
-              <div key={company.name} className="flex flex-col items-center min-w-[64px]">
-                <div className={`w-12 h-12 ${company.color} rounded-xl flex items-center justify-center mb-1.5`}>
-                  <span className="text-sm font-bold text-ms-dark">{company.letter}</span>
-                </div>
-                <span className="text-[11px] text-ms-gray text-center">{company.name}</span>
-                <span className="text-[11px] text-ms-blue font-medium">{company.vagas} vagas</span>
-              </div>
-            ))}
+        {/* Quick Actions */}
+        <section className="mb-6">
+          <div className="grid grid-cols-3 gap-3">
+            <Link href={isLoggedIn ? `/dashboard/${userRole}/` : '/auth/login/'} className="bg-ms-surface rounded-xl p-4 text-center hover:shadow-sm transition-shadow">
+              <User size={24} className="text-ms-blue mx-auto mb-2" />
+              <p className="text-xs font-medium text-ms-dark">Entrar</p>
+            </Link>
+            <Link href="/vagas/" className="bg-ms-surface rounded-xl p-4 text-center hover:shadow-sm transition-shadow">
+              <Briefcase size={24} className="text-ms-blue mx-auto mb-2" />
+              <p className="text-xs font-medium text-ms-dark">Ver Vagas</p>
+            </Link>
+            <Link href="/auth/registar/" className="bg-ms-surface rounded-xl p-4 text-center hover:shadow-sm transition-shadow">
+              <FileText size={24} className="text-ms-blue mx-auto mb-2" />
+              <p className="text-xs font-medium text-ms-dark">Registar</p>
+            </Link>
           </div>
         </section>
 
-        {/* Recomendado para si */}
+        {/* Vagas Disponíveis (real from Supabase) */}
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-ms-dark">Recomendado para si</h2>
+            <h2 className="text-sm font-semibold text-ms-dark">Vagas Disponíveis</h2>
             <Link href="/vagas/" className="text-xs text-ms-blue font-medium">Ver todas</Link>
           </div>
-          <div className="space-y-3 lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-4 lg:space-y-0">
-            {demoJobs.map((job) => (
-              <Link key={job.id} href={`/vagas/detalhe/?id=${job.id}`} className="block">
-                <div className="bg-ms-surface rounded-xl p-4 flex items-start gap-3 hover:shadow-sm transition-shadow">
-                  <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center flex-shrink-0 border border-ms-border">
-                    <Briefcase size={16} className="text-ms-blue" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-medium text-ms-dark truncate">{job.titulo}</h3>
-                    <p className="text-xs text-ms-gray">{job.empresa}</p>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-[11px] text-ms-gray bg-white px-2 py-0.5 rounded-full">{job.date}</span>
-                      <span className="text-[11px] font-medium text-ms-blue bg-ms-blue/5 px-3 py-1 rounded-full">Candidatar</span>
+
+          {vagas.length === 0 ? (
+            <div className="bg-ms-surface rounded-xl p-8 text-center">
+              <Briefcase size={32} className="text-ms-gray mx-auto mb-3" />
+              <p className="text-sm text-ms-gray">Nenhuma vaga disponível de momento</p>
+              <p className="text-xs text-ms-gray mt-1">As vagas aparecem aqui depois de serem aprovadas pelo admin</p>
+            </div>
+          ) : (
+            <div className="space-y-3 lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-4 lg:space-y-0">
+              {vagas.filter(v => v.titulo?.toLowerCase().includes(searchQuery.toLowerCase()) || !searchQuery).map((job) => (
+                <Link key={job.id} href={`/vagas/detalhe/?id=${job.id}`} className="block">
+                  <div className="bg-ms-surface rounded-xl p-4 flex items-start gap-3 hover:shadow-sm transition-shadow">
+                    <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center flex-shrink-0 border border-ms-border">
+                      <Briefcase size={16} className="text-ms-blue" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm font-medium text-ms-dark truncate">{job.titulo}</h3>
+                      <p className="text-xs text-ms-gray">{job.empresa_nome} • {job.localizacao}</p>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-[11px] text-ms-gray bg-white px-2 py-0.5 rounded-full">{getTimeAgo(job.created_at)}</span>
+                        <span className="text-[11px] font-medium text-ms-blue bg-ms-blue/5 px-3 py-1 rounded-full">Candidatar</span>
+                      </div>
                     </div>
                   </div>
-                  <button className="flex-shrink-0 mt-1">
-                    <Heart size={16} className="text-ms-gray" />
-                  </button>
-                </div>
-              </Link>
-            ))}
-          </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </section>
       </main>
 
@@ -151,45 +226,69 @@ export default function HomePage() {
             <span className="text-[10px] text-gray-400">Pesquisar</span>
           </Link>
           <Link href={isLoggedIn ? `/dashboard/${userRole}/` : '/auth/login/'} className="flex flex-col items-center gap-0.5 py-1">
-            <Heart size={22} className="text-gray-400" />
-            <span className="text-[10px] text-gray-400">Guardados</span>
+            <Briefcase size={22} className="text-gray-400" />
+            <span className="text-[10px] text-gray-400">Dashboard</span>
           </Link>
-          <Link href={isLoggedIn ? `/dashboard/${userRole}/` : '/auth/login/'} className="flex flex-col items-center gap-0.5 py-1">
+          <Link href={isLoggedIn ? `/dashboard/${userRole}/?tab=perfil` : '/auth/login/'} className="flex flex-col items-center gap-0.5 py-1">
             <User size={22} className="text-gray-400" />
             <span className="text-[10px] text-gray-400">Perfil</span>
           </Link>
         </div>
       </nav>
 
-      {/* Desktop sidebar (hidden on mobile) */}
-      <aside className="hidden lg:block fixed left-0 top-0 w-60 h-screen bg-white border-r border-ms-border z-40 pt-16">
-        <nav className="p-4 space-y-1 mt-4">
-          <Link href="/" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium bg-ms-purple-light text-ms-purple">
+      {/* Desktop sidebar */}
+      <aside className="hidden lg:flex lg:flex-col w-60 h-screen fixed left-0 top-0 bg-white border-r border-ms-border z-40">
+        <div className="p-6 border-b border-ms-border">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-ms-blue rounded-lg flex items-center justify-center">
+              <Briefcase size={16} className="text-white" />
+            </div>
+            <span className="font-bold text-lg text-ms-blue">MÔ SALO</span>
+          </Link>
+        </div>
+
+        {isLoggedIn && (
+          <div className="px-6 py-4 border-b border-ms-border">
+            <p className="text-sm font-medium text-ms-dark">{userName || 'Utilizador'}</p>
+            <p className="text-xs text-ms-gray capitalize">{userRole}</p>
+          </div>
+        )}
+
+        <nav className="flex-1 py-4 px-3">
+          <Link href="/" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium bg-ms-purple-light text-ms-purple mb-1">
             <HomeIcon size={18} /> Início
           </Link>
-          <Link href="/vagas/" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface">
+          <Link href="/vagas/" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface mb-1">
             <Search size={18} /> Pesquisar
           </Link>
           {isLoggedIn ? (
             <>
-              <Link href={`/dashboard/${userRole}/`} className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface">
+              <Link href={`/dashboard/${userRole}/`} className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface mb-1">
                 <Briefcase size={18} /> Dashboard
               </Link>
-              <Link href={`/dashboard/${userRole}/?tab=perfil`} className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface">
+              <Link href={`/dashboard/${userRole}/?tab=perfil`} className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface mb-1">
                 <User size={18} /> Perfil
               </Link>
             </>
           ) : (
             <>
-              <Link href="/auth/login/" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface">
+              <Link href="/auth/login/" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface mb-1">
                 <User size={18} /> Entrar
               </Link>
-              <Link href="/auth/registar/" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface">
-                <Briefcase size={18} /> Registar
+              <Link href="/auth/registar/" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface mb-1">
+                <FileText size={18} /> Registar
               </Link>
             </>
           )}
         </nav>
+
+        {isLoggedIn && (
+          <div className="p-4 border-t border-ms-border">
+            <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-ms-red hover:bg-red-50 transition-colors">
+              <LogOut size={18} /> Terminar Sessão
+            </button>
+          </div>
+        )}
       </aside>
     </div>
   )

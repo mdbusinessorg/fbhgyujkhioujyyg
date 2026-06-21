@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import BottomNav from '@/components/BottomNav'
-import { Search, Bell, Briefcase, Users, Plus, Eye, TrendingUp, Download, FileText, CheckCircle, XCircle, Clock } from 'lucide-react'
+import { Search, Bell, Briefcase, Users, Plus, Eye, TrendingUp, Download, FileText, CheckCircle, XCircle, Clock, LogOut, Menu, X } from 'lucide-react'
 import { AREAS, PROVINCIAS_ANGOLA } from '@/lib/types'
 
 export default function RecrutadorDashboard() {
@@ -17,9 +16,10 @@ export default function RecrutadorDashboard() {
   const [candidatos, setCandidatos] = useState<any[]>([])
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null)
   const [subPlano, setSubPlano] = useState('pro')
+  const [showMenu, setShowMenu] = useState(false)
+  const [showNotifs, setShowNotifs] = useState(false)
   const router = useRouter()
 
-  // Form for new vaga
   const [novaVaga, setNovaVaga] = useState({
     titulo: '', area: AREAS[0], descricao: '', requisitos: '',
     localizacao: PROVINCIAS_ANGOLA[0], salario: '', prazo: '', is_prioritaria: false,
@@ -41,14 +41,16 @@ export default function RecrutadorDashboard() {
       const { data: vagasData } = await supabase.from('vagas').select('*').eq('recrutador_id', user.id).order('created_at', { ascending: false })
       setVagas(vagasData || [])
 
-      const { data: candsData } = await supabase
-        .from('candidaturas')
-        .select('*, users:candidato_id(nome, email), vagas(titulo)')
-        .in('vaga_id', (vagasData || []).map(v => v.id))
-        .order('data_candidatura', { ascending: false })
-      setCandidatos(candsData || [])
+      const vagaIds = (vagasData || []).map(v => v.id)
+      if (vagaIds.length > 0) {
+        const { data: candsData } = await supabase
+          .from('candidaturas')
+          .select('*, users:candidato_id(nome, email), vagas(titulo), profiles:candidato_id(telefone, documentos)')
+          .in('vaga_id', vagaIds)
+          .order('data_candidatura', { ascending: false })
+        setCandidatos(candsData || [])
+      }
 
-      // Subscription
       const { data: sub } = await supabase.from('subscriptions').select('*').eq('user_id', user.id).order('data_inicio', { ascending: false }).limit(1).single()
       if (sub) {
         const days = Math.ceil((new Date(sub.data_fim).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
@@ -58,6 +60,11 @@ export default function RecrutadorDashboard() {
     }
 
     setLoading(false)
+  }
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push('/')
   }
 
   const handlePublicarVaga = async (e: React.FormEvent) => {
@@ -76,6 +83,7 @@ export default function RecrutadorDashboard() {
     })
 
     alert('Vaga submetida para aprovação!')
+    setNovaVaga({ titulo: '', area: AREAS[0], descricao: '', requisitos: '', localizacao: PROVINCIAS_ANGOLA[0], salario: '', prazo: '', is_prioritaria: false })
     setActiveTab('home')
     loadData()
   }
@@ -84,6 +92,11 @@ export default function RecrutadorDashboard() {
     await supabase.from('candidaturas').update({ status }).eq('id', candidaturaId)
     loadData()
   }
+
+  const notifications = candidatos.filter(c => c.status === 'enviada').map(c => ({
+    text: `${c.users?.nome || 'Candidato'} candidatou-se a "${c.vagas?.titulo}"`,
+    time: 'Pendente'
+  }))
 
   if (loading) {
     return (
@@ -101,8 +114,10 @@ export default function RecrutadorDashboard() {
             <Clock size={28} className="text-amber-600" />
           </div>
           <h2 className="text-xl font-bold text-ms-dark mb-2">Conta Pendente</h2>
-          <p className="text-sm text-ms-gray mb-4">A tua conta de recrutador está a aguardar aprovação pelo administrador. Receberás acesso ao painel assim que for aprovada.</p>
-          <Link href="/" className="text-sm text-ms-blue font-medium">← Voltar ao início</Link>
+          <p className="text-sm text-ms-gray mb-4">A tua conta de recrutador está a aguardar aprovação pelo administrador.</p>
+          <button onClick={handleLogout} className="text-sm text-ms-red font-medium">Terminar Sessão</button>
+          <br />
+          <Link href="/" className="text-sm text-ms-blue font-medium mt-2 inline-block">← Voltar ao início</Link>
         </div>
       </div>
     )
@@ -112,6 +127,65 @@ export default function RecrutadorDashboard() {
 
   return (
     <div className="min-h-screen bg-white pb-20 lg:pb-0 lg:pl-60">
+      {/* Mobile Menu */}
+      {showMenu && (
+        <div className="fixed inset-0 z-[60] lg:hidden">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowMenu(false)} />
+          <div className="absolute left-0 top-0 h-full w-72 bg-white shadow-xl p-6">
+            <div className="flex items-center justify-between mb-8">
+              <span className="font-bold text-lg text-ms-blue">MÔ SALO</span>
+              <button onClick={() => setShowMenu(false)}><X size={22} className="text-ms-dark" /></button>
+            </div>
+            <div className="mb-6 pb-4 border-b border-ms-border">
+              <p className="text-sm font-medium text-ms-dark">{userName}</p>
+              <p className="text-xs text-ms-gray">Recrutador</p>
+            </div>
+            <nav className="space-y-1">
+              {[
+                { key: 'home', icon: Briefcase, label: 'Início' },
+                { key: 'vagas', icon: Eye, label: 'Minhas Vagas' },
+                { key: 'candidatos', icon: Users, label: 'Candidatos' },
+                { key: 'nova_vaga', icon: Plus, label: 'Publicar Vaga' },
+              ].map(item => {
+                const Icon = item.icon
+                return (
+                  <button key={item.key} onClick={() => { setActiveTab(item.key); setShowMenu(false) }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium ${activeTab === item.key ? 'bg-ms-purple-light text-ms-purple' : 'text-ms-gray hover:bg-ms-surface'}`}>
+                    <Icon size={18} /> {item.label}
+                  </button>
+                )
+              })}
+            </nav>
+            <div className="absolute bottom-8 left-6 right-6">
+              <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-ms-red hover:bg-red-50">
+                <LogOut size={18} /> Terminar Sessão
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notifications */}
+      {showNotifs && (
+        <div className="fixed inset-0 z-[60]" onClick={() => setShowNotifs(false)}>
+          <div className="absolute right-4 top-16 w-80 max-w-[90vw] bg-white rounded-2xl shadow-xl border border-ms-border p-4" onClick={e => e.stopPropagation()}>
+            <h3 className="text-sm font-bold text-ms-dark mb-3">Notificações</h3>
+            {notifications.length === 0 ? (
+              <p className="text-xs text-ms-gray text-center py-4">Sem notificações</p>
+            ) : (
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {notifications.map((n, i) => (
+                  <div key={i} className="bg-ms-surface rounded-xl p-3">
+                    <p className="text-xs text-ms-dark">{n.text}</p>
+                    <p className="text-[10px] text-ms-gray mt-1">{n.time}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex lg:flex-col w-60 h-screen fixed left-0 top-0 bg-white border-r border-ms-border z-40">
         <div className="p-6 border-b border-ms-border">
@@ -130,35 +204,48 @@ export default function RecrutadorDashboard() {
           {[
             { key: 'home', icon: Briefcase, label: 'Início' },
             { key: 'vagas', icon: Eye, label: 'Minhas Vagas' },
-            { key: 'candidatos', icon: Users, label: 'Candidatos' },
+            { key: 'candidatos', icon: Users, label: 'Candidatos', badge: notifications.length },
             { key: 'nova_vaga', icon: Plus, label: 'Publicar Vaga' },
           ].map(item => {
             const Icon = item.icon
             return (
               <button key={item.key} onClick={() => setActiveTab(item.key)}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium mb-1 transition-colors ${
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium mb-1 transition-colors relative ${
                   activeTab === item.key ? 'bg-ms-purple-light text-ms-purple' : 'text-ms-gray hover:bg-ms-surface'
                 }`}>
                 <Icon size={18} /> {item.label}
+                {item.badge && item.badge > 0 && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 bg-ms-purple text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center">{item.badge}</span>
+                )}
               </button>
             )
           })}
         </nav>
+        <div className="p-4 border-t border-ms-border">
+          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-ms-red hover:bg-red-50 transition-colors">
+            <LogOut size={18} /> Terminar Sessão
+          </button>
+        </div>
       </aside>
 
       <main className="px-4 pt-6 max-w-3xl mx-auto lg:pt-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-xl font-bold text-ms-dark">Olá, {userName}!</h1>
-            <p className="text-sm text-ms-gray">Painel do Recrutador</p>
+          <div className="flex items-center gap-3">
+            <button className="lg:hidden" onClick={() => setShowMenu(true)}>
+              <Menu size={22} className="text-ms-dark" />
+            </button>
+            <div>
+              <h1 className="text-xl font-bold text-ms-dark">Olá, {userName}!</h1>
+              <p className="text-sm text-ms-gray">Painel do Recrutador</p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
-            <button className="w-9 h-9 bg-ms-surface rounded-full flex items-center justify-center">
-              <Search size={16} className="text-ms-gray" />
-            </button>
-            <button className="w-9 h-9 bg-ms-surface rounded-full flex items-center justify-center relative">
+            <button onClick={() => setShowNotifs(!showNotifs)} className="w-9 h-9 bg-ms-surface rounded-full flex items-center justify-center relative">
               <Bell size={16} className="text-ms-gray" />
+              {notifications.length > 0 && (
+                <span className="absolute top-1 right-1 w-4 h-4 bg-ms-red text-white text-[9px] font-bold rounded-full flex items-center justify-center">{notifications.length}</span>
+              )}
             </button>
           </div>
         </div>
@@ -194,8 +281,8 @@ export default function RecrutadorDashboard() {
               </button>
               <button onClick={() => setActiveTab('vagas')} className="flex-shrink-0 bg-white border border-ms-border rounded-xl px-5 py-4 min-w-[150px]">
                 <TrendingUp size={20} className="text-ms-gray mb-2" />
-                <p className="text-sm font-medium text-ms-dark">Relatórios</p>
-                <p className="text-[11px] text-ms-gray">Estatísticas</p>
+                <p className="text-sm font-medium text-ms-dark">Minhas Vagas</p>
+                <p className="text-[11px] text-ms-gray">{vagas.length} vagas</p>
               </button>
             </div>
 
@@ -255,9 +342,10 @@ export default function RecrutadorDashboard() {
                       <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
                         v.status === 'aberta' ? 'bg-green-100 text-green-700' :
                         v.status === 'em_analise' ? 'bg-amber-100 text-amber-700' :
-                        'bg-red-100 text-red-700'
+                        v.status === 'rejeitada' ? 'bg-red-100 text-red-700' :
+                        'bg-gray-100 text-gray-700'
                       }`}>
-                        {v.status === 'aberta' ? 'Activa' : v.status === 'em_analise' ? 'Em análise' : 'Encerrada'}
+                        {v.status === 'aberta' ? 'Activa' : v.status === 'em_analise' ? 'Em análise' : v.status === 'rejeitada' ? 'Rejeitada' : 'Encerrada'}
                       </span>
                     </div>
                   </div>
@@ -286,10 +374,24 @@ export default function RecrutadorDashboard() {
                         <p className="text-sm font-medium text-ms-dark">{c.users?.nome || 'Candidato'}</p>
                         <p className="text-xs text-ms-gray">{c.users?.email}</p>
                         <p className="text-xs text-ms-blue mt-1">Vaga: {c.vagas?.titulo}</p>
+                        {c.mensagem && <p className="text-xs text-ms-gray mt-1 italic">&ldquo;{c.mensagem}&rdquo;</p>}
+
+                        {/* Documents */}
+                        {c.profiles?.documentos && c.profiles.documentos.length > 0 && (
+                          <div className="mt-2 flex gap-2 flex-wrap">
+                            {c.profiles.documentos.map((doc: string, i: number) => (
+                              <a key={i} href={doc} target="_blank" rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg bg-ms-purple-light text-ms-purple font-medium hover:bg-ms-purple hover:text-white transition-colors">
+                                <Download size={12} /> Doc {i + 1}
+                              </a>
+                            ))}
+                          </div>
+                        )}
+
                         {c.status === 'enviada' && (
-                          <div className="flex gap-2 mt-2">
-                            <button onClick={() => handleCandidatoAction(c.id, 'aprovada')} className="text-xs px-3 py-1 rounded-lg bg-green-100 text-green-700 font-medium">Aprovar</button>
-                            <button onClick={() => handleCandidatoAction(c.id, 'rejeitada')} className="text-xs px-3 py-1 rounded-lg bg-red-100 text-red-700 font-medium">Rejeitar</button>
+                          <div className="flex gap-2 mt-3">
+                            <button onClick={() => handleCandidatoAction(c.id, 'aprovada')} className="text-xs px-3 py-1.5 rounded-lg bg-green-100 text-green-700 font-medium">Aprovar</button>
+                            <button onClick={() => handleCandidatoAction(c.id, 'rejeitada')} className="text-xs px-3 py-1.5 rounded-lg bg-red-100 text-red-700 font-medium">Rejeitar</button>
                           </div>
                         )}
                       </div>
@@ -328,7 +430,25 @@ export default function RecrutadorDashboard() {
         )}
       </main>
 
-      <BottomNav active="home" userRole="recrutador" />
+      {/* Mobile Bottom Nav */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-ms-border z-50 lg:hidden">
+        <div className="flex items-center justify-around py-2 px-4 max-w-md mx-auto">
+          {[
+            { key: 'home', icon: Briefcase, label: 'Início' },
+            { key: 'vagas', icon: Eye, label: 'Vagas' },
+            { key: 'candidatos', icon: Users, label: 'Candidatos' },
+            { key: 'nova_vaga', icon: Plus, label: 'Publicar' },
+          ].map(item => {
+            const Icon = item.icon
+            return (
+              <button key={item.key} onClick={() => setActiveTab(item.key)} className="flex flex-col items-center gap-0.5 py-1">
+                <Icon size={22} className={activeTab === item.key ? 'text-ms-purple' : 'text-gray-400'} />
+                <span className={`text-[10px] ${activeTab === item.key ? 'text-ms-purple font-medium' : 'text-gray-400'}`}>{item.label}</span>
+              </button>
+            )
+          })}
+        </div>
+      </nav>
     </div>
   )
 }

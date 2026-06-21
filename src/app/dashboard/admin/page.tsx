@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Search, Bell, Briefcase, Users, UserCheck, Shield, Settings, CreditCard, CheckCircle, XCircle, Eye, TrendingUp, Plus, AlertTriangle } from 'lucide-react'
+import { Search, Bell, Briefcase, Users, UserCheck, Shield, Settings, CreditCard, CheckCircle, XCircle, Eye, TrendingUp, Plus, AlertTriangle, LogOut, Menu, X, Download } from 'lucide-react'
 
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
@@ -14,6 +14,9 @@ export default function AdminDashboard() {
   const [vagasPendentes, setVagasPendentes] = useState<any[]>([])
   const [allUsers, setAllUsers] = useState<any[]>([])
   const [subscriptions, setSubscriptions] = useState<any[]>([])
+  const [showMenu, setShowMenu] = useState(false)
+  const [showNotifs, setShowNotifs] = useState(false)
+  const [searchUser, setSearchUser] = useState('')
   const router = useRouter()
 
   useEffect(() => { loadData() }, [])
@@ -45,6 +48,11 @@ export default function AdminDashboard() {
     setLoading(false)
   }
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push('/')
+  }
+
   const aprovarRecrutador = async (userId: string) => {
     await supabase.from('users').update({ aprovado: true }).eq('id', userId)
     loadData()
@@ -69,6 +77,16 @@ export default function AdminDashboard() {
     alert(`Lembrete de pagamento enviado para ${email}:\n\nMulticaixa Express: 926 115 429\nIBAN: 0005.0000.0626.9321.1011.5\nValor: 1.000 Kz/mês`)
   }
 
+  const notifications = [
+    ...pendentes.map(u => ({ type: 'recrutador', text: `${u.nome || u.email} quer ser recrutador`, time: 'Pendente' })),
+    ...vagasPendentes.map(v => ({ type: 'vaga', text: `Vaga "${v.titulo}" aguarda aprovação`, time: 'Pendente' })),
+  ]
+
+  const filteredUsers = allUsers.filter(u =>
+    (u.nome || '').toLowerCase().includes(searchUser.toLowerCase()) ||
+    (u.email || '').toLowerCase().includes(searchUser.toLowerCase())
+  )
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -79,6 +97,66 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-white pb-20 lg:pb-0 lg:pl-60">
+      {/* Mobile Menu */}
+      {showMenu && (
+        <div className="fixed inset-0 z-[60] lg:hidden">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowMenu(false)} />
+          <div className="absolute left-0 top-0 h-full w-72 bg-white shadow-xl p-6">
+            <div className="flex items-center justify-between mb-8">
+              <span className="font-bold text-lg text-ms-blue">MÔ SALO</span>
+              <button onClick={() => setShowMenu(false)}><X size={22} className="text-ms-dark" /></button>
+            </div>
+            <div className="mb-6 pb-4 border-b border-ms-border">
+              <p className="text-sm font-medium text-ms-dark">Administrador</p>
+              <p className="text-xs text-ms-gray">Super Admin</p>
+            </div>
+            <nav className="space-y-1">
+              {[
+                { key: 'home', icon: Shield, label: 'Início' },
+                { key: 'recrutadores', icon: UserCheck, label: 'Aprovar Recrutadores' },
+                { key: 'vagas', icon: Briefcase, label: 'Aprovar Vagas' },
+                { key: 'utilizadores', icon: Users, label: 'Utilizadores' },
+                { key: 'subscricoes', icon: CreditCard, label: 'Subscrições' },
+              ].map(item => {
+                const Icon = item.icon
+                return (
+                  <button key={item.key} onClick={() => { setActiveTab(item.key); setShowMenu(false) }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium ${activeTab === item.key ? 'bg-ms-purple-light text-ms-purple' : 'text-ms-gray hover:bg-ms-surface'}`}>
+                    <Icon size={18} /> {item.label}
+                  </button>
+                )
+              })}
+            </nav>
+            <div className="absolute bottom-8 left-6 right-6">
+              <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-ms-red hover:bg-red-50">
+                <LogOut size={18} /> Terminar Sessão
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notifications Panel */}
+      {showNotifs && (
+        <div className="fixed inset-0 z-[60]" onClick={() => setShowNotifs(false)}>
+          <div className="absolute right-4 top-16 w-80 max-w-[90vw] bg-white rounded-2xl shadow-xl border border-ms-border p-4" onClick={e => e.stopPropagation()}>
+            <h3 className="text-sm font-bold text-ms-dark mb-3">Notificações</h3>
+            {notifications.length === 0 ? (
+              <p className="text-xs text-ms-gray text-center py-4">Nenhuma notificação pendente</p>
+            ) : (
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {notifications.map((n, i) => (
+                  <div key={i} className="bg-ms-surface rounded-xl p-3">
+                    <p className="text-xs text-ms-dark">{n.text}</p>
+                    <p className="text-[10px] text-ms-gray mt-1">{n.time}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex lg:flex-col w-60 h-screen fixed left-0 top-0 bg-white border-r border-ms-border z-40">
         <div className="p-6 border-b border-ms-border">
@@ -115,23 +193,30 @@ export default function AdminDashboard() {
             )
           })}
         </nav>
+        <div className="p-4 border-t border-ms-border">
+          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-ms-red hover:bg-red-50 transition-colors">
+            <LogOut size={18} /> Terminar Sessão
+          </button>
+        </div>
       </aside>
 
       <main className="px-4 pt-6 max-w-4xl mx-auto lg:pt-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-xl font-bold text-ms-dark">Olá, Admin!</h1>
-            <p className="text-sm text-ms-gray">Painel de Administração</p>
+          <div className="flex items-center gap-3">
+            <button className="lg:hidden" onClick={() => setShowMenu(true)}>
+              <Menu size={22} className="text-ms-dark" />
+            </button>
+            <div>
+              <h1 className="text-xl font-bold text-ms-dark">Olá, Admin!</h1>
+              <p className="text-sm text-ms-gray">Painel de Administração</p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
-            <button className="w-9 h-9 bg-ms-surface rounded-full flex items-center justify-center">
-              <Search size={16} className="text-ms-gray" />
-            </button>
-            <button className="w-9 h-9 bg-ms-surface rounded-full flex items-center justify-center relative">
+            <button onClick={() => setShowNotifs(!showNotifs)} className="w-9 h-9 bg-ms-surface rounded-full flex items-center justify-center relative">
               <Bell size={16} className="text-ms-gray" />
-              {(pendentes.length + vagasPendentes.length) > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-ms-red rounded-full" />
+              {notifications.length > 0 && (
+                <span className="absolute top-1 right-1 w-4 h-4 bg-ms-red text-white text-[9px] font-bold rounded-full flex items-center justify-center">{notifications.length}</span>
               )}
             </button>
           </div>
@@ -144,7 +229,7 @@ export default function AdminDashboard() {
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-8 translate-x-8" />
               <p className="text-xs text-white/70 mb-1">Utilizadores Activos</p>
               <p className="text-3xl font-bold mb-3">{stats.totalUsers}</p>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 <span className="text-xs bg-white/20 px-3 py-1 rounded-full">{stats.totalVagas} vagas activas</span>
                 <span className="text-xs bg-white/20 px-3 py-1 rounded-full">{stats.totalCandidaturas} candidaturas</span>
               </div>
@@ -178,7 +263,7 @@ export default function AdminDashboard() {
             <div className="flex gap-3 overflow-x-auto pb-2 mb-6">
               <button onClick={() => setActiveTab('recrutadores')} className="flex-shrink-0 bg-ms-purple text-white rounded-xl px-5 py-4 min-w-[150px]">
                 <UserCheck size={20} className="mb-2" />
-                <p className="text-sm font-medium">Gerir Utilizadores</p>
+                <p className="text-sm font-medium">Aprovar Recrutadores</p>
                 <p className="text-[11px] text-white/70">{pendentes.length} pendentes</p>
               </button>
               <button onClick={() => setActiveTab('vagas')} className="flex-shrink-0 bg-white border border-ms-purple/20 rounded-xl px-5 py-4 min-w-[150px]">
@@ -188,8 +273,8 @@ export default function AdminDashboard() {
               </button>
               <button onClick={() => setActiveTab('subscricoes')} className="flex-shrink-0 bg-white border border-ms-border rounded-xl px-5 py-4 min-w-[150px]">
                 <CreditCard size={20} className="text-ms-gray mb-2" />
-                <p className="text-sm font-medium text-ms-dark">Ver Relatórios</p>
-                <p className="text-[11px] text-ms-gray">Subscrições</p>
+                <p className="text-sm font-medium text-ms-dark">Subscrições</p>
+                <p className="text-[11px] text-ms-gray">Pagamentos</p>
               </button>
             </div>
 
@@ -201,11 +286,11 @@ export default function AdminDashboard() {
                   {pendentes.map(u => (
                     <div key={u.id} className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center gap-3">
                       <AlertTriangle size={16} className="text-amber-600 flex-shrink-0" />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-ms-dark">{u.nome}</p>
-                        <p className="text-xs text-ms-gray">{u.email}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-ms-dark truncate">{u.nome}</p>
+                        <p className="text-xs text-ms-gray truncate">{u.email}</p>
                       </div>
-                      <button onClick={() => aprovarRecrutador(u.id)} className="text-xs px-3 py-1 rounded-lg bg-green-100 text-green-700 font-medium">Aprovar</button>
+                      <button onClick={() => aprovarRecrutador(u.id)} className="text-xs px-3 py-1.5 rounded-lg bg-green-100 text-green-700 font-medium flex-shrink-0">Aprovar</button>
                     </div>
                   ))}
                 </div>
@@ -229,11 +314,11 @@ export default function AdminDashboard() {
                     <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
                       <Users size={16} className="text-amber-600" />
                     </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-ms-dark">{u.nome}</p>
-                      <p className="text-xs text-ms-gray">{u.email}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-ms-dark truncate">{u.nome}</p>
+                      <p className="text-xs text-ms-gray truncate">{u.email}</p>
                     </div>
-                    <button onClick={() => aprovarRecrutador(u.id)} className="text-xs px-4 py-2 rounded-lg bg-ms-blue text-white font-medium">Aprovar</button>
+                    <button onClick={() => aprovarRecrutador(u.id)} className="text-xs px-4 py-2 rounded-lg bg-ms-blue text-white font-medium flex-shrink-0">Aprovar</button>
                   </div>
                 ))}
               </div>
@@ -269,22 +354,35 @@ export default function AdminDashboard() {
         {activeTab === 'utilizadores' && (
           <div>
             <h2 className="text-lg font-bold text-ms-dark mb-4">Todos os Utilizadores</h2>
+            {/* Search */}
+            <div className="mb-4">
+              <div className="flex items-center gap-2 bg-ms-surface rounded-xl px-4 py-2.5">
+                <Search size={16} className="text-ms-gray" />
+                <input
+                  type="text"
+                  placeholder="Pesquisar por nome ou email..."
+                  value={searchUser}
+                  onChange={(e) => setSearchUser(e.target.value)}
+                  className="flex-1 bg-transparent outline-none text-sm text-ms-dark placeholder:text-ms-gray"
+                />
+              </div>
+            </div>
             <div className="space-y-2">
-              {allUsers.map(u => (
+              {filteredUsers.map(u => (
                 <div key={u.id} className="bg-ms-surface rounded-xl p-3 flex items-center gap-3">
                   <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center border border-ms-border flex-shrink-0">
                     <Users size={14} className="text-ms-purple" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-ms-dark truncate">{u.nome || u.email}</p>
-                    <p className="text-[11px] text-ms-gray capitalize">{u.role}</p>
+                    <p className="text-[11px] text-ms-gray capitalize">{u.role} {u.aprovado === false ? '• ❌ Sem acesso' : ''}</p>
                   </div>
-                  <div className="flex gap-1 flex-shrink-0">
-                    {u.role === 'candidato' && (
+                  <div className="flex gap-1 flex-shrink-0 flex-wrap justify-end">
+                    {u.role !== 'admin' && (
                       <>
                         <button onClick={() => sendPaymentReminder(u.email)} className="text-[10px] px-2 py-1 rounded-lg bg-ms-purple-light text-ms-purple font-medium">Lembrete</button>
-                        <button onClick={() => toggleAccess(u.id, u.aprovado)} className={`text-[10px] px-2 py-1 rounded-lg font-medium ${u.aprovado ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                          {u.aprovado ? 'Remover' : 'Dar Acesso'}
+                        <button onClick={() => toggleAccess(u.id, u.aprovado)} className={`text-[10px] px-2 py-1 rounded-lg font-medium ${u.aprovado !== false ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                          {u.aprovado !== false ? 'Remover' : 'Dar Acesso'}
                         </button>
                       </>
                     )}
