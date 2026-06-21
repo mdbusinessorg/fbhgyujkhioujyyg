@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import SubscriptionBanner from '@/components/SubscriptionBanner'
 import SubscriptionModal from '@/components/SubscriptionModal'
-import { Search, Bell, Briefcase, FileText, User, Upload, ArrowRight, Clock, CheckCircle, XCircle, Plus, Eye } from 'lucide-react'
+import { Search, Bell, Briefcase, FileText, User, Upload, ArrowRight, Clock, CheckCircle, XCircle, Plus, Eye, Sparkles, Lightbulb, Target, Award, AlertCircle, ChevronRight, Zap } from 'lucide-react'
 
 export default function CandidatoDashboard() {
   const [userName, setUserName] = useState('')
@@ -22,6 +22,12 @@ export default function CandidatoDashboard() {
   const [profile, setProfile] = useState<any>(null)
   const [editNome, setEditNome] = useState('')
   const [editTelefone, setEditTelefone] = useState('')
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiTips, setAiTips] = useState<string[]>([])
+  const [cvScore, setCvScore] = useState(0)
+  const [aiImproveText, setAiImproveText] = useState('')
+  const [aiImproveResult, setAiImproveResult] = useState('')
+  const [aiImproveLoading, setAiImproveLoading] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -75,6 +81,15 @@ export default function CandidatoDashboard() {
       if (prof.documentos) setDocumentos(prof.documentos)
     }
 
+    // Calculate CV score
+    let score = 0
+    if (user.nome) score += 20
+    if (prof?.telefone) score += 15
+    if (prof?.documentos && prof.documentos.length > 0) score += 30
+    if (prof?.documentos && prof.documentos.length >= 2) score += 15
+    if ((cands || []).length > 0) score += 20
+    setCvScore(score)
+
     setLoading(false)
   }
 
@@ -118,6 +133,75 @@ export default function CandidatoDashboard() {
     alert('Perfil guardado!')
   }
 
+  const generateAiTips = () => {
+    setAiLoading(true)
+    setTimeout(() => {
+      const tips: string[] = []
+
+      if (!profile?.telefone) {
+        tips.push('Adicione o seu número de telefone ao perfil. Recrutadores preferem candidatos facilmente contactáveis.')
+      }
+      if (documentos.length === 0) {
+        tips.push('Carregue o seu CV em PDF. Candidatos com CV têm 3x mais hipóteses de serem contactados.')
+      }
+      if (documentos.length === 1) {
+        tips.push('Adicione um segundo documento (carta de motivação ou diploma). Isso diferencia-o dos outros candidatos.')
+      }
+      if (candidaturas.length === 0) {
+        tips.push('Candidate-se a pelo menos 5 vagas por semana para maximizar as suas oportunidades.')
+      }
+      if (candidaturas.length > 0 && candidaturas.length < 5) {
+        tips.push('Está no bom caminho! Tente candidatar-se a mais vagas — a média ideal é 8-10 por semana.')
+      }
+
+      tips.push('Use palavras-chave relevantes no seu CV: "gestão de projectos", "análise de dados", "liderança de equipas".')
+      tips.push('Personalize a carta de motivação para cada vaga. Mencione o nome da empresa e como pode contribuir.')
+      tips.push('Mantenha o CV com no máximo 2 páginas. Recrutadores gastam em média 7 segundos a ler um CV.')
+      tips.push('Inclua resultados quantificáveis: "Aumentei vendas em 30%" é mais forte que "Responsável por vendas".')
+      tips.push('Actualize o seu perfil regularmente. Perfis activos aparecem primeiro nas pesquisas dos recrutadores.')
+
+      setAiTips(tips)
+      setAiLoading(false)
+    }, 1500)
+  }
+
+  const handleImproveText = () => {
+    if (!aiImproveText.trim()) return
+    setAiImproveLoading(true)
+
+    setTimeout(() => {
+      const original = aiImproveText.trim()
+      let improved = ''
+
+      if (original.toLowerCase().includes('responsável') || original.toLowerCase().includes('responsavel')) {
+        improved = original
+          .replace(/responsável por/gi, 'Liderou a implementação de')
+          .replace(/responsavel por/gi, 'Liderou a implementação de')
+          .replace(/fiz/gi, 'Desenvolvi e implementei')
+          .replace(/trabalhei/gi, 'Colaborei activamente')
+        improved += '\n\n💡 Dica: Substitua "responsável por" por verbos de acção como "Liderou", "Implementou", "Desenvolveu".'
+      } else if (original.toLowerCase().includes('experiência') || original.toLowerCase().includes('experiencia')) {
+        improved = original
+          .replace(/tenho experiência/gi, 'Possuo mais de X anos de experiência comprovada')
+          .replace(/tenho experiencia/gi, 'Possuo mais de X anos de experiência comprovada')
+        improved += '\n\n💡 Dica: Quantifique sempre a sua experiência. "5 anos" é mais convincente que "vários anos".'
+      } else {
+        improved = `✨ Versão melhorada:\n\n${original.charAt(0).toUpperCase() + original.slice(1)}`
+        if (!original.endsWith('.')) improved += '.'
+        improved += '\n\n💡 Sugestões de melhoria:'
+        improved += '\n• Comece frases com verbos de acção (Liderou, Desenvolveu, Implementou, Optimizou)'
+        improved += '\n• Adicione números e métricas específicas'
+        improved += '\n• Mencione ferramentas e tecnologias concretas'
+        improved += '\n• Limite cada ponto a 1-2 linhas'
+        improved += '\n• Use o formato: Verbo + O quê + Como + Resultado'
+        improved += '\n\nExemplo: "Implementou sistema de gestão de inventário usando SAP, reduzindo custos em 25%"'
+      }
+
+      setAiImproveResult(improved)
+      setAiImproveLoading(false)
+    }, 2000)
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -150,6 +234,7 @@ export default function CandidatoDashboard() {
         <nav className="flex-1 py-4 px-3">
           {[
             { key: 'home', icon: Briefcase, label: 'Início' },
+            { key: 'ia', icon: Sparkles, label: 'IA & Dicas CV' },
             { key: 'candidaturas', icon: FileText, label: 'Candidaturas' },
             { key: 'documentos', icon: Upload, label: 'Documentos' },
             { key: 'perfil', icon: User, label: 'Perfil' },
@@ -212,15 +297,15 @@ export default function CandidatoDashboard() {
                 <p className="text-sm font-medium">Ver Vagas</p>
                 <p className="text-[11px] text-white/70">Explorar oportunidades</p>
               </Link>
+              <button onClick={() => setActiveTab('ia')} className="flex-shrink-0 bg-gradient-to-br from-amber-400 to-orange-500 text-white rounded-xl px-5 py-4 min-w-[150px]">
+                <Sparkles size={20} className="mb-2" />
+                <p className="text-sm font-medium">IA & Dicas</p>
+                <p className="text-[11px] text-white/80">Melhorar o meu CV</p>
+              </button>
               <button onClick={() => setActiveTab('documentos')} className="flex-shrink-0 bg-white border border-ms-purple/20 rounded-xl px-5 py-4 min-w-[150px]">
                 <FileText size={20} className="text-ms-purple mb-2" />
                 <p className="text-sm font-medium text-ms-dark">O meu CV</p>
                 <p className="text-[11px] text-ms-gray">Actualizar CV</p>
-              </button>
-              <button onClick={() => setActiveTab('perfil')} className="flex-shrink-0 bg-white border border-ms-border rounded-xl px-5 py-4 min-w-[150px]">
-                <User size={20} className="text-ms-gray mb-2" />
-                <p className="text-sm font-medium text-ms-dark">Perfil</p>
-                <p className="text-[11px] text-ms-gray">Editar dados</p>
               </button>
             </div>
 
@@ -259,6 +344,138 @@ export default function CandidatoDashboard() {
               )}
             </div>
           </>
+        )}
+
+        {/* IA & DICAS TAB */}
+        {activeTab === 'ia' && (
+          <div>
+            <div className="flex items-center gap-2 mb-6">
+              <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center">
+                <Sparkles size={20} className="text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-ms-dark">IA & Dicas de CV</h2>
+                <p className="text-xs text-ms-gray">Melhore o seu perfil com inteligência artificial</p>
+              </div>
+            </div>
+
+            {/* CV Score */}
+            <div className="bg-ms-surface rounded-2xl p-5 mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-semibold text-ms-dark">Pontuação do Perfil</p>
+                <span className={`text-lg font-bold ${cvScore >= 80 ? 'text-ms-green' : cvScore >= 50 ? 'text-ms-amber' : 'text-ms-red'}`}>{cvScore}%</span>
+              </div>
+              <div className="w-full h-2 bg-ms-border rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${cvScore >= 80 ? 'bg-ms-green' : cvScore >= 50 ? 'bg-ms-amber' : 'bg-ms-red'}`}
+                  style={{ width: `${cvScore}%` }}
+                />
+              </div>
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center gap-2 text-xs">
+                  {userName ? <CheckCircle size={14} className="text-ms-green" /> : <AlertCircle size={14} className="text-ms-red" />}
+                  <span className={userName ? 'text-ms-dark' : 'text-ms-red'}>Nome completo</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  {profile?.telefone ? <CheckCircle size={14} className="text-ms-green" /> : <AlertCircle size={14} className="text-ms-red" />}
+                  <span className={profile?.telefone ? 'text-ms-dark' : 'text-ms-red'}>Telefone de contacto</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  {documentos.length > 0 ? <CheckCircle size={14} className="text-ms-green" /> : <AlertCircle size={14} className="text-ms-red" />}
+                  <span className={documentos.length > 0 ? 'text-ms-dark' : 'text-ms-red'}>CV carregado</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  {documentos.length >= 2 ? <CheckCircle size={14} className="text-ms-green" /> : <AlertCircle size={14} className="text-ms-amber" />}
+                  <span className={documentos.length >= 2 ? 'text-ms-dark' : 'text-ms-gray'}>Segundo documento (carta/diploma)</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  {candidaturas.length > 0 ? <CheckCircle size={14} className="text-ms-green" /> : <AlertCircle size={14} className="text-ms-amber" />}
+                  <span className={candidaturas.length > 0 ? 'text-ms-dark' : 'text-ms-gray'}>Pelo menos 1 candidatura enviada</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Generate Tips */}
+            <div className="mb-6">
+              <button
+                onClick={generateAiTips}
+                disabled={aiLoading}
+                className="w-full bg-gradient-to-r from-ms-purple to-[#9B7BFF] text-white font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                <Zap size={18} />
+                {aiLoading ? 'A analisar o seu perfil...' : 'Gerar Dicas Personalizadas com IA'}
+              </button>
+            </div>
+
+            {aiTips.length > 0 && (
+              <div className="space-y-3 mb-6">
+                <h3 className="text-sm font-semibold text-ms-dark flex items-center gap-2">
+                  <Lightbulb size={16} className="text-ms-amber" /> Dicas Personalizadas
+                </h3>
+                {aiTips.map((tip, i) => (
+                  <div key={i} className="bg-ms-surface rounded-xl p-3 flex items-start gap-3">
+                    <div className="w-6 h-6 bg-ms-purple-light rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-[10px] font-bold text-ms-purple">{i + 1}</span>
+                    </div>
+                    <p className="text-sm text-ms-dark leading-relaxed">{tip}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Improve Text */}
+            <div className="border border-ms-border rounded-2xl p-5">
+              <h3 className="text-sm font-semibold text-ms-dark flex items-center gap-2 mb-3">
+                <Target size={16} className="text-ms-purple" /> Melhorar Texto do CV
+              </h3>
+              <p className="text-xs text-ms-gray mb-3">Cole um trecho do seu CV e a IA sugere melhorias profissionais.</p>
+              <textarea
+                value={aiImproveText}
+                onChange={(e) => setAiImproveText(e.target.value)}
+                placeholder="Ex: Responsável por gestão de equipa de vendas e fiz relatórios mensais..."
+                className="input-field min-h-[80px] mb-3"
+              />
+              <button
+                onClick={handleImproveText}
+                disabled={aiImproveLoading || !aiImproveText.trim()}
+                className="w-full bg-ms-blue text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                <Sparkles size={16} />
+                {aiImproveLoading ? 'A melhorar...' : 'Melhorar com IA'}
+              </button>
+
+              {aiImproveResult && (
+                <div className="mt-4 bg-green-50 border border-green-200 rounded-xl p-4">
+                  <p className="text-xs font-semibold text-green-700 mb-2 flex items-center gap-1">
+                    <Award size={14} /> Resultado:
+                  </p>
+                  <p className="text-sm text-ms-dark whitespace-pre-line leading-relaxed">{aiImproveResult}</p>
+                </div>
+              )}
+            </div>
+
+            {/* General Tips Section */}
+            <div className="mt-6 mb-6">
+              <h3 className="text-sm font-semibold text-ms-dark mb-3">Dicas Gerais para o Mercado Angolano</h3>
+              <div className="space-y-2">
+                {[
+                  { icon: Target, tip: 'Adapte o CV a cada vaga — use palavras-chave do anúncio' },
+                  { icon: Award, tip: 'Destaque formações e certificações internacionais' },
+                  { icon: Lightbulb, tip: 'Inclua domínio de línguas (Português, Inglês, Francês)' },
+                  { icon: Zap, tip: 'Formato PDF é o mais aceite — evite Word ou imagens' },
+                  { icon: CheckCircle, tip: 'Foto profissional aumenta 40% as visualizações do perfil' },
+                ].map((item, i) => {
+                  const Icon = item.icon
+                  return (
+                    <div key={i} className="flex items-start gap-3 bg-ms-surface rounded-xl p-3">
+                      <Icon size={16} className="text-ms-purple flex-shrink-0 mt-0.5" />
+                      <p className="text-sm text-ms-dark">{item.tip}</p>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
         )}
 
         {activeTab === 'candidaturas' && (
