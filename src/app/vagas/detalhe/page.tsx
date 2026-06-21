@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
 import { ArrowLeft, Heart, Briefcase, MapPin, Building2, Send, Upload } from 'lucide-react'
 
 function VagaDetalheContent() {
@@ -54,9 +54,9 @@ function VagaDetalheContent() {
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
         const path = `${session.user.id}/${Date.now()}-${cvFile.name}`
-        const { error: uploadError } = await supabase.storage.from('documentos').upload(path, cvFile)
+        const { error: uploadError } = await supabase.storage.from(STORAGE_BUCKET).upload(path, cvFile)
         if (!uploadError) {
-          const url = `https://gwnjigmsuqasvotsksmk.supabase.co/storage/v1/object/public/documentos/${path}`
+          const url = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`
           // Save to profile
           const { data: prof } = await supabase.from('profiles').select('documentos').eq('user_id', session.user.id).single()
           const existingDocs = prof?.documentos || []

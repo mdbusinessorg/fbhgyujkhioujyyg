@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import SubscriptionBanner from '@/components/SubscriptionBanner'
 import SubscriptionModal from '@/components/SubscriptionModal'
@@ -105,10 +105,10 @@ export default function CandidatoDashboard() {
 
     const file = files[0]
     const path = `${session.user.id}/${Date.now()}-${file.name}`
-    const { error } = await supabase.storage.from('documentos').upload(path, file)
+    const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(path, file)
 
     if (!error) {
-      const url = `https://gwnjigmsuqasvotsksmk.supabase.co/storage/v1/object/public/documentos/${path}`
+      const url = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`
       const newDocs = [...documentos, url]
       setDocumentos(newDocs)
 
