@@ -212,14 +212,14 @@ export default function RecrutadorDashboard() {
           <div className="flex flex-col lg:flex-row gap-6">
 
             <aside className="lg:w-64 flex-shrink-0">
-              <div className="card p-5 mb-4">
+              <div className="rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-violet-600 p-5 mb-4 text-white">
                 <div className="text-center">
-                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <Briefcase size={28} className="text-blue-600" />
+                  <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Briefcase size={28} className="text-white" />
                   </div>
-                  <h2 className="font-semibold text-gray-900">{userName}</h2>
-                  <p className="text-gray-500 text-sm">Recrutador Verificado</p>
-                  <span className="badge-success mt-2">Conta Activa</span>
+                  <h2 className="font-semibold">{userName}</h2>
+                  <p className="text-white/70 text-sm">Recrutador Verificado</p>
+                  <span className="inline-block mt-2 px-3 py-0.5 bg-white/20 rounded-full text-xs text-white">Conta Activa</span>
                 </div>
               </div>
 
@@ -237,14 +237,14 @@ export default function RecrutadorDashboard() {
                       onClick={() => setActiveTab(item.key as typeof activeTab)}
                       className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors border-l-4 relative ${
                         activeTab === item.key
-                          ? 'bg-blue-50 text-blue-600 border-blue-600'
+                          ? 'bg-indigo-50 text-indigo-600 border-indigo-600'
                           : 'text-gray-600 hover:bg-gray-50 border-transparent'
                       }`}
                     >
                       <Icon size={18} />
                       {item.label}
                       {item.badge && item.badge > 0 && (
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 bg-k10-accent text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 bg-indigo-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
                           {item.badge}
                         </span>
                       )}
@@ -260,25 +260,25 @@ export default function RecrutadorDashboard() {
 
             <div className="flex-1">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="stat-card">
-                  <Briefcase size={22} className="text-blue-500 mb-2" />
-                  <span className="text-2xl font-bold text-k10-primary">{vagas.filter(v => v.status === 'aberta').length}</span>
-                  <span className="text-xs text-gray-500">Vagas Activas</span>
+                <div className="gradient-card-purple rounded-2xl p-4 text-center">
+                  <Briefcase size={22} className="text-indigo-600 mx-auto mb-2" />
+                  <span className="text-2xl font-bold text-indigo-900">{vagas.filter(v => v.status === 'aberta').length}</span>
+                  <span className="text-xs text-indigo-600 block">Vagas Activas</span>
                 </div>
-                <div className="stat-card">
-                  <Users size={22} className="text-k10-green mb-2" />
-                  <span className="text-2xl font-bold text-k10-primary">{candidatos.length}</span>
-                  <span className="text-xs text-gray-500">Candidaturas</span>
+                <div className="gradient-card-purple rounded-2xl p-4 text-center">
+                  <Users size={22} className="text-purple-600 mx-auto mb-2" />
+                  <span className="text-2xl font-bold text-indigo-900">{candidatos.length}</span>
+                  <span className="text-xs text-purple-600 block">Candidaturas</span>
                 </div>
-                <div className="stat-card">
-                  <Eye size={22} className="text-k10-gold mb-2" />
-                  <span className="text-2xl font-bold text-k10-primary">{totalVisualizacoes}</span>
-                  <span className="text-xs text-gray-500">Visualizações</span>
+                <div className="gradient-card-purple rounded-2xl p-4 text-center">
+                  <Eye size={22} className="text-violet-600 mx-auto mb-2" />
+                  <span className="text-2xl font-bold text-indigo-900">{totalVisualizacoes}</span>
+                  <span className="text-xs text-violet-600 block">Visualizações</span>
                 </div>
-                <div className="stat-card">
-                  <TrendingUp size={22} className="text-k10-accent mb-2" />
-                  <span className="text-2xl font-bold text-k10-primary">{vagas.filter(v => v.is_prioritaria).length}</span>
-                  <span className="text-xs text-gray-500">Em Destaque</span>
+                <div className="gradient-card-purple rounded-2xl p-4 text-center">
+                  <TrendingUp size={22} className="text-indigo-600 mx-auto mb-2" />
+                  <span className="text-2xl font-bold text-indigo-900">{vagas.filter(v => v.is_prioritaria).length}</span>
+                  <span className="text-xs text-indigo-600 block">Em Destaque</span>
                 </div>
               </div>
 

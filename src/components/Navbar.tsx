@@ -76,11 +76,11 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-9 h-9 bg-k10-accent rounded-xl flex items-center justify-center">
-              <span className="font-heading font-bold text-white text-sm">K10</span>
+            <div className="w-9 h-9 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center">
+              <Briefcase size={18} className="text-white" />
             </div>
             <span className="font-heading font-bold text-lg text-k10-primary hidden sm:block">
-              K10 <span className="text-k10-accent">Opportunities</span>
+              MÔ <span className="text-k10-accent">SALO</span>
             </span>
           </Link>
 
@@ -91,7 +91,7 @@ export default function Navbar() {
             </Link>
             <Link href="/guia/" className="flex items-center gap-1.5 text-gray-600 hover:text-k10-accent transition-colors font-medium text-sm">
               <BookOpen size={16} />
-              Guia do Candidato
+              Guia
             </Link>
             <Link href="/vagas/" className="flex items-center gap-1.5 text-gray-600 hover:text-k10-accent transition-colors font-medium text-sm">
               <Search size={16} />
@@ -106,7 +106,7 @@ export default function Navbar() {
               <div className="flex items-center gap-3">
                 <Link href={getDashboardLink()} className="flex items-center gap-2 text-gray-600 hover:text-k10-accent transition-colors">
                   <LayoutDashboard size={16} />
-                  <span className="text-sm font-medium">Meu Painel</span>
+                  <span className="text-sm font-medium">Painel</span>
                 </Link>
                 <button
                   onClick={handleLogout}
@@ -144,7 +144,7 @@ export default function Navbar() {
             </Link>
             <Link href="/guia/" className="flex items-center gap-2 py-2 text-gray-600 hover:text-k10-accent" onClick={() => setIsOpen(false)}>
               <BookOpen size={18} />
-              Guia do Candidato
+              Guia
             </Link>
             <Link href="/vagas/" className="flex items-center gap-2 py-2 text-gray-600 hover:text-k10-accent" onClick={() => setIsOpen(false)}>
               <Search size={18} />
@@ -155,7 +155,7 @@ export default function Navbar() {
               <>
                 <Link href={getDashboardLink()} className="flex items-center gap-2 py-2 text-gray-600 hover:text-k10-accent" onClick={() => setIsOpen(false)}>
                   <LayoutDashboard size={18} />
-                  Meu Painel
+                  Painel
                 </Link>
                 <button
                   onClick={() => { handleLogout(); setIsOpen(false) }}

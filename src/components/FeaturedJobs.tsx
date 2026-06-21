@@ -86,7 +86,7 @@ export default function FeaturedJobs() {
             <h2 className="font-heading text-3xl font-bold text-k10-primary mb-2">Vagas Recentes</h2>
             <p className="text-gray-500">As melhores oportunidades do mercado angolano</p>
           </div>
-          <Link href="/vagas/" className="hidden sm:flex items-center gap-1 text-k10-accent hover:underline font-medium text-sm">
+          <Link href="/vagas/" className="hidden sm:flex items-center gap-1 text-indigo-600 hover:underline font-medium text-sm">
             Ver todas <ArrowRight size={16} />
           </Link>
         </div>

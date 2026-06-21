@@ -237,14 +237,14 @@ export default function AdminDashboard() {
           <div className="flex flex-col lg:flex-row gap-6">
 
             <aside className="lg:w-64 flex-shrink-0">
-              <div className="card p-5 mb-4">
+              <div className="rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-violet-600 p-5 mb-4 text-white">
                 <div className="text-center">
-                  <div className="w-16 h-16 bg-k10-primary rounded-full flex items-center justify-center mx-auto mb-3">
+                  <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
                     <Shield size={28} className="text-white" />
                   </div>
-                  <h2 className="font-semibold text-gray-900">Administrador</h2>
-                  <p className="text-gray-500 text-xs">matiasdomingos158@gmail.com</p>
-                  <span className="badge bg-k10-primary/10 text-k10-primary mt-2">Super Admin</span>
+                  <h2 className="font-semibold">Administrador</h2>
+                  <p className="text-white/70 text-xs">MÔ SALO</p>
+                  <span className="inline-block mt-2 px-3 py-0.5 bg-white/20 rounded-full text-xs text-white">Super Admin</span>
                 </div>
               </div>
 
@@ -264,14 +264,14 @@ export default function AdminDashboard() {
                       onClick={() => setActiveTab(item.key as typeof activeTab)}
                       className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors border-l-4 relative ${
                         activeTab === item.key
-                          ? 'bg-k10-primary/5 text-k10-primary border-k10-primary'
+                          ? 'bg-indigo-50 text-indigo-600 border-indigo-600'
                           : 'text-gray-600 hover:bg-gray-50 border-transparent'
                       }`}
                     >
                       <Icon size={18} />
                       {item.label}
                       {item.badge && item.badge > 0 && (
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 bg-k10-accent text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 bg-indigo-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
                           {item.badge}
                         </span>
                       )}
@@ -296,25 +296,25 @@ export default function AdminDashboard() {
                   {activeTab === 'overview' && (
                     <>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                        <div className="stat-card">
-                          <Users size={22} className="text-blue-500 mb-2" />
-                          <span className="text-2xl font-bold text-k10-primary">{stats.totalUsers}</span>
-                          <span className="text-xs text-gray-500">Total Utilizadores</span>
+                        <div className="gradient-card-purple rounded-2xl p-5 flex flex-col items-center justify-center text-center">
+                          <Users size={22} className="text-indigo-600 mb-2" />
+                          <span className="text-2xl font-bold text-indigo-900">{stats.totalUsers}</span>
+                          <span className="text-xs text-indigo-600">Total Utilizadores</span>
                         </div>
-                        <div className="stat-card">
-                          <Briefcase size={22} className="text-k10-green mb-2" />
-                          <span className="text-2xl font-bold text-k10-primary">{stats.totalVagas}</span>
-                          <span className="text-xs text-gray-500">Vagas Activas</span>
+                        <div className="gradient-card-purple rounded-2xl p-5 flex flex-col items-center justify-center text-center">
+                          <Briefcase size={22} className="text-purple-600 mb-2" />
+                          <span className="text-2xl font-bold text-indigo-900">{stats.totalVagas}</span>
+                          <span className="text-xs text-purple-600">Vagas Activas</span>
                         </div>
-                        <div className="stat-card">
-                          <TrendingUp size={22} className="text-k10-accent mb-2" />
-                          <span className="text-2xl font-bold text-k10-primary">{stats.totalCandidaturas}</span>
-                          <span className="text-xs text-gray-500">Candidaturas</span>
+                        <div className="gradient-card-purple rounded-2xl p-5 flex flex-col items-center justify-center text-center">
+                          <TrendingUp size={22} className="text-violet-600 mb-2" />
+                          <span className="text-2xl font-bold text-indigo-900">{stats.totalCandidaturas}</span>
+                          <span className="text-xs text-violet-600">Candidaturas</span>
                         </div>
-                        <div className="stat-card">
-                          <DollarSign size={22} className="text-k10-gold mb-2" />
-                          <span className="text-2xl font-bold text-k10-primary">{stats.subsAtivas}</span>
-                          <span className="text-xs text-gray-500">Subscrições Activas</span>
+                        <div className="gradient-card-purple rounded-2xl p-5 flex flex-col items-center justify-center text-center">
+                          <DollarSign size={22} className="text-indigo-600 mb-2" />
+                          <span className="text-2xl font-bold text-indigo-900">{stats.subsAtivas}</span>
+                          <span className="text-xs text-indigo-600">Subscrições Activas</span>
                         </div>
                       </div>
 
@@ -635,22 +635,34 @@ export default function AdminDashboard() {
                                   <td className="px-4 py-3 text-xs text-gray-500">{formatDate(u.created_at)}</td>
                                   <td className="px-4 py-3">
                                     {u.role !== 'admin' && (
-                                      <button
-                                        onClick={async () => {
-                                          const newStatus = !u.aprovado
-                                          const { error } = await supabase.from('users').update({ aprovado: newStatus }).eq('id', u.id)
-                                          if (!error) {
-                                            setUtilizadores(utilizadores.map(x => x.id === u.id ? { ...x, aprovado: newStatus } : x))
-                                          }
-                                        }}
-                                        className={`text-xs px-3 py-1 rounded-lg font-medium ${
-                                          u.aprovado
-                                            ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                                            : 'bg-green-100 text-green-700 hover:bg-green-200'
-                                        }`}
-                                      >
-                                        {u.aprovado ? 'Remover Acesso' : 'Dar Acesso'}
-                                      </button>
+                                      <div className="flex gap-2 flex-wrap">
+                                        <button
+                                          onClick={async () => {
+                                            const newStatus = !u.aprovado
+                                            const { error } = await supabase.from('users').update({ aprovado: newStatus }).eq('id', u.id)
+                                            if (!error) {
+                                              setUtilizadores(utilizadores.map(x => x.id === u.id ? { ...x, aprovado: newStatus } : x))
+                                            }
+                                          }}
+                                          className={`text-xs px-3 py-1 rounded-lg font-medium ${
+                                            u.aprovado
+                                              ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                                              : 'bg-green-100 text-green-700 hover:bg-green-200'
+                                          }`}
+                                        >
+                                          {u.aprovado ? 'Remover Acesso' : 'Dar Acesso'}
+                                        </button>
+                                        {u.role === 'candidato' && (
+                                          <button
+                                            onClick={() => {
+                                              alert(`Lembrete de pagamento enviado para ${u.email}:\n\nMulticaixa Express: 926 115 429\nIBAN: 0005.0000.0626.9321.1011.5\nValor: 1.000 Kz/mês`)
+                                            }}
+                                            className="text-xs px-3 py-1 rounded-lg font-medium bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
+                                          >
+                                            Lembrete Pagamento
+                                          </button>
+                                        )}
+                                      </div>
                                     )}
                                   </td>
                                 </tr>

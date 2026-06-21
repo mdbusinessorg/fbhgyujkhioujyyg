@@ -10,15 +10,17 @@ const config: Config = {
     extend: {
       colors: {
         k10: {
-          primary: '#0d1b2a',
-          secondary: '#1b263b',
-          accent: '#2cb67d',
+          primary: '#1a1a2e',
+          secondary: '#16213e',
+          accent: '#4f46e5',
           gold: '#f5a623',
-          dark: '#0a1628',
-          light: '#f8fffe',
-          blue: '#4361ee',
-          green: '#2cb67d',
-          red: '#e94560',
+          dark: '#0f0f23',
+          light: '#f8f9ff',
+          blue: '#4f46e5',
+          green: '#10b981',
+          red: '#ef4444',
+          purple: '#7c3aed',
+          violet: '#8b5cf6',
         },
       },
       fontFamily: {

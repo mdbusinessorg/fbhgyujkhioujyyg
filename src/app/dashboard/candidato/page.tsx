@@ -57,6 +57,8 @@ export default function CandidatoDashboard() {
   const [uploading, setUploading] = useState(false)
   const [trialExpired, setTrialExpired] = useState(false)
   const [accessBlocked, setAccessBlocked] = useState(false)
+  const [daysRemaining, setDaysRemaining] = useState<number | null>(null)
+  const [subPlano, setSubPlano] = useState('')
 
   useEffect(() => {
     loadData()
@@ -99,8 +101,16 @@ export default function CandidatoDashboard() {
         .order('data_inicio', { ascending: false })
         .limit(1)
         .single()
-      if (sub && new Date(sub.data_fim) < new Date() && sub.status !== 'ativa') {
-        setTrialExpired(true)
+      if (sub) {
+        const endDate = new Date(sub.data_fim)
+        const now = new Date()
+        const diffMs = endDate.getTime() - now.getTime()
+        const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+        setDaysRemaining(diffDays > 0 ? diffDays : 0)
+        setSubPlano(sub.plano || 'trial')
+        if (endDate < now && sub.status !== 'ativa') {
+          setTrialExpired(true)
+        }
       }
 
       // Load profile
@@ -306,35 +316,51 @@ export default function CandidatoDashboard() {
     <>
       <Navbar />
       <main className="pt-16 min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col lg:flex-row gap-6">
 
             <aside className="lg:w-64 flex-shrink-0">
-              <div className="card p-5 mb-4">
+              <div className="rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-violet-600 p-5 mb-4 text-white">
                 <div className="text-center">
-                  <div className="w-16 h-16 bg-k10-accent/10 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <User size={28} className="text-k10-accent" />
+                  <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <User size={28} className="text-white" />
                   </div>
-                  <h2 className="font-semibold text-gray-900">{userData?.nome || 'Candidato'}</h2>
-                  <p className="text-gray-500 text-sm">{profile.area || 'Sem área definida'}</p>
+                  <h2 className="font-semibold">{userData?.nome || 'Candidato'}</h2>
+                  <p className="text-white/70 text-sm">{profile.area || 'Sem área definida'}</p>
                   <div className="mt-3">
-                    <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                    <div className="flex items-center justify-between text-xs text-white/70 mb-1">
                       <span>Perfil</span>
                       <span>{calculateScore()}%</span>
                     </div>
-                    <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                      <div className="h-full bg-k10-green rounded-full" style={{ width: `${calculateScore()}%` }} />
+                    <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
+                      <div className="h-full bg-white rounded-full" style={{ width: `${calculateScore()}%` }} />
                     </div>
                   </div>
                 </div>
               </div>
 
+              {daysRemaining !== null && (
+                <div className="card p-4 mb-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Clock size={16} className="text-indigo-600" />
+                    <span className="text-sm font-semibold text-gray-800">Subscrição</span>
+                  </div>
+                  <p className="text-xs text-gray-500 capitalize mb-1">{subPlano === 'trial' ? 'Trial Gratuito' : subPlano}</p>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full ${daysRemaining > 1 ? 'bg-indigo-500' : 'bg-red-500'}`} style={{ width: `${Math.min((daysRemaining / 30) * 100, 100)}%` }} />
+                    </div>
+                    <span className={`text-xs font-bold ${daysRemaining > 1 ? 'text-indigo-600' : 'text-red-600'}`}>{daysRemaining}d</span>
+                  </div>
+                </div>
+              )}
+
               <nav className="card overflow-hidden">
                 {[
                   { key: 'candidaturas', label: 'Candidaturas', icon: Briefcase },
-                  { key: 'vagas', label: 'Vagas Recomendadas', icon: Star },
+                  { key: 'vagas', label: 'Vagas', icon: Star },
                   { key: 'documentos', label: 'Documentos', icon: Upload },
-                  { key: 'perfil', label: 'Meu Perfil', icon: Settings },
+                  { key: 'perfil', label: 'Perfil', icon: Settings },
                 ].map((item) => {
                   const Icon = item.icon
                   return (
@@ -343,7 +369,7 @@ export default function CandidatoDashboard() {
                       onClick={() => setActiveTab(item.key as typeof activeTab)}
                       className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors border-l-4 ${
                         activeTab === item.key
-                          ? 'bg-k10-accent/5 text-k10-accent border-k10-accent'
+                          ? 'bg-indigo-50 text-indigo-600 border-indigo-600'
                           : 'text-gray-600 hover:bg-gray-50 border-transparent'
                       }`}
                     >
@@ -361,25 +387,25 @@ export default function CandidatoDashboard() {
 
             <div className="flex-1">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="stat-card">
-                  <Briefcase size={22} className="text-k10-accent mb-2" />
-                  <span className="text-2xl font-bold text-k10-primary">{candidaturas.length}</span>
-                  <span className="text-xs text-gray-500">Candidaturas</span>
+                <div className="gradient-card-purple rounded-2xl p-4 text-center">
+                  <Briefcase size={22} className="text-indigo-600 mx-auto mb-2" />
+                  <span className="text-2xl font-bold text-indigo-900">{candidaturas.length}</span>
+                  <span className="text-xs text-indigo-600 block">Candidaturas</span>
                 </div>
-                <div className="stat-card">
-                  <CheckCircle size={22} className="text-k10-green mb-2" />
-                  <span className="text-2xl font-bold text-k10-primary">{candidaturas.filter(c => c.status === 'aprovada').length}</span>
-                  <span className="text-xs text-gray-500">Aprovadas</span>
+                <div className="gradient-card-purple rounded-2xl p-4 text-center">
+                  <CheckCircle size={22} className="text-green-600 mx-auto mb-2" />
+                  <span className="text-2xl font-bold text-indigo-900">{candidaturas.filter(c => c.status === 'aprovada').length}</span>
+                  <span className="text-xs text-indigo-600 block">Aprovadas</span>
                 </div>
-                <div className="stat-card">
-                  <Clock size={22} className="text-k10-gold mb-2" />
-                  <span className="text-2xl font-bold text-k10-primary">{candidaturas.filter(c => c.status === 'em_analise').length}</span>
-                  <span className="text-xs text-gray-500">Em Análise</span>
+                <div className="gradient-card-purple rounded-2xl p-4 text-center">
+                  <Clock size={22} className="text-purple-600 mx-auto mb-2" />
+                  <span className="text-2xl font-bold text-indigo-900">{candidaturas.filter(c => c.status === 'em_analise').length}</span>
+                  <span className="text-xs text-indigo-600 block">Em Análise</span>
                 </div>
-                <div className="stat-card">
-                  <TrendingUp size={22} className="text-blue-500 mb-2" />
-                  <span className="text-2xl font-bold text-k10-primary">{calculateScore()}%</span>
-                  <span className="text-xs text-gray-500">Score perfil</span>
+                <div className="gradient-card-purple rounded-2xl p-4 text-center">
+                  <TrendingUp size={22} className="text-violet-600 mx-auto mb-2" />
+                  <span className="text-2xl font-bold text-indigo-900">{calculateScore()}%</span>
+                  <span className="text-xs text-indigo-600 block">Score</span>
                 </div>
               </div>
 

@@ -2,101 +2,85 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Search, MapPin, Briefcase, Users, TrendingUp, Building } from 'lucide-react'
+import { Search, MapPin, Briefcase, User, Building2 } from 'lucide-react'
 
 export default function Hero() {
-  const [searchTerm, setSearchTerm] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
 
   return (
-    <section className="gradient-hero min-h-[80vh] flex items-center relative overflow-hidden">
-      <div className="absolute top-20 right-20 w-96 h-96 bg-k10-accent/5 rounded-full blur-3xl" />
-      <div className="absolute bottom-10 left-10 w-72 h-72 bg-emerald-100/50 rounded-full blur-3xl" />
+    <section className="gradient-hero min-h-[85vh] flex items-center relative overflow-hidden">
+      <div className="absolute inset-0 opacity-30">
+        <div className="absolute top-20 left-10 w-72 h-72 bg-indigo-200 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-200 rounded-full blur-3xl" />
+      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative z-10 w-full">
-        <div className="text-center max-w-4xl mx-auto">
-          <div className="inline-flex items-center gap-2 bg-k10-accent/10 px-4 py-2 rounded-full mb-6">
-            <span className="w-2 h-2 bg-k10-accent rounded-full animate-pulse" />
-            <span className="text-k10-accent text-sm font-medium">Plataforma #1 de Emprego em Angola</span>
-          </div>
-          
-          <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-bold text-k10-primary leading-tight mb-6">
-            Encontra o Emprego
-            <span className="relative inline-block mx-3">
-              <span className="relative z-10 text-white px-4 py-1 bg-k10-accent rounded-lg">Ideal</span>
-            </span>
-            <br className="hidden sm:block" />
-            na Tua Cidade
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10 w-full">
+        <div className="text-center max-w-3xl mx-auto">
+          <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-bold text-k10-primary leading-tight mb-4">
+            Encontre o seu
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600"> emprego ideal</span>
           </h1>
-          
-          <p className="text-gray-500 text-lg mb-10 max-w-2xl mx-auto">
-            Conectamos talentos angolanos às melhores oportunidades. Pesquisa por cargo, empresa ou localização.
+          <p className="text-gray-600 text-lg sm:text-xl mb-8 max-w-xl mx-auto">
+            Milhares de vagas em Angola. Candidata-te com um clique.
           </p>
 
-          <div className="bg-white rounded-2xl shadow-xl p-3 max-w-3xl mx-auto flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Cargo, empresa ou palavra-chave"
-                className="w-full pl-11 pr-4 py-3.5 rounded-xl bg-gray-50 border-0 focus:bg-white focus:ring-2 focus:ring-k10-accent/20 outline-none text-sm"
-              />
+          <div className="bg-white rounded-2xl shadow-xl p-3 sm:p-4 max-w-2xl mx-auto mb-10">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1 flex items-center gap-2 bg-gray-50 rounded-xl px-4 py-3">
+                <Search size={20} className="text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Cargo ou palavra-chave"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-transparent outline-none text-sm"
+                />
+              </div>
+              <div className="flex-1 flex items-center gap-2 bg-gray-50 rounded-xl px-4 py-3">
+                <MapPin size={20} className="text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Luanda, Angola"
+                  className="w-full bg-transparent outline-none text-sm"
+                />
+              </div>
+              <Link href="/vagas/" className="btn-primary flex items-center justify-center gap-2 !rounded-xl whitespace-nowrap">
+                <Search size={16} />
+                Pesquisar
+              </Link>
             </div>
-            <div className="relative flex-1 hidden sm:block">
-              <MapPin size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Cidade ou província"
-                className="w-full pl-11 pr-4 py-3.5 rounded-xl bg-gray-50 border-0 focus:bg-white focus:ring-2 focus:ring-k10-accent/20 outline-none text-sm"
-              />
-            </div>
-            <Link
-              href={`/vagas/${searchTerm ? `?q=${encodeURIComponent(searchTerm)}` : ''}`}
-              className="btn-primary !rounded-xl !py-3.5 !px-8 flex items-center justify-center gap-2 whitespace-nowrap"
-            >
-              <Search size={18} />
-              Procurar
-            </Link>
           </div>
 
-          <div className="flex flex-wrap justify-center gap-6 mt-12">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-k10-accent/10 rounded-lg flex items-center justify-center">
-                <Briefcase size={18} className="text-k10-accent" />
+          <div className="flex flex-wrap justify-center gap-6 sm:gap-10">
+            <Link href="/auth/login/" className="flex flex-col items-center gap-2 group">
+              <div className="w-14 h-14 bg-white rounded-2xl shadow-md flex items-center justify-center group-hover:shadow-lg group-hover:-translate-y-1 transition-all">
+                <User size={24} className="text-indigo-600" />
               </div>
-              <div className="text-left">
-                <div className="font-bold text-k10-primary">500+</div>
-                <div className="text-gray-400 text-xs">Vagas Activas</div>
+              <span className="text-xs font-medium text-gray-600">Entrar</span>
+            </Link>
+            <Link href="/vagas/" className="flex flex-col items-center gap-2 group">
+              <div className="w-14 h-14 bg-white rounded-2xl shadow-md flex items-center justify-center group-hover:shadow-lg group-hover:-translate-y-1 transition-all">
+                <Briefcase size={24} className="text-purple-600" />
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Users size={18} className="text-blue-600" />
+              <span className="text-xs font-medium text-gray-600">Ver Vagas</span>
+            </Link>
+            <Link href="/auth/registar/" className="flex flex-col items-center gap-2 group">
+              <div className="w-14 h-14 bg-white rounded-2xl shadow-md flex items-center justify-center group-hover:shadow-lg group-hover:-translate-y-1 transition-all">
+                <Building2 size={24} className="text-indigo-600" />
               </div>
-              <div className="text-left">
-                <div className="font-bold text-k10-primary">2.000+</div>
-                <div className="text-gray-400 text-xs">Candidatos</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-                <Building size={18} className="text-amber-600" />
-              </div>
-              <div className="text-left">
-                <div className="font-bold text-k10-primary">150+</div>
-                <div className="text-gray-400 text-xs">Empresas</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
-                <TrendingUp size={18} className="text-emerald-600" />
-              </div>
-              <div className="text-left">
-                <div className="font-bold text-k10-primary">95%</div>
-                <div className="text-gray-400 text-xs">Taxa Sucesso</div>
-              </div>
-            </div>
+              <span className="text-xs font-medium text-gray-600">Recrutar</span>
+            </Link>
+          </div>
+        </div>
+
+        <div className="mt-16 text-center">
+          <p className="text-sm text-gray-500 mb-4">Empresas que confiam em nós</p>
+          <div className="flex flex-wrap justify-center gap-8 opacity-60">
+            <span className="font-heading font-bold text-xl text-gray-400">SONANGOL</span>
+            <span className="font-heading font-bold text-xl text-gray-400">UNITEL</span>
+            <span className="font-heading font-bold text-xl text-gray-400">BAI</span>
+            <span className="font-heading font-bold text-xl text-gray-400">ENDIAMA</span>
+            <span className="font-heading font-bold text-xl text-gray-400">TAAG</span>
           </div>
         </div>
       </div>

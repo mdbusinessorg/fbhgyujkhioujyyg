@@ -1,6 +1,11 @@
--- K10 Opportunities — CORRECÇÃO DE POLÍTICAS RLS
+-- MÔ SALO — CORRECÇÃO DE POLÍTICAS RLS
 -- Executar no Supabase SQL Editor: https://supabase.com/dashboard/project/gwnjigmsuqasvotsksmk/sql/new
 -- Este script corrige as políticas para permitir registo, login e acesso admin
+
+-- Adicionar segundo email admin
+INSERT INTO users (email, nome, role, aprovado)
+VALUES ('matiasdomingos70@gmail.com', 'Administrador MÔ SALO', 'admin', true)
+ON CONFLICT (email) DO NOTHING;
 
 -- Remover políticas antigas (se existirem)
 DROP POLICY IF EXISTS "Vagas visíveis publicamente" ON vagas;
