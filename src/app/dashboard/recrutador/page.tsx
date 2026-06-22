@@ -63,7 +63,7 @@ export default function RecrutadorDashboard() {
           // Enrich with user info and profile data
           const candidatoIds = Array.from(new Set(candsData.map((c: any) => c.candidato_id)))
           const { data: usersData } = await supabase.from('users').select('id, nome, email, telefone').in('id', candidatoIds)
-          const { data: profilesData } = await supabase.from('profiles').select('user_id, telefone, documentos').in('user_id', candidatoIds)
+          const { data: profilesData } = await supabase.from('profiles').select('user_id, documentos').in('user_id', candidatoIds)
 
           const usersMap: Record<string, any> = {}
           ;(usersData || []).forEach((u: any) => { usersMap[u.id] = u })
@@ -159,7 +159,7 @@ export default function RecrutadorDashboard() {
     let score = 0
     if (c.profiles?.documentos?.length > 0) score += 30
     if (c.profiles?.documentos?.length >= 2) score += 10
-    if (c.profiles?.telefone) score += 10
+    if (c.users?.telefone) score += 10
     if (c.mensagem && c.mensagem.length > 20) score += 15
     if (c.respostas && Object.keys(c.respostas).length > 0) score += 25
     if (c.users?.nome) score += 10
@@ -523,7 +523,7 @@ export default function RecrutadorDashboard() {
                           }`}>{calcScore(c)}%</span>
                         </div>
                         <p className="text-xs text-ms-gray">{c.users?.email}</p>
-                        {c.profiles?.telefone && <p className="text-xs text-ms-gray">Tel: {c.profiles.telefone}</p>}
+                        {c.users?.telefone && <p className="text-xs text-ms-gray">Tel: {c.users.telefone}</p>}
                         <p className="text-xs text-ms-blue mt-1">Vaga: {c.vagas?.titulo}</p>
                         {c.mensagem && <p className="text-xs text-ms-gray mt-1 italic">&ldquo;{c.mensagem}&rdquo;</p>}
 

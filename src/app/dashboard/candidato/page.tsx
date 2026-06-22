@@ -92,14 +92,14 @@ function CandidatoDashboard() {
     const { data: prof } = await supabase.from('profiles').select('*').eq('user_id', user.id).single()
     if (prof) {
       setProfile(prof)
-      setEditTelefone(prof.telefone || '')
+      setEditTelefone(user.telefone || '')
       if (prof.documentos) setDocumentos(prof.documentos)
     }
 
     // Calculate CV score
     let score = 0
     if (user.nome) score += 20
-    if (prof?.telefone) score += 15
+    if (user.telefone) score += 15
     if (prof?.documentos && prof.documentos.length > 0) score += 30
     if (prof?.documentos && prof.documentos.length >= 2) score += 15
     if ((candsRaw || []).length > 0) score += 20
@@ -129,8 +129,9 @@ function CandidatoDashboard() {
       await supabase.from('profiles').upsert({
         user_id: session.user.id,
         documentos: newDocs,
-        telefone: editTelefone,
       }, { onConflict: 'user_id' })
+      // Save telefone to users table
+      await supabase.from('users').update({ telefone: editTelefone }).eq('email', session.user.email)
     }
     setUploading(false)
   }
@@ -139,10 +140,9 @@ function CandidatoDashboard() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return
 
-    await supabase.from('users').update({ nome: editNome }).eq('email', session.user.email)
+    await supabase.from('users').update({ nome: editNome, telefone: editTelefone }).eq('email', session.user.email)
     await supabase.from('profiles').upsert({
       user_id: session.user.id,
-      telefone: editTelefone,
       documentos,
     }, { onConflict: 'user_id' })
     alert('Perfil guardado!')
