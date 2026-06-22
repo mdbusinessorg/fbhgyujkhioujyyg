@@ -52,12 +52,36 @@ export default function RecrutadorDashboard() {
 
       const vagaIds = (vagasData || []).map(v => v.id)
       if (vagaIds.length > 0) {
-        const { data: candsData } = await supabase
+        // Fetch candidaturas with simple join first
+        const { data: candsData, error: candsError } = await supabase
           .from('candidaturas')
-          .select('*, users:candidato_id(nome, email), vagas(titulo, area, descricao, perguntas), profiles:candidato_id(telefone, documentos)')
+          .select('*')
           .in('vaga_id', vagaIds)
           .order('data_candidatura', { ascending: false })
-        setCandidatos(candsData || [])
+
+        if (candsData && candsData.length > 0) {
+          // Enrich with user info and profile data
+          const candidatoIds = Array.from(new Set(candsData.map((c: any) => c.candidato_id)))
+          const { data: usersData } = await supabase.from('users').select('id, nome, email, telefone').in('id', candidatoIds)
+          const { data: profilesData } = await supabase.from('profiles').select('user_id, telefone, documentos').in('user_id', candidatoIds)
+
+          const usersMap: Record<string, any> = {}
+          ;(usersData || []).forEach((u: any) => { usersMap[u.id] = u })
+          const profilesMap: Record<string, any> = {}
+          ;(profilesData || []).forEach((p: any) => { profilesMap[p.user_id] = p })
+          const vagasMap: Record<string, any> = {}
+          ;(vagasData || []).forEach((v: any) => { vagasMap[v.id] = v })
+
+          const enriched = candsData.map((c: any) => ({
+            ...c,
+            users: usersMap[c.candidato_id] || null,
+            profiles: profilesMap[c.candidato_id] || null,
+            vagas: vagasMap[c.vaga_id] || null,
+          }))
+          setCandidatos(enriched)
+        } else {
+          setCandidatos([])
+        }
       }
 
       const { data: sub } = await supabase.from('subscriptions').select('*').eq('user_id', user.id).order('data_inicio', { ascending: false }).limit(1).single()

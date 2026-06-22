@@ -72,13 +72,21 @@ function CandidatoDashboard() {
     }
 
     // Candidaturas
-    const { data: cands } = await supabase
+    const { data: candsRaw } = await supabase
       .from('candidaturas')
-      .select('*, vagas(titulo, empresa_nome)')
+      .select('*')
       .eq('candidato_id', user.id)
       .order('data_candidatura', { ascending: false })
 
-    setCandidaturas(cands || [])
+    if (candsRaw && candsRaw.length > 0) {
+      const vagaIds = Array.from(new Set(candsRaw.map((c: any) => c.vaga_id)))
+      const { data: vagasInfo } = await supabase.from('vagas').select('id, titulo, empresa_nome').in('id', vagaIds)
+      const vagasMap: Record<string, any> = {}
+      ;(vagasInfo || []).forEach((v: any) => { vagasMap[v.id] = v })
+      setCandidaturas(candsRaw.map((c: any) => ({ ...c, vagas: vagasMap[c.vaga_id] || null })))
+    } else {
+      setCandidaturas(candsRaw || [])
+    }
 
     // Profile
     const { data: prof } = await supabase.from('profiles').select('*').eq('user_id', user.id).single()
@@ -94,7 +102,7 @@ function CandidatoDashboard() {
     if (prof?.telefone) score += 15
     if (prof?.documentos && prof.documentos.length > 0) score += 30
     if (prof?.documentos && prof.documentos.length >= 2) score += 15
-    if ((cands || []).length > 0) score += 20
+    if ((candsRaw || []).length > 0) score += 20
     setCvScore(score)
 
     setLoading(false)

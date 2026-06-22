@@ -37,11 +37,17 @@ export default function AdminDashboard() {
     const { data: users } = await supabase.from('users').select('*')
     const { data: vagas } = await supabase.from('vagas').select('*')
     const { data: cands } = await supabase.from('candidaturas').select('*')
-    const { data: subs } = await supabase.from('subscriptions').select('*, users:user_id(nome, email)')
+    const { data: subsRaw } = await supabase.from('subscriptions').select('*')
     const { data: ljobs } = await supabase.from('linkedin_jobs').select('*').order('created_at', { ascending: false })
 
     setAllUsers(users || [])
-    setSubscriptions(subs || [])
+    // Enrich subscriptions with user data
+    const usersArr = users || []
+    const subs = (subsRaw || []).map((s: any) => {
+      const u = usersArr.find((u: any) => u.id === s.user_id)
+      return { ...s, users: u ? { nome: u.nome, email: u.email } : null }
+    })
+    setSubscriptions(subs)
     setLinkedinJobs(ljobs || [])
     setPendentes((users || []).filter(u => u.role === 'recrutador' && !u.aprovado))
     setVagasPendentes((vagas || []).filter(v => v.status === 'em_analise'))
