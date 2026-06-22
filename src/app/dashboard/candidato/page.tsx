@@ -1,22 +1,28 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import SubscriptionBanner from '@/components/SubscriptionBanner'
 import SubscriptionModal from '@/components/SubscriptionModal'
-import { Search, Bell, Briefcase, FileText, User, Upload, ArrowRight, Clock, CheckCircle, XCircle, Plus, Eye, Sparkles, Lightbulb, Target, Award, AlertCircle, ChevronRight, Zap, LogOut, Menu, X } from 'lucide-react'
+import { Search, Bell, Briefcase, FileText, User, Upload, ArrowRight, Clock, CheckCircle, XCircle, Plus, Eye, Sparkles, Lightbulb, Target, Award, AlertCircle, ChevronRight, Zap, LogOut, Menu, X, CreditCard, Wallet } from 'lucide-react'
 
-export default function CandidatoDashboard() {
+export default function CandidatoDashboardPage() {
+  return <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center"><div className="w-8 h-8 border-2 border-ms-purple border-t-transparent rounded-full animate-spin" /></div>}><CandidatoDashboard /></Suspense>
+}
+
+function CandidatoDashboard() {
   const [userName, setUserName] = useState('')
   const [loading, setLoading] = useState(true)
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null)
   const [subPlano, setSubPlano] = useState('trial')
   const [showExpiredModal, setShowExpiredModal] = useState(false)
   const [candidaturas, setCandidaturas] = useState<any[]>([])
-  const [activeTab, setActiveTab] = useState('home')
+  const searchParams = useSearchParams()
+  const initialTab = searchParams.get('tab') || 'home'
+  const [activeTab, setActiveTab] = useState(initialTab)
   const [documentos, setDocumentos] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
   const [profile, setProfile] = useState<any>(null)
@@ -243,6 +249,7 @@ export default function CandidatoDashboard() {
                 { key: 'candidaturas', icon: FileText, label: 'Candidaturas' },
                 { key: 'documentos', icon: Upload, label: 'Documentos' },
                 { key: 'perfil', icon: User, label: 'Perfil' },
+                { key: 'subscricao', icon: CreditCard, label: 'Subscrição' },
               ].map(item => {
                 const Icon = item.icon
                 return (
@@ -283,6 +290,7 @@ export default function CandidatoDashboard() {
             { key: 'candidaturas', icon: FileText, label: 'Candidaturas' },
             { key: 'documentos', icon: Upload, label: 'Documentos' },
             { key: 'perfil', icon: User, label: 'Perfil' },
+            { key: 'subscricao', icon: CreditCard, label: 'Subscrição' },
           ].map(item => {
             const Icon = item.icon
             return (
@@ -571,14 +579,18 @@ export default function CandidatoDashboard() {
             <h2 className="text-lg font-bold text-ms-dark mb-4">Os Meus Documentos</h2>
             <p className="text-sm text-ms-gray mb-4">Carregue até 2 documentos (CV, diplomas)</p>
 
-            {documentos.map((doc, i) => (
-              <div key={i} className="bg-ms-surface rounded-xl p-3 flex items-center gap-3 mb-2">
-                <FileText size={18} className="text-ms-purple" />
-                <a href={doc} target="_blank" className="text-sm text-ms-blue hover:underline truncate flex-1">
-                  Documento {i + 1}
-                </a>
-              </div>
-            ))}
+            {documentos.map((doc, i) => {
+              const fileName = doc.split('/').pop()?.replace(/^\d+-/, '') || `Documento ${i + 1}`
+              return (
+                <div key={i} className="bg-ms-surface rounded-xl p-3 flex items-center gap-3 mb-2">
+                  <FileText size={18} className="text-ms-purple" />
+                  <span className="text-sm text-ms-dark truncate flex-1">{fileName}</span>
+                  <a href={doc} target="_blank" rel="noopener noreferrer" className="text-xs text-ms-blue font-medium hover:underline flex-shrink-0">
+                    Abrir
+                  </a>
+                </div>
+              )
+            })}
 
             {documentos.length < 2 && (
               <label className="block mt-4">
@@ -611,9 +623,56 @@ export default function CandidatoDashboard() {
             </div>
           </div>
         )}
+
+        {activeTab === 'subscricao' && (
+          <div>
+            <h2 className="text-lg font-bold text-ms-dark mb-4">Subscrição</h2>
+
+            <div className="bg-gradient-to-br from-[#6C47FF] to-[#9B7BFF] rounded-2xl p-5 mb-6 text-white relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-8 translate-x-8" />
+              <div className="flex items-center gap-2 mb-3">
+                <CreditCard size={20} />
+                <p className="text-sm font-semibold">Plano {subPlano === 'trial' ? 'Trial Gratuito' : 'PRO'}</p>
+              </div>
+              <p className="text-3xl font-bold mb-1">{daysRemaining !== null ? daysRemaining : '—'}</p>
+              <p className="text-xs text-white/70">dias restantes</p>
+            </div>
+
+            <div className="bg-ms-surface rounded-2xl p-5 mb-6">
+              <h3 className="text-sm font-semibold text-ms-dark mb-3">Dados de Pagamento</h3>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 bg-white rounded-xl p-3">
+                  <Wallet size={18} className="text-ms-purple" />
+                  <div>
+                    <p className="text-xs text-ms-gray">Multicaixa Express</p>
+                    <p className="text-sm font-bold text-ms-dark">926 115 429</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 bg-white rounded-xl p-3">
+                  <CreditCard size={18} className="text-ms-purple" />
+                  <div>
+                    <p className="text-xs text-ms-gray">IBAN</p>
+                    <p className="text-sm font-bold text-ms-dark">0005.0000.0626.9321.1011.5</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 bg-white rounded-xl p-3">
+                  <Briefcase size={18} className="text-ms-purple" />
+                  <div>
+                    <p className="text-xs text-ms-gray">Valor Mensal</p>
+                    <p className="text-sm font-bold text-ms-dark">1.000 Kz/mês</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+              <p className="text-xs text-amber-800">Após o pagamento, envie o comprovativo para <strong>matiasdomingos70@gmail.com</strong> com o seu email de registo. O acesso será activado em até 24h.</p>
+            </div>
+          </div>
+        )}
       </main>
 
-      <BottomNav active="home" userRole="candidato" />
+      <BottomNav active={activeTab} userRole="candidato" onTabChange={setActiveTab} />
     </div>
   )
 }

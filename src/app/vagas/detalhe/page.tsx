@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
-import { ArrowLeft, Heart, Briefcase, MapPin, Building2, Send, Upload } from 'lucide-react'
+import { ArrowLeft, Heart, Briefcase, MapPin, Building2, Send, Upload, MessageSquare } from 'lucide-react'
 
 function VagaDetalheContent() {
   const searchParams = useSearchParams()
@@ -20,6 +20,7 @@ function VagaDetalheContent() {
   const [sent, setSent] = useState(false)
   const [cvFile, setCvFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [respostas, setRespostas] = useState<Record<string, string>>({})
 
   useEffect(() => {
     const load = async () => {
@@ -77,6 +78,7 @@ function VagaDetalheContent() {
       mensagem,
       status: 'enviada',
       data_candidatura: new Date().toISOString(),
+      respostas: Object.keys(respostas).length > 0 ? respostas : null,
     })
 
     if (error) {
@@ -175,6 +177,29 @@ function VagaDetalheContent() {
               placeholder="Porquê queres esta vaga? (opcional)"
               className="input-field min-h-[80px] mb-3"
             />
+            {/* Custom Questions from Recruiter */}
+            {vaga.perguntas && vaga.perguntas.length > 0 && (
+              <div className="mb-4">
+                <h3 className="text-xs font-semibold text-ms-dark mb-2 flex items-center gap-1">
+                  <MessageSquare size={14} className="text-ms-purple" /> Perguntas do Recrutador
+                </h3>
+                <div className="space-y-3">
+                  {vaga.perguntas.map((pergunta: string, i: number) => (
+                    <div key={i}>
+                      <label className="text-xs text-ms-gray mb-1 block">{pergunta}</label>
+                      <input
+                        type="text"
+                        value={respostas[pergunta] || ''}
+                        onChange={(e) => setRespostas({...respostas, [pergunta]: e.target.value})}
+                        placeholder="A sua resposta..."
+                        className="input-field !py-2"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Document Upload */}
             <div className="mb-3">
               <label className="block">

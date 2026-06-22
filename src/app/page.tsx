@@ -271,6 +271,66 @@ export default function HomePage() {
             </div>
           )}
         </section>
+
+        {/* Como Funciona */}
+        <section className="mb-8 mt-8">
+          <h2 className="text-sm font-semibold text-ms-dark mb-4 text-center">Como Funciona</h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {[
+              { step: '1', title: 'Cria a Conta', desc: 'Regista-te como candidato ou recrutador', color: 'from-blue-500 to-blue-600' },
+              { step: '2', title: 'Completa o Perfil', desc: 'Adiciona o CV e documentos ao teu perfil', color: 'from-purple-500 to-purple-600' },
+              { step: '3', title: 'Candidata-te', desc: 'Explora vagas e envia candidaturas', color: 'from-amber-500 to-orange-500' },
+              { step: '4', title: 'Conquista!', desc: 'Recebe respostas dos recrutadores', color: 'from-green-500 to-emerald-500' },
+            ].map(item => (
+              <div key={item.step} className="text-center p-4">
+                <div className={`w-10 h-10 bg-gradient-to-br ${item.color} rounded-full flex items-center justify-center mx-auto mb-2 text-white font-bold text-sm`}>
+                  {item.step}
+                </div>
+                <p className="text-xs font-semibold text-ms-dark">{item.title}</p>
+                <p className="text-[10px] text-ms-gray mt-0.5">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Stats */}
+        <section className="mb-8">
+          <div className="bg-gradient-to-br from-[#1A56FF] to-[#6C47FF] rounded-2xl p-6 text-white text-center relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -translate-y-16 translate-x-16" />
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-8 -translate-x-8" />
+            <h3 className="text-sm font-semibold mb-4 text-white/90">A Plataforma de Emprego #1 em Angola</h3>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <p className="text-2xl font-bold">{vagas.length > 0 ? vagas.length + '+' : '50+'}</p>
+                <p className="text-[10px] text-white/70">Vagas Activas</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold">500+</p>
+                <p className="text-[10px] text-white/70">Candidatos</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold">100+</p>
+                <p className="text-[10px] text-white/70">Empresas</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="mb-8">
+          <div className="bg-ms-surface rounded-2xl p-6 text-center">
+            <h3 className="text-sm font-bold text-ms-dark mb-2">Pronto para encontrar o emprego ideal?</h3>
+            <p className="text-xs text-ms-gray mb-4">Cria a tua conta gratuita e começa a candidatar-te hoje.</p>
+            <div className="flex gap-3 justify-center">
+              <Link href="/auth/registar/" className="bg-ms-blue text-white text-sm font-semibold px-6 py-2.5 rounded-xl hover:bg-blue-700 transition-colors">
+                Criar Conta Grátis
+              </Link>
+              <Link href="/vagas/" className="border border-ms-blue text-ms-blue text-sm font-semibold px-6 py-2.5 rounded-xl hover:bg-ms-blue/5 transition-colors">
+                Ver Vagas
+              </Link>
+            </div>
+          </div>
+        </section>
       </main>
 
       {/* Bottom Nav (mobile) */}

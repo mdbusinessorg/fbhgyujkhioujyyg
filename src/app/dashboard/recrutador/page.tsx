@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Search, Bell, Briefcase, Users, Plus, Eye, TrendingUp, Download, FileText, CheckCircle, XCircle, Clock, LogOut, Menu, X } from 'lucide-react'
+import { Search, Bell, Briefcase, Users, Plus, Eye, TrendingUp, Download, FileText, CheckCircle, XCircle, Clock, LogOut, Menu, X, Star, Filter, ChevronDown, Zap, Award, MessageSquare, HelpCircle, Trash2 } from 'lucide-react'
 import { AREAS, PROVINCIAS_ANGOLA } from '@/lib/types'
 
 export default function RecrutadorDashboard() {
@@ -18,12 +18,17 @@ export default function RecrutadorDashboard() {
   const [subPlano, setSubPlano] = useState('pro')
   const [showMenu, setShowMenu] = useState(false)
   const [showNotifs, setShowNotifs] = useState(false)
+  const [searchCandidato, setSearchCandidato] = useState('')
+  const [filterVaga, setFilterVaga] = useState('all')
+  const [filterStatus, setFilterStatus] = useState('all')
   const router = useRouter()
 
   const [novaVaga, setNovaVaga] = useState({
     titulo: '', area: AREAS[0], descricao: '', requisitos: '',
     localizacao: PROVINCIAS_ANGOLA[0], salario: '', prazo: '', is_prioritaria: false,
   })
+  const [vagaPerguntas, setVagaPerguntas] = useState<string[]>([])
+  const [novaPergunta, setNovaPergunta] = useState('')
 
   useEffect(() => { loadData() }, [])
 
@@ -45,7 +50,7 @@ export default function RecrutadorDashboard() {
       if (vagaIds.length > 0) {
         const { data: candsData } = await supabase
           .from('candidaturas')
-          .select('*, users:candidato_id(nome, email), vagas(titulo), profiles:candidato_id(telefone, documentos)')
+          .select('*, users:candidato_id(nome, email), vagas(titulo, area, requisitos, perguntas), profiles:candidato_id(telefone, documentos)')
           .in('vaga_id', vagaIds)
           .order('data_candidatura', { ascending: false })
         setCandidatos(candsData || [])
@@ -80,10 +85,13 @@ export default function RecrutadorDashboard() {
       recrutador_id: user.id,
       empresa_nome: userName,
       status: 'em_analise',
+      perguntas: vagaPerguntas.length > 0 ? vagaPerguntas : null,
     })
 
     alert('Vaga submetida para aprovação!')
     setNovaVaga({ titulo: '', area: AREAS[0], descricao: '', requisitos: '', localizacao: PROVINCIAS_ANGOLA[0], salario: '', prazo: '', is_prioritaria: false })
+    setVagaPerguntas([])
+    setNovaPergunta('')
     setActiveTab('home')
     loadData()
   }
@@ -93,10 +101,48 @@ export default function RecrutadorDashboard() {
     loadData()
   }
 
+  const addPergunta = () => {
+    if (novaPergunta.trim() && vagaPerguntas.length < 5) {
+      setVagaPerguntas([...vagaPerguntas, novaPergunta.trim()])
+      setNovaPergunta('')
+    }
+  }
+
+  const removePergunta = (index: number) => {
+    setVagaPerguntas(vagaPerguntas.filter((_, i) => i !== index))
+  }
+
+  // Candidate scoring
+  const calcScore = (c: any) => {
+    let score = 0
+    if (c.profiles?.documentos?.length > 0) score += 30
+    if (c.profiles?.documentos?.length >= 2) score += 10
+    if (c.profiles?.telefone) score += 10
+    if (c.mensagem && c.mensagem.length > 20) score += 15
+    if (c.respostas && Object.keys(c.respostas).length > 0) score += 25
+    if (c.users?.nome) score += 10
+    return Math.min(score, 100)
+  }
+
   const notifications = candidatos.filter(c => c.status === 'enviada').map(c => ({
     text: `${c.users?.nome || 'Candidato'} candidatou-se a "${c.vagas?.titulo}"`,
     time: 'Pendente'
   }))
+
+  // Filtered candidates
+  const filteredCandidatos = candidatos
+    .filter(c => {
+      if (searchCandidato) {
+        const q = searchCandidato.toLowerCase()
+        const matchName = c.users?.nome?.toLowerCase().includes(q)
+        const matchEmail = c.users?.email?.toLowerCase().includes(q)
+        if (!matchName && !matchEmail) return false
+      }
+      if (filterVaga !== 'all' && c.vaga_id !== filterVaga) return false
+      if (filterStatus !== 'all' && c.status !== filterStatus) return false
+      return true
+    })
+    .sort((a, b) => calcScore(b) - calcScore(a))
 
   if (loading) {
     return (
@@ -145,6 +191,7 @@ export default function RecrutadorDashboard() {
                 { key: 'home', icon: Briefcase, label: 'Início' },
                 { key: 'vagas', icon: Eye, label: 'Minhas Vagas' },
                 { key: 'candidatos', icon: Users, label: 'Candidatos' },
+                { key: 'selecao', icon: Zap, label: 'Selecção Inteligente' },
                 { key: 'nova_vaga', icon: Plus, label: 'Publicar Vaga' },
               ].map(item => {
                 const Icon = item.icon
@@ -205,6 +252,7 @@ export default function RecrutadorDashboard() {
             { key: 'home', icon: Briefcase, label: 'Início' },
             { key: 'vagas', icon: Eye, label: 'Minhas Vagas' },
             { key: 'candidatos', icon: Users, label: 'Candidatos', badge: notifications.length },
+            { key: 'selecao', icon: Zap, label: 'Selecção Inteligente' },
             { key: 'nova_vaga', icon: Plus, label: 'Publicar Vaga' },
           ].map(item => {
             const Icon = item.icon
@@ -279,10 +327,10 @@ export default function RecrutadorDashboard() {
                 <p className="text-sm font-medium text-ms-dark">Ver Candidatos</p>
                 <p className="text-[11px] text-ms-gray">{candidatos.length} total</p>
               </button>
-              <button onClick={() => setActiveTab('vagas')} className="flex-shrink-0 bg-white border border-ms-border rounded-xl px-5 py-4 min-w-[150px]">
-                <TrendingUp size={20} className="text-ms-gray mb-2" />
-                <p className="text-sm font-medium text-ms-dark">Minhas Vagas</p>
-                <p className="text-[11px] text-ms-gray">{vagas.length} vagas</p>
+              <button onClick={() => setActiveTab('selecao')} className="flex-shrink-0 bg-gradient-to-br from-amber-400 to-orange-500 text-white rounded-xl px-5 py-4 min-w-[150px]">
+                <Zap size={20} className="mb-2" />
+                <p className="text-sm font-medium">Selecção IA</p>
+                <p className="text-[11px] text-white/80">Ranking automático</p>
               </button>
             </div>
 
@@ -307,13 +355,20 @@ export default function RecrutadorDashboard() {
                         <p className="text-sm font-medium text-ms-dark truncate">{c.users?.nome || 'Candidato'}</p>
                         <p className="text-xs text-ms-gray truncate">{c.vagas?.titulo}</p>
                       </div>
-                      <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
-                        c.status === 'aprovada' ? 'bg-green-100 text-green-700' :
-                        c.status === 'rejeitada' ? 'bg-red-100 text-red-700' :
-                        'bg-amber-100 text-amber-700'
-                      }`}>
-                        {c.status === 'aprovada' ? 'Aceite' : c.status === 'rejeitada' ? 'Rejeitado' : 'Pendente'}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                          calcScore(c) >= 70 ? 'bg-green-100 text-green-700' :
+                          calcScore(c) >= 40 ? 'bg-amber-100 text-amber-700' :
+                          'bg-gray-100 text-gray-500'
+                        }`}>{calcScore(c)}%</span>
+                        <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
+                          c.status === 'aprovada' ? 'bg-green-100 text-green-700' :
+                          c.status === 'rejeitada' ? 'bg-red-100 text-red-700' :
+                          'bg-amber-100 text-amber-700'
+                        }`}>
+                          {c.status === 'aprovada' ? 'Aceite' : c.status === 'rejeitada' ? 'Rejeitado' : 'Pendente'}
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -338,6 +393,9 @@ export default function RecrutadorDashboard() {
                       <div>
                         <p className="text-sm font-medium text-ms-dark">{v.titulo}</p>
                         <p className="text-xs text-ms-gray">{v.area} • {v.localizacao}</p>
+                        {v.perguntas && v.perguntas.length > 0 && (
+                          <p className="text-[10px] text-ms-purple mt-1 flex items-center gap-1"><MessageSquare size={10} /> {v.perguntas.length} pergunta{v.perguntas.length > 1 ? 's' : ''}</p>
+                        )}
                       </div>
                       <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
                         v.status === 'aberta' ? 'bg-green-100 text-green-700' :
@@ -358,33 +416,93 @@ export default function RecrutadorDashboard() {
         {activeTab === 'candidatos' && (
           <div>
             <h2 className="text-lg font-bold text-ms-dark mb-4">Candidatos</h2>
-            {candidatos.length === 0 ? (
+
+            {/* Search & Filters */}
+            <div className="space-y-3 mb-4">
+              <div className="flex items-center gap-2 bg-ms-surface rounded-xl px-3 py-2.5">
+                <Search size={16} className="text-ms-gray flex-shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Pesquisar por nome ou email..."
+                  value={searchCandidato}
+                  onChange={(e) => setSearchCandidato(e.target.value)}
+                  className="flex-1 bg-transparent outline-none text-sm text-ms-dark placeholder:text-ms-gray"
+                />
+              </div>
+              <div className="flex gap-2 overflow-x-auto">
+                <select
+                  value={filterVaga}
+                  onChange={(e) => setFilterVaga(e.target.value)}
+                  className="text-xs bg-white border border-ms-border rounded-lg px-3 py-2 text-ms-dark"
+                >
+                  <option value="all">Todas as vagas</option>
+                  {vagas.map(v => <option key={v.id} value={v.id}>{v.titulo}</option>)}
+                </select>
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="text-xs bg-white border border-ms-border rounded-lg px-3 py-2 text-ms-dark"
+                >
+                  <option value="all">Todos os estados</option>
+                  <option value="enviada">Pendentes</option>
+                  <option value="aprovada">Aprovados</option>
+                  <option value="rejeitada">Rejeitados</option>
+                </select>
+              </div>
+              <p className="text-[11px] text-ms-gray">{filteredCandidatos.length} candidato{filteredCandidatos.length !== 1 ? 's' : ''} encontrado{filteredCandidatos.length !== 1 ? 's' : ''}</p>
+            </div>
+
+            {filteredCandidatos.length === 0 ? (
               <div className="bg-ms-surface rounded-xl p-8 text-center">
-                <p className="text-sm text-ms-gray">Nenhum candidato recebido</p>
+                <p className="text-sm text-ms-gray">Nenhum candidato encontrado</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {candidatos.map(c => (
+                {filteredCandidatos.map(c => (
                   <div key={c.id} className="bg-ms-surface rounded-xl p-4">
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-ms-border flex-shrink-0">
                         <Users size={16} className="text-ms-purple" />
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-ms-dark">{c.users?.nome || 'Candidato'}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-ms-dark">{c.users?.nome || 'Candidato'}</p>
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${
+                            calcScore(c) >= 70 ? 'bg-green-100 text-green-700' :
+                            calcScore(c) >= 40 ? 'bg-amber-100 text-amber-700' :
+                            'bg-gray-100 text-gray-500'
+                          }`}>{calcScore(c)}%</span>
+                        </div>
                         <p className="text-xs text-ms-gray">{c.users?.email}</p>
+                        {c.profiles?.telefone && <p className="text-xs text-ms-gray">Tel: {c.profiles.telefone}</p>}
                         <p className="text-xs text-ms-blue mt-1">Vaga: {c.vagas?.titulo}</p>
                         {c.mensagem && <p className="text-xs text-ms-gray mt-1 italic">&ldquo;{c.mensagem}&rdquo;</p>}
+
+                        {/* Respostas às perguntas */}
+                        {c.respostas && Object.keys(c.respostas).length > 0 && (
+                          <div className="mt-2 space-y-1">
+                            <p className="text-[10px] font-semibold text-ms-purple flex items-center gap-1"><MessageSquare size={10} /> Respostas:</p>
+                            {Object.entries(c.respostas).map(([q, a], i) => (
+                              <div key={i} className="bg-white rounded-lg p-2">
+                                <p className="text-[10px] text-ms-gray font-medium">{q}</p>
+                                <p className="text-xs text-ms-dark">{String(a)}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
 
                         {/* Documents */}
                         {c.profiles?.documentos && c.profiles.documentos.length > 0 && (
                           <div className="mt-2 flex gap-2 flex-wrap">
-                            {c.profiles.documentos.map((doc: string, i: number) => (
-                              <a key={i} href={doc} target="_blank" rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg bg-ms-purple-light text-ms-purple font-medium hover:bg-ms-purple hover:text-white transition-colors">
-                                <Download size={12} /> Doc {i + 1}
-                              </a>
-                            ))}
+                            {c.profiles.documentos.map((doc: string, i: number) => {
+                              const fName = doc.split('/').pop()?.replace(/^\d+-/, '') || `Doc ${i + 1}`
+                              return (
+                                <a key={i} href={doc} target="_blank" rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg bg-ms-purple-light text-ms-purple font-medium hover:bg-ms-purple hover:text-white transition-colors">
+                                  <Download size={12} /> {fName.length > 15 ? fName.substring(0, 12) + '...' : fName}
+                                </a>
+                              )
+                            })}
                           </div>
                         )}
 
@@ -398,6 +516,93 @@ export default function RecrutadorDashboard() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Selecção Inteligente */}
+        {activeTab === 'selecao' && (
+          <div>
+            <div className="flex items-center gap-2 mb-6">
+              <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center">
+                <Zap size={20} className="text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-ms-dark">Selecção Inteligente</h2>
+                <p className="text-xs text-ms-gray">Ranking automático dos candidatos por compatibilidade</p>
+              </div>
+            </div>
+
+            {/* How scoring works */}
+            <div className="bg-ms-surface rounded-2xl p-4 mb-6">
+              <h3 className="text-sm font-semibold text-ms-dark mb-3 flex items-center gap-2"><Award size={16} className="text-ms-purple" /> Como funciona a pontuação</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { label: 'CV carregado', pts: '+30%' },
+                  { label: '2 documentos', pts: '+10%' },
+                  { label: 'Telefone no perfil', pts: '+10%' },
+                  { label: 'Mensagem detalhada', pts: '+15%' },
+                  { label: 'Respondeu perguntas', pts: '+25%' },
+                  { label: 'Nome completo', pts: '+10%' },
+                ].map((item, i) => (
+                  <div key={i} className="bg-white rounded-lg p-2 flex items-center justify-between">
+                    <span className="text-[11px] text-ms-dark">{item.label}</span>
+                    <span className="text-[10px] font-bold text-ms-purple">{item.pts}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Top ranked candidates per vaga */}
+            {vagas.filter(v => v.status === 'aberta').map(vaga => {
+              const vagaCands = candidatos
+                .filter(c => c.vaga_id === vaga.id)
+                .sort((a, b) => calcScore(b) - calcScore(a))
+
+              if (vagaCands.length === 0) return null
+
+              return (
+                <div key={vaga.id} className="mb-6">
+                  <h3 className="text-sm font-semibold text-ms-dark mb-3">{vaga.titulo}</h3>
+                  <div className="space-y-2">
+                    {vagaCands.map((c, rank) => (
+                      <div key={c.id} className={`rounded-xl p-3 flex items-center gap-3 ${rank === 0 ? 'bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200' : 'bg-ms-surface'}`}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold ${
+                          rank === 0 ? 'bg-amber-400 text-white' :
+                          rank === 1 ? 'bg-gray-300 text-white' :
+                          rank === 2 ? 'bg-orange-300 text-white' :
+                          'bg-ms-border text-ms-gray'
+                        }`}>
+                          {rank + 1}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-ms-dark truncate">
+                            {c.users?.nome || 'Candidato'}
+                            {rank === 0 && <Star size={12} className="inline ml-1 text-amber-500 fill-amber-500" />}
+                          </p>
+                          <p className="text-[11px] text-ms-gray">{c.users?.email}</p>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className={`text-sm font-bold ${
+                            calcScore(c) >= 70 ? 'text-green-600' :
+                            calcScore(c) >= 40 ? 'text-amber-600' :
+                            'text-gray-400'
+                          }`}>{calcScore(c)}%</p>
+                          <p className="text-[9px] text-ms-gray">compatível</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+
+            {candidatos.length === 0 && (
+              <div className="bg-ms-surface rounded-xl p-8 text-center">
+                <Zap size={32} className="text-ms-gray mx-auto mb-3" />
+                <p className="text-sm text-ms-gray">Ainda sem candidatos para analisar</p>
+                <p className="text-xs text-ms-gray mt-1">Publique vagas e aguarde candidaturas</p>
               </div>
             )}
           </div>
@@ -418,6 +623,39 @@ export default function RecrutadorDashboard() {
               <input type="date" value={novaVaga.prazo} onChange={e => setNovaVaga({...novaVaga, prazo: e.target.value})} className="input-field" />
               <textarea value={novaVaga.descricao} onChange={e => setNovaVaga({...novaVaga, descricao: e.target.value})} placeholder="Descrição da vaga" className="input-field min-h-[100px]" required />
               <textarea value={novaVaga.requisitos} onChange={e => setNovaVaga({...novaVaga, requisitos: e.target.value})} placeholder="Requisitos (um por linha)" className="input-field min-h-[80px]" />
+
+              {/* Custom Questions */}
+              <div className="border border-ms-border rounded-xl p-4">
+                <h3 className="text-sm font-semibold text-ms-dark mb-2 flex items-center gap-2">
+                  <HelpCircle size={16} className="text-ms-purple" /> Perguntas para Candidatos
+                </h3>
+                <p className="text-xs text-ms-gray mb-3">Adicione até 5 perguntas que os candidatos devem responder ao candidatar-se.</p>
+
+                {vagaPerguntas.map((p, i) => (
+                  <div key={i} className="flex items-center gap-2 mb-2 bg-ms-surface rounded-lg px-3 py-2">
+                    <span className="text-xs text-ms-dark flex-1">{p}</span>
+                    <button type="button" onClick={() => removePergunta(i)} className="text-ms-gray hover:text-ms-red">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+
+                {vagaPerguntas.length < 5 && (
+                  <div className="flex gap-2">
+                    <input
+                      value={novaPergunta}
+                      onChange={e => setNovaPergunta(e.target.value)}
+                      placeholder="Ex: Quantos anos de experiência tem?"
+                      className="input-field flex-1 !py-2"
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addPergunta() } }}
+                    />
+                    <button type="button" onClick={addPergunta} className="bg-ms-purple text-white text-xs px-3 rounded-lg font-medium hover:bg-purple-700">
+                      Adicionar
+                    </button>
+                  </div>
+                )}
+              </div>
+
               <label className="flex items-center gap-2">
                 <input type="checkbox" checked={novaVaga.is_prioritaria} onChange={e => setNovaVaga({...novaVaga, is_prioritaria: e.target.checked})} className="w-4 h-4 rounded border-ms-border text-ms-blue" />
                 <span className="text-sm text-ms-dark">Vaga em destaque (5.000 Kz)</span>
@@ -435,8 +673,8 @@ export default function RecrutadorDashboard() {
         <div className="flex items-center justify-around py-2 px-4 max-w-md mx-auto">
           {[
             { key: 'home', icon: Briefcase, label: 'Início' },
-            { key: 'vagas', icon: Eye, label: 'Vagas' },
             { key: 'candidatos', icon: Users, label: 'Candidatos' },
+            { key: 'selecao', icon: Zap, label: 'Selecção' },
             { key: 'nova_vaga', icon: Plus, label: 'Publicar' },
           ].map(item => {
             const Icon = item.icon
