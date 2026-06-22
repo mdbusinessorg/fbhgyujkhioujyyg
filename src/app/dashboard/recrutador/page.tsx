@@ -26,6 +26,7 @@ export default function RecrutadorDashboard() {
   const [novaVaga, setNovaVaga] = useState({
     titulo: '', area: AREAS[0], descricao: '', requisitos: '',
     localizacao: PROVINCIAS_ANGOLA[0], salario: '', prazo: '', is_prioritaria: false,
+    tipo_emprego: 'formal' as string,
   })
   const [vagaPerguntas, setVagaPerguntas] = useState<string[]>([])
   const [novaPergunta, setNovaPergunta] = useState('')
@@ -86,10 +87,11 @@ export default function RecrutadorDashboard() {
       empresa_nome: userName,
       status: 'em_analise',
       perguntas: vagaPerguntas.length > 0 ? vagaPerguntas : null,
+      tipo_emprego: novaVaga.tipo_emprego,
     })
 
     alert('Vaga submetida para aprovação!')
-    setNovaVaga({ titulo: '', area: AREAS[0], descricao: '', requisitos: '', localizacao: PROVINCIAS_ANGOLA[0], salario: '', prazo: '', is_prioritaria: false })
+    setNovaVaga({ titulo: '', area: AREAS[0], descricao: '', requisitos: '', localizacao: PROVINCIAS_ANGOLA[0], salario: '', prazo: '', is_prioritaria: false, tipo_emprego: 'formal' })
     setVagaPerguntas([])
     setNovaPergunta('')
     setActiveTab('home')
@@ -393,9 +395,16 @@ export default function RecrutadorDashboard() {
                       <div>
                         <p className="text-sm font-medium text-ms-dark">{v.titulo}</p>
                         <p className="text-xs text-ms-gray">{v.area} • {v.localizacao}</p>
-                        {v.perguntas && v.perguntas.length > 0 && (
-                          <p className="text-[10px] text-ms-purple mt-1 flex items-center gap-1"><MessageSquare size={10} /> {v.perguntas.length} pergunta{v.perguntas.length > 1 ? 's' : ''}</p>
-                        )}
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          {v.tipo_emprego && (
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${v.tipo_emprego === 'formal' ? 'bg-blue-100 text-blue-700' : v.tipo_emprego === 'informal' ? 'bg-orange-100 text-orange-700' : 'bg-purple-100 text-purple-700'}`}>
+                              {v.tipo_emprego === 'formal' ? 'Formal' : v.tipo_emprego === 'informal' ? 'Informal' : v.tipo_emprego === 'freelance' ? 'Freelance' : v.tipo_emprego === 'estagio' ? 'Estágio' : 'Temporário'}
+                            </span>
+                          )}
+                          {v.perguntas && v.perguntas.length > 0 && (
+                            <span className="text-[10px] text-ms-purple flex items-center gap-1"><MessageSquare size={10} /> {v.perguntas.length} pergunta{v.perguntas.length > 1 ? 's' : ''}</span>
+                          )}
+                        </div>
                       </div>
                       <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
                         v.status === 'aberta' ? 'bg-green-100 text-green-700' :
@@ -620,9 +629,30 @@ export default function RecrutadorDashboard() {
                 {PROVINCIAS_ANGOLA.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
               <input value={novaVaga.salario} onChange={e => setNovaVaga({...novaVaga, salario: e.target.value})} placeholder="Salário (ex: 250.000 Kz)" className="input-field" />
+              <select value={novaVaga.tipo_emprego} onChange={e => setNovaVaga({...novaVaga, tipo_emprego: e.target.value})} className="input-field">
+                <option value="formal">Emprego Formal</option>
+                <option value="informal">Emprego Informal</option>
+                <option value="freelance">Freelance / Projecto</option>
+                <option value="estagio">Estágio</option>
+                <option value="temporario">Temporário</option>
+              </select>
               <input type="date" value={novaVaga.prazo} onChange={e => setNovaVaga({...novaVaga, prazo: e.target.value})} className="input-field" />
               <textarea value={novaVaga.descricao} onChange={e => setNovaVaga({...novaVaga, descricao: e.target.value})} placeholder="Descrição da vaga" className="input-field min-h-[100px]" required />
               <textarea value={novaVaga.requisitos} onChange={e => setNovaVaga({...novaVaga, requisitos: e.target.value})} placeholder="Requisitos (um por linha)" className="input-field min-h-[80px]" />
+
+              {/* Info box: dados que o candidato deve ter no perfil */}
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <h3 className="text-xs font-semibold text-blue-800 mb-2">Dados que o candidato deve ter no perfil:</h3>
+                <div className="grid grid-cols-2 gap-1 text-[11px] text-blue-700">
+                  <span>• Nome completo</span>
+                  <span>• Email</span>
+                  <span>• Telefone de contacto</span>
+                  <span>• CV (documento PDF)</span>
+                  <span>• Área profissional</span>
+                  <span>• Nível académico</span>
+                </div>
+                <p className="text-[10px] text-blue-600 mt-2">Estes dados facilitam a sua selecção. Candidatos com perfil completo aparecem melhor no ranking.</p>
+              </div>
 
               {/* Custom Questions */}
               <div className="border border-ms-border rounded-xl p-4">

@@ -137,6 +137,14 @@ function VagaDetalheContent() {
           {vaga.salario && (
             <p className="text-sm font-semibold text-ms-blue mt-2">{vaga.salario}</p>
           )}
+          <div className="flex items-center justify-center gap-2 mt-2 flex-wrap">
+            {vaga.tipo_emprego && (
+              <span className={`text-[11px] px-3 py-1 rounded-full font-medium ${vaga.tipo_emprego === 'formal' ? 'bg-blue-100 text-blue-700' : vaga.tipo_emprego === 'informal' ? 'bg-orange-100 text-orange-700' : 'bg-purple-100 text-purple-700'}`}>
+                {vaga.tipo_emprego === 'formal' ? 'Formal' : vaga.tipo_emprego === 'informal' ? 'Informal' : vaga.tipo_emprego === 'freelance' ? 'Freelance' : vaga.tipo_emprego === 'estagio' ? 'Estágio' : 'Temporário'}
+              </span>
+            )}
+            <span className="text-[11px] px-3 py-1 rounded-full bg-ms-surface text-ms-gray">{vaga.area}</span>
+          </div>
         </div>
 
         {/* About */}

@@ -340,6 +340,17 @@ export default function AdminDashboard() {
                   <div key={v.id} className="bg-ms-surface rounded-xl p-4">
                     <p className="text-sm font-medium text-ms-dark">{v.titulo}</p>
                     <p className="text-xs text-ms-gray">{v.area} • {v.localizacao} • {v.empresa_nome}</p>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      {v.salario && <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">{v.salario}</span>}
+                      {v.tipo_emprego && (
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${v.tipo_emprego === 'formal' ? 'bg-blue-100 text-blue-700' : v.tipo_emprego === 'informal' ? 'bg-orange-100 text-orange-700' : 'bg-purple-100 text-purple-700'}`}>
+                          {v.tipo_emprego === 'formal' ? 'Formal' : v.tipo_emprego === 'informal' ? 'Informal' : v.tipo_emprego === 'freelance' ? 'Freelance' : v.tipo_emprego === 'estagio' ? 'Estágio' : 'Temporário'}
+                        </span>
+                      )}
+                      {v.is_prioritaria && <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">Destaque</span>}
+                      {v.perguntas && v.perguntas.length > 0 && <span className="text-[10px] text-ms-purple">{v.perguntas.length} perguntas</span>}
+                    </div>
+                    {v.descricao && <p className="text-xs text-ms-gray mt-2 line-clamp-2">{v.descricao}</p>}
                     <div className="flex gap-2 mt-3">
                       <button onClick={() => aprovarVaga(v.id)} className="text-xs px-4 py-2 rounded-lg bg-green-100 text-green-700 font-medium">Aprovar</button>
                       <button onClick={() => rejeitarVaga(v.id)} className="text-xs px-4 py-2 rounded-lg bg-red-100 text-red-700 font-medium">Rejeitar</button>
