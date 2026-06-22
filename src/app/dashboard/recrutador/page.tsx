@@ -23,10 +23,13 @@ export default function RecrutadorDashboard() {
   const [filterStatus, setFilterStatus] = useState('all')
   const router = useRouter()
 
+  const NIVEIS_ACADEMICOS = ['Ensino Médio', 'Técnico Médio', 'Licenciatura', 'Mestrado', 'Doutoramento', 'Qualquer']
   const [novaVaga, setNovaVaga] = useState({
     titulo: '', area: AREAS[0], descricao: '', requisitos: '',
     localizacao: PROVINCIAS_ANGOLA[0], salario: '', prazo: '', is_prioritaria: false,
     tipo_emprego: 'formal' as string,
+    nivel_minimo: 'Ensino Médio' as string,
+    experiencia_requerida: '0' as string,
   })
   const [vagaPerguntas, setVagaPerguntas] = useState<string[]>([])
   const [novaPergunta, setNovaPergunta] = useState('')
@@ -90,6 +93,8 @@ export default function RecrutadorDashboard() {
       prazo: novaVaga.prazo,
       is_prioritaria: novaVaga.is_prioritaria,
       tipo_emprego: novaVaga.tipo_emprego,
+      nivel_minimo: novaVaga.nivel_minimo,
+      experiencia_requerida: novaVaga.experiencia_requerida,
       recrutador_id: user.id,
       empresa_nome: userName,
       status: 'em_analise',
@@ -102,7 +107,7 @@ export default function RecrutadorDashboard() {
     }
 
     alert('Vaga submetida para aprovação!')
-    setNovaVaga({ titulo: '', area: AREAS[0], descricao: '', requisitos: '', localizacao: PROVINCIAS_ANGOLA[0], salario: '', prazo: '', is_prioritaria: false, tipo_emprego: 'formal' })
+    setNovaVaga({ titulo: '', area: AREAS[0], descricao: '', requisitos: '', localizacao: PROVINCIAS_ANGOLA[0], salario: '', prazo: '', is_prioritaria: false, tipo_emprego: 'formal', nivel_minimo: 'Ensino Médio', experiencia_requerida: '0' })
     setVagaPerguntas([])
     setNovaPergunta('')
     setActiveTab('home')
@@ -639,6 +644,10 @@ export default function RecrutadorDashboard() {
               <select value={novaVaga.localizacao} onChange={e => setNovaVaga({...novaVaga, localizacao: e.target.value})} className="input-field">
                 {PROVINCIAS_ANGOLA.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
+              <select value={novaVaga.nivel_minimo} onChange={e => setNovaVaga({...novaVaga, nivel_minimo: e.target.value})} className="input-field">
+                {NIVEIS_ACADEMICOS.map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+              <input value={novaVaga.experiencia_requerida} onChange={e => setNovaVaga({...novaVaga, experiencia_requerida: e.target.value})} placeholder="Anos de experiência (ex: 2)" className="input-field" />
               <input value={novaVaga.salario} onChange={e => setNovaVaga({...novaVaga, salario: e.target.value})} placeholder="Salário (ex: 250.000 Kz)" className="input-field" />
               <select value={novaVaga.tipo_emprego} onChange={e => setNovaVaga({...novaVaga, tipo_emprego: e.target.value})} className="input-field">
                 <option value="formal">Emprego Formal</option>
