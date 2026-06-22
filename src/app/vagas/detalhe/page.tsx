@@ -49,6 +49,21 @@ function VagaDetalheContent() {
 
     setSending(true)
 
+    // Check if already applied
+    const { data: existing } = await supabase
+      .from('candidaturas')
+      .select('id')
+      .eq('vaga_id', vagaId)
+      .eq('candidato_id', userId)
+      .maybeSingle()
+
+    if (existing) {
+      alert('Já te candidataste a esta vaga!')
+      setSending(false)
+      setSent(true)
+      return
+    }
+
     // Upload CV if provided
     if (cvFile) {
       setUploading(true)
