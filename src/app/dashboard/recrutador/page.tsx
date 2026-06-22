@@ -51,7 +51,7 @@ export default function RecrutadorDashboard() {
       if (vagaIds.length > 0) {
         const { data: candsData } = await supabase
           .from('candidaturas')
-          .select('*, users:candidato_id(nome, email), vagas(titulo, area, requisitos, perguntas), profiles:candidato_id(telefone, documentos)')
+          .select('*, users:candidato_id(nome, email), vagas(titulo, area, descricao, perguntas), profiles:candidato_id(telefone, documentos)')
           .in('vaga_id', vagaIds)
           .order('data_candidatura', { ascending: false })
         setCandidatos(candsData || [])
@@ -81,14 +81,25 @@ export default function RecrutadorDashboard() {
     const { data: user } = await supabase.from('users').select('id').eq('email', session.user.email).single()
     if (!user) return
 
-    await supabase.from('vagas').insert({
-      ...novaVaga,
+    const { error } = await supabase.from('vagas').insert({
+      titulo: novaVaga.titulo,
+      area: novaVaga.area,
+      descricao: novaVaga.descricao + (novaVaga.requisitos ? '\n\nRequisitos:\n' + novaVaga.requisitos : ''),
+      localizacao: novaVaga.localizacao,
+      salario: novaVaga.salario,
+      prazo: novaVaga.prazo,
+      is_prioritaria: novaVaga.is_prioritaria,
+      tipo_emprego: novaVaga.tipo_emprego,
       recrutador_id: user.id,
       empresa_nome: userName,
       status: 'em_analise',
       perguntas: vagaPerguntas.length > 0 ? vagaPerguntas : null,
-      tipo_emprego: novaVaga.tipo_emprego,
     })
+
+    if (error) {
+      alert('Erro ao publicar vaga: ' + error.message)
+      return
+    }
 
     alert('Vaga submetida para aprovação!')
     setNovaVaga({ titulo: '', area: AREAS[0], descricao: '', requisitos: '', localizacao: PROVINCIAS_ANGOLA[0], salario: '', prazo: '', is_prioritaria: false, tipo_emprego: 'formal' })

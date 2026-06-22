@@ -155,12 +155,12 @@ function VagaDetalheContent() {
           </div>
         )}
 
-        {/* Requirements */}
-        {vaga.requisitos && (
+        {/* Requirements - extracted from descricao if present */}
+        {vaga.descricao && vaga.descricao.includes('Requisitos:') && (
           <div className="mb-6">
             <h2 className="text-sm font-semibold text-ms-dark mb-2">Requisitos</h2>
             <ul className="space-y-1">
-              {vaga.requisitos.split('\n').filter(Boolean).map((req: string, i: number) => (
+              {vaga.descricao.split('Requisitos:')[1]?.split('\n').filter(Boolean).map((req: string, i: number) => (
                 <li key={i} className="text-sm text-ms-gray flex items-start gap-2">
                   <span className="w-1.5 h-1.5 bg-ms-purple rounded-full mt-1.5 flex-shrink-0" />
                   {req}
