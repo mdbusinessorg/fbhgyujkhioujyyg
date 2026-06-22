@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Search, Bell, Briefcase, Users, UserCheck, Shield, Settings, CreditCard, CheckCircle, XCircle, Eye, TrendingUp, Plus, AlertTriangle, LogOut, Menu, X, Download } from 'lucide-react'
+import { Search, Bell, Briefcase, Users, UserCheck, Shield, Settings, CreditCard, CheckCircle, XCircle, Eye, TrendingUp, Plus, AlertTriangle, LogOut, Menu, X, Download, Linkedin, ExternalLink, Trash2, Edit2 } from 'lucide-react'
 
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
@@ -17,7 +17,13 @@ export default function AdminDashboard() {
   const [showMenu, setShowMenu] = useState(false)
   const [showNotifs, setShowNotifs] = useState(false)
   const [searchUser, setSearchUser] = useState('')
+  const [linkedinJobs, setLinkedinJobs] = useState<any[]>([])
+  const [linkedinForm, setLinkedinForm] = useState({ titulo: '', descricao: '', categoria: 'Tecnologia', link: '', empresa: '', localizacao: 'Luanda' })
+  const [editingLinkedinId, setEditingLinkedinId] = useState<string | null>(null)
+  const [linkedinFilterCat, setLinkedinFilterCat] = useState('all')
   const router = useRouter()
+
+  const LINKEDIN_CATEGORIAS = ['Tecnologia', 'Finanças', 'Engenharia', 'Saúde', 'Marketing', 'Direito', 'Petróleo & Gás', 'Educação', 'Administração', 'Logística', 'Hotelaria', 'Construção', 'RH', 'Design', 'Outro']
 
   useEffect(() => { loadData() }, [])
 
@@ -32,9 +38,11 @@ export default function AdminDashboard() {
     const { data: vagas } = await supabase.from('vagas').select('*')
     const { data: cands } = await supabase.from('candidaturas').select('*')
     const { data: subs } = await supabase.from('subscriptions').select('*, users:user_id(nome, email)')
+    const { data: ljobs } = await supabase.from('linkedin_jobs').select('*').order('created_at', { ascending: false })
 
     setAllUsers(users || [])
     setSubscriptions(subs || [])
+    setLinkedinJobs(ljobs || [])
     setPendentes((users || []).filter(u => u.role === 'recrutador' && !u.aprovado))
     setVagasPendentes((vagas || []).filter(v => v.status === 'em_analise'))
 
@@ -77,6 +85,34 @@ export default function AdminDashboard() {
     alert(`Lembrete de pagamento enviado para ${email}:\n\nMulticaixa Express: 926 115 429\nIBAN: 0005.0000.0626.9321.1011.5\nValor: 1.000 Kz/mês`)
   }
 
+  const handleLinkedinSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!linkedinForm.titulo || !linkedinForm.link) { alert('Título e link são obrigatórios'); return }
+
+    if (editingLinkedinId) {
+      const { error } = await supabase.from('linkedin_jobs').update(linkedinForm).eq('id', editingLinkedinId)
+      if (error) { alert('Erro: ' + error.message); return }
+      setEditingLinkedinId(null)
+    } else {
+      const { error } = await supabase.from('linkedin_jobs').insert(linkedinForm)
+      if (error) { alert('Erro ao adicionar: ' + error.message); return }
+    }
+
+    setLinkedinForm({ titulo: '', descricao: '', categoria: 'Tecnologia', link: '', empresa: '', localizacao: 'Luanda' })
+    loadData()
+  }
+
+  const editLinkedinJob = (job: any) => {
+    setLinkedinForm({ titulo: job.titulo, descricao: job.descricao || '', categoria: job.categoria, link: job.link, empresa: job.empresa || '', localizacao: job.localizacao || '' })
+    setEditingLinkedinId(job.id)
+  }
+
+  const deleteLinkedinJob = async (id: string) => {
+    if (!confirm('Apagar esta vaga LinkedIn?')) return
+    await supabase.from('linkedin_jobs').delete().eq('id', id)
+    loadData()
+  }
+
   const notifications = [
     ...pendentes.map(u => ({ type: 'recrutador', text: `${u.nome || u.email} quer ser recrutador`, time: 'Pendente' })),
     ...vagasPendentes.map(v => ({ type: 'vaga', text: `Vaga "${v.titulo}" aguarda aprovação`, time: 'Pendente' })),
@@ -115,6 +151,7 @@ export default function AdminDashboard() {
                 { key: 'home', icon: Shield, label: 'Início' },
                 { key: 'recrutadores', icon: UserCheck, label: 'Aprovar Recrutadores' },
                 { key: 'vagas', icon: Briefcase, label: 'Aprovar Vagas' },
+                { key: 'linkedin', icon: Linkedin, label: 'LinkedIn Jobs' },
                 { key: 'utilizadores', icon: Users, label: 'Utilizadores' },
                 { key: 'subscricoes', icon: CreditCard, label: 'Subscrições' },
               ].map(item => {
@@ -176,6 +213,7 @@ export default function AdminDashboard() {
             { key: 'home', icon: Shield, label: 'Início' },
             { key: 'recrutadores', icon: UserCheck, label: 'Aprovar Recrutadores', badge: pendentes.length },
             { key: 'vagas', icon: Briefcase, label: 'Aprovar Vagas', badge: vagasPendentes.length },
+            { key: 'linkedin', icon: Linkedin, label: 'LinkedIn Jobs', badge: linkedinJobs.length },
             { key: 'utilizadores', icon: Users, label: 'Utilizadores' },
             { key: 'subscricoes', icon: CreditCard, label: 'Subscrições' },
           ].map(item => {
@@ -270,6 +308,11 @@ export default function AdminDashboard() {
                 <Briefcase size={20} className="text-ms-purple mb-2" />
                 <p className="text-sm font-medium text-ms-dark">Aprovar Vagas</p>
                 <p className="text-[11px] text-ms-gray">{vagasPendentes.length} pendentes</p>
+              </button>
+              <button onClick={() => setActiveTab('linkedin')} className="flex-shrink-0 bg-white border border-ms-border rounded-xl px-5 py-4 min-w-[150px]">
+                <Linkedin size={20} className="text-blue-600 mb-2" />
+                <p className="text-sm font-medium text-ms-dark">LinkedIn Jobs</p>
+                <p className="text-[11px] text-ms-gray">{linkedinJobs.length} vagas</p>
               </button>
               <button onClick={() => setActiveTab('subscricoes')} className="flex-shrink-0 bg-white border border-ms-border rounded-xl px-5 py-4 min-w-[150px]">
                 <CreditCard size={20} className="text-ms-gray mb-2" />
@@ -404,6 +447,87 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {activeTab === 'linkedin' && (
+          <div>
+            <h2 className="text-lg font-bold text-ms-dark mb-4">LinkedIn Jobs</h2>
+            <p className="text-xs text-ms-gray mb-4">Adicione vagas externas do LinkedIn. Os utilizadores serão redirecionados para o link ao clicar.</p>
+
+            {/* Add/Edit Form */}
+            <form onSubmit={handleLinkedinSubmit} className="bg-ms-surface rounded-2xl p-4 mb-6 space-y-3">
+              <h3 className="text-sm font-semibold text-ms-dark">{editingLinkedinId ? 'Editar Vaga' : 'Adicionar Nova Vaga'}</h3>
+              <input value={linkedinForm.titulo} onChange={e => setLinkedinForm({...linkedinForm, titulo: e.target.value})} placeholder="Título da posição *" className="input-field" required />
+              <input value={linkedinForm.empresa} onChange={e => setLinkedinForm({...linkedinForm, empresa: e.target.value})} placeholder="Nome da empresa" className="input-field" />
+              <select value={linkedinForm.categoria} onChange={e => setLinkedinForm({...linkedinForm, categoria: e.target.value})} className="input-field">
+                {LINKEDIN_CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <input value={linkedinForm.localizacao} onChange={e => setLinkedinForm({...linkedinForm, localizacao: e.target.value})} placeholder="Localização" className="input-field" />
+              <textarea value={linkedinForm.descricao} onChange={e => setLinkedinForm({...linkedinForm, descricao: e.target.value})} placeholder="Descrição da posição" className="input-field min-h-[80px]" />
+              <input value={linkedinForm.link} onChange={e => setLinkedinForm({...linkedinForm, link: e.target.value})} placeholder="Link de candidatura (ex: https://linkedin.com/jobs/...) *" className="input-field" required />
+              <div className="flex gap-2">
+                <button type="submit" className="bg-blue-600 text-white text-sm font-medium px-6 py-2.5 rounded-xl hover:bg-blue-700 transition-colors">
+                  {editingLinkedinId ? 'Guardar Alterações' : 'Adicionar Vaga'}
+                </button>
+                {editingLinkedinId && (
+                  <button type="button" onClick={() => { setEditingLinkedinId(null); setLinkedinForm({ titulo: '', descricao: '', categoria: 'Tecnologia', link: '', empresa: '', localizacao: 'Luanda' }) }} className="bg-ms-surface border border-ms-border text-sm font-medium px-6 py-2.5 rounded-xl text-ms-gray">
+                    Cancelar
+                  </button>
+                )}
+              </div>
+            </form>
+
+            {/* Filter by category */}
+            <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
+              <button onClick={() => setLinkedinFilterCat('all')} className={`flex-shrink-0 text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${linkedinFilterCat === 'all' ? 'bg-blue-600 text-white' : 'bg-ms-surface text-ms-gray'}`}>Todas</button>
+              {LINKEDIN_CATEGORIAS.map(c => {
+                const count = linkedinJobs.filter(j => j.categoria === c).length
+                if (count === 0) return null
+                return (
+                  <button key={c} onClick={() => setLinkedinFilterCat(c)} className={`flex-shrink-0 text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${linkedinFilterCat === c ? 'bg-blue-600 text-white' : 'bg-ms-surface text-ms-gray'}`}>
+                    {c} ({count})
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Jobs List */}
+            {linkedinJobs.filter(j => linkedinFilterCat === 'all' || j.categoria === linkedinFilterCat).length === 0 ? (
+              <div className="bg-ms-surface rounded-xl p-8 text-center">
+                <Linkedin size={32} className="text-blue-300 mx-auto mb-3" />
+                <p className="text-sm text-ms-gray">Nenhuma vaga LinkedIn adicionada</p>
+                <p className="text-xs text-ms-gray mt-1">Use o formulário acima para adicionar.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {linkedinJobs.filter(j => linkedinFilterCat === 'all' || j.categoria === linkedinFilterCat).map(job => (
+                  <div key={job.id} className="bg-white border border-ms-border rounded-xl p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-ms-dark">{job.titulo}</p>
+                        <p className="text-xs text-ms-gray">{job.empresa} {job.localizacao ? '• ' + job.localizacao : ''}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">{job.categoria}</span>
+                        </div>
+                        {job.descricao && <p className="text-xs text-ms-gray mt-2 line-clamp-2">{job.descricao}</p>}
+                        <a href={job.link} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-600 hover:underline mt-1 inline-flex items-center gap-1">
+                          <ExternalLink size={10} /> {job.link.substring(0, 50)}...
+                        </a>
+                      </div>
+                      <div className="flex gap-1 flex-shrink-0">
+                        <button onClick={() => editLinkedinJob(job)} className="w-8 h-8 rounded-lg bg-ms-surface flex items-center justify-center text-ms-gray hover:text-ms-blue">
+                          <Edit2 size={14} />
+                        </button>
+                        <button onClick={() => deleteLinkedinJob(job.id)} className="w-8 h-8 rounded-lg bg-ms-surface flex items-center justify-center text-ms-gray hover:text-red-600">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === 'subscricoes' && (
           <div>
             <h2 className="text-lg font-bold text-ms-dark mb-4">Subscrições</h2>
@@ -440,6 +564,7 @@ export default function AdminDashboard() {
             { key: 'home', icon: Shield, label: 'Início' },
             { key: 'recrutadores', icon: UserCheck, label: 'Aprovar' },
             { key: 'vagas', icon: Briefcase, label: 'Vagas' },
+            { key: 'linkedin', icon: Linkedin, label: 'LinkedIn' },
             { key: 'utilizadores', icon: Users, label: 'Users' },
           ].map(item => {
             const Icon = item.icon

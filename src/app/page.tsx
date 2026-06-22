@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Search, SlidersHorizontal, Heart, Bell, Menu, X, Briefcase, Home as HomeIcon, User, LogOut, Settings, FileText, Star, MapPin, Monitor, Banknote, Stethoscope, Megaphone, Scale, GraduationCap, HardHat, Wrench } from 'lucide-react'
+import { Search, SlidersHorizontal, Heart, Bell, Menu, X, Briefcase, Home as HomeIcon, User, LogOut, Settings, FileText, Star, MapPin, Monitor, Banknote, Stethoscope, Megaphone, Scale, GraduationCap, HardHat, Wrench, Linkedin, ExternalLink } from 'lucide-react'
 
 const CATEGORIAS_HOME = [
   { key: 'TI', label: 'Tecnologia', icon: Monitor, match: 'Tecnologia' },
@@ -24,6 +24,8 @@ export default function HomePage() {
   const [userName, setUserName] = useState('')
   const [showMenu, setShowMenu] = useState(false)
   const [vagas, setVagas] = useState<any[]>([])
+  const [linkedinJobs, setLinkedinJobs] = useState<any[]>([])
+  const [linkedinCat, setLinkedinCat] = useState('all')
   const router = useRouter()
 
   useEffect(() => {
@@ -43,6 +45,10 @@ export default function HomePage() {
       if (vagasData && vagasData.length > 0) {
         setVagas(vagasData)
       }
+
+      // Load LinkedIn jobs
+      const { data: ljobs } = await supabase.from('linkedin_jobs').select('*').order('created_at', { ascending: false })
+      if (ljobs) setLinkedinJobs(ljobs)
     }
     init()
   }, [])
@@ -271,6 +277,50 @@ export default function HomePage() {
             </div>
           )}
         </section>
+
+        {/* LinkedIn Jobs Section */}
+        {linkedinJobs.length > 0 && (
+          <section className="mb-8 mt-8">
+            <div className="flex items-center gap-2 mb-4">
+              <Linkedin size={20} className="text-blue-600" />
+              <h2 className="text-sm font-semibold text-ms-dark">Vagas LinkedIn</h2>
+            </div>
+
+            {/* Category filter */}
+            <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
+              <button onClick={() => setLinkedinCat('all')} className={`flex-shrink-0 text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${linkedinCat === 'all' ? 'bg-blue-600 text-white' : 'bg-ms-surface text-ms-gray hover:bg-blue-50'}`}>Todas</button>
+              {Array.from(new Set(linkedinJobs.map(j => j.categoria))).map(cat => (
+                <button key={cat} onClick={() => setLinkedinCat(cat)} className={`flex-shrink-0 text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${linkedinCat === cat ? 'bg-blue-600 text-white' : 'bg-ms-surface text-ms-gray hover:bg-blue-50'}`}>
+                  {cat}
+                </button>
+              ))}
+            </div>
+
+            {/* Jobs grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {linkedinJobs
+                .filter(j => linkedinCat === 'all' || j.categoria === linkedinCat)
+                .map(job => (
+                <a key={job.id} href={job.link} target="_blank" rel="noopener noreferrer" className="bg-white border border-blue-100 rounded-xl p-4 hover:border-blue-300 hover:shadow-md transition-all group">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
+                      <Linkedin size={18} className="text-blue-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-ms-dark group-hover:text-blue-600 transition-colors truncate">{job.titulo}</p>
+                      <p className="text-xs text-ms-gray">{job.empresa} {job.localizacao ? '• ' + job.localizacao : ''}</p>
+                      {job.descricao && <p className="text-xs text-ms-gray mt-1 line-clamp-2">{job.descricao}</p>}
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium">{job.categoria}</span>
+                        <span className="text-[10px] text-blue-500 flex items-center gap-0.5"><ExternalLink size={9} /> Candidatar-se</span>
+                      </div>
+                    </div>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Como Funciona */}
         <section className="mb-8 mt-8">
