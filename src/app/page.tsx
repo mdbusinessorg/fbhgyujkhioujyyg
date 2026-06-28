@@ -393,7 +393,8 @@ export default function HomePage() {
           </section>
         )}
 
-        {/* Como Funciona */}
+        {/* Como Funciona — only for visitors */}
+        {!isLoggedIn && (
         <section className="mb-8 mt-8">
           <h2 className="text-sm font-semibold text-ms-dark mb-4 text-center">Como Funciona</h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -413,6 +414,7 @@ export default function HomePage() {
             ))}
           </div>
         </section>
+        )}
 
         {/* Stats */}
         <section className="mb-8">
@@ -437,20 +439,40 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* CTA */}
+        {/* CTA — visitors get "Criar Conta", members get quick links */}
         <section className="mb-8">
-          <div className="bg-ms-surface rounded-2xl p-6 text-center">
-            <h3 className="text-sm font-bold text-ms-dark mb-2">Pronto para encontrar o emprego ideal?</h3>
-            <p className="text-xs text-ms-gray mb-4">Cria a tua conta gratuita e começa a candidatar-te hoje.</p>
-            <div className="flex gap-3 justify-center">
-              <Link href="/auth/registar/" className="bg-ms-blue text-white text-sm font-semibold px-6 py-2.5 rounded-xl hover:bg-blue-700 transition-colors">
-                Criar Conta Grátis
-              </Link>
-              <Link href="/vagas/" className="border border-ms-blue text-ms-blue text-sm font-semibold px-6 py-2.5 rounded-xl hover:bg-ms-blue/5 transition-colors">
-                Ver Vagas
-              </Link>
+          {!isLoggedIn ? (
+            <div className="bg-ms-surface rounded-2xl p-6 text-center">
+              <h3 className="text-sm font-bold text-ms-dark mb-2">Pronto para encontrar o emprego ideal?</h3>
+              <p className="text-xs text-ms-gray mb-4">Cria a tua conta gratuita e começa a candidatar-te hoje.</p>
+              <div className="flex gap-3 justify-center">
+                <Link href="/auth/registar/" className="bg-ms-blue text-white text-sm font-semibold px-6 py-2.5 rounded-xl hover:bg-blue-700 transition-colors">
+                  Criar Conta Grátis
+                </Link>
+                <Link href="/vagas/" className="border border-ms-blue text-ms-blue text-sm font-semibold px-6 py-2.5 rounded-xl hover:bg-ms-blue/5 transition-colors">
+                  Ver Vagas
+                </Link>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="bg-ms-surface rounded-2xl p-5">
+              <h3 className="text-sm font-bold text-ms-dark mb-3">Acesso rápido</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <Link href={`/dashboard/${userRole}/`} className="flex flex-col items-center gap-1.5 bg-white rounded-xl p-3 border border-ms-border hover:border-ms-blue/30 transition-colors">
+                  <User size={20} className="text-ms-blue" /><span className="text-[11px] font-medium text-ms-dark">Meu Perfil</span>
+                </Link>
+                <Link href="/mensagens/" className="flex flex-col items-center gap-1.5 bg-white rounded-xl p-3 border border-ms-border hover:border-ms-blue/30 transition-colors">
+                  <MessageSquare size={20} className="text-ms-blue" /><span className="text-[11px] font-medium text-ms-dark">Mensagens</span>
+                </Link>
+                <Link href="/pessoas/" className="flex flex-col items-center gap-1.5 bg-white rounded-xl p-3 border border-ms-border hover:border-ms-blue/30 transition-colors">
+                  <Users size={20} className="text-ms-blue" /><span className="text-[11px] font-medium text-ms-dark">Pessoas</span>
+                </Link>
+                <Link href="/trabalho-rapido/" className="flex flex-col items-center gap-1.5 bg-white rounded-xl p-3 border border-ms-border hover:border-ms-blue/30 transition-colors">
+                  <Zap size={20} className="text-orange-500" /><span className="text-[11px] font-medium text-ms-dark">Trabalho Rápido</span>
+                </Link>
+              </div>
+            </div>
+          )}
         </section>
       </main>
 

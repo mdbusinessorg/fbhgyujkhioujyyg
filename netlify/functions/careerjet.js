@@ -26,39 +26,55 @@ exports.handler = async (event) => {
   const userIp = (event.headers['x-forwarded-for'] || '8.8.8.8').split(',')[0].trim()
   const userAgent = event.headers['user-agent'] || 'MoSalo/1.0'
 
-  const apiUrl = new URL('http://public.api.careerjet.net/search')
-  apiUrl.searchParams.set('affid', AFFID)
-  apiUrl.searchParams.set('keywords', keywords)
-  apiUrl.searchParams.set('location', location)
-  apiUrl.searchParams.set('locale_code', 'pt_PT')
-  apiUrl.searchParams.set('pagesize', pagesize)
-  apiUrl.searchParams.set('page', page)
-  apiUrl.searchParams.set('sort', 'date')
-  apiUrl.searchParams.set('user_ip', userIp)
-  apiUrl.searchParams.set('user_agent', userAgent)
-  apiUrl.searchParams.set('url', 'https://mosalo.netlify.app')
+  const search = async (loc, locale) => {
+    const apiUrl = new URL('http://public.api.careerjet.net/search')
+    apiUrl.searchParams.set('affid', AFFID)
+    apiUrl.searchParams.set('keywords', keywords)
+    if (loc) apiUrl.searchParams.set('location', loc)
+    apiUrl.searchParams.set('locale_code', locale)
+    apiUrl.searchParams.set('pagesize', pagesize)
+    apiUrl.searchParams.set('page', page)
+    apiUrl.searchParams.set('sort', 'date')
+    apiUrl.searchParams.set('user_ip', userIp)
+    apiUrl.searchParams.set('user_agent', userAgent)
+    apiUrl.searchParams.set('url', 'https://mosalo.netlify.app')
+
+    const res = await fetch(apiUrl.toString(), { headers: { 'User-Agent': userAgent } })
+    return res.json()
+  }
+
+  const mapJobs = (data) => (data.jobs || []).map((j) => ({
+    title: j.title,
+    description: j.description,
+    company: j.company || '',
+    locations: j.locations || '',
+    salary: j.salary || '',
+    url: j.url,
+    date: j.date || '',
+    source: 'CareerJet',
+  }))
 
   try {
-    const res = await fetch(apiUrl.toString(), {
-      headers: { 'User-Agent': userAgent },
-    })
-    const data = await res.json()
+    // 1) Angola (pt). 2) Angola via pt_BR. 3) Worldwide pt. 4) Worldwide en.
+    const attempts = [
+      [location, 'pt_PT'],
+      [location, 'pt_BR'],
+      ['', 'pt_PT'],
+      ['', 'en_GB'],
+    ]
 
-    const jobs = (data.jobs || []).map((j) => ({
-      title: j.title,
-      description: j.description,
-      company: j.company || '',
-      locations: j.locations || '',
-      salary: j.salary || '',
-      url: j.url,
-      date: j.date || '',
-      source: 'CareerJet',
-    }))
+    let data = null
+    let jobs = []
+    for (const [loc, locale] of attempts) {
+      data = await search(loc, locale)
+      jobs = mapJobs(data)
+      if (jobs.length > 0) break
+    }
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ jobs, hits: data.hits || jobs.length, pages: data.pages || 1 }),
+      body: JSON.stringify({ jobs, hits: (data && data.hits) || jobs.length, pages: (data && data.pages) || 1 }),
     }
   } catch (err) {
     return {

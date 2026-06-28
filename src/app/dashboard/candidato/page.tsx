@@ -29,6 +29,13 @@ function CandidatoDashboard() {
   const [profile, setProfile] = useState<any>(null)
   const [editNome, setEditNome] = useState('')
   const [editTelefone, setEditTelefone] = useState('')
+  const [editArea, setEditArea] = useState('')
+  const [editLocalizacao, setEditLocalizacao] = useState('')
+  const [editNivel, setEditNivel] = useState('')
+  const [editBio, setEditBio] = useState('')
+  const [editExperiencias, setEditExperiencias] = useState('')
+  const [editCompetencias, setEditCompetencias] = useState('')
+  const [profileSaved, setProfileSaved] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
   const [aiTips, setAiTips] = useState<string[]>([])
   const [cvScore, setCvScore] = useState(0)
@@ -93,10 +100,16 @@ function CandidatoDashboard() {
 
     // Profile
     const { data: prof } = await supabase.from('profiles').select('*').eq('user_id', user.id).single()
+    setEditTelefone(user.telefone || '')
     if (prof) {
       setProfile(prof)
-      setEditTelefone(user.telefone || '')
       if (prof.documentos) setDocumentos(prof.documentos)
+      setEditArea(prof.area || '')
+      setEditLocalizacao(prof.localizacao || '')
+      setEditNivel(prof.nivel_academico || '')
+      setEditBio(prof.bio || '')
+      setEditExperiencias(prof.experiencias || '')
+      setEditCompetencias(typeof prof.competencias === 'string' ? prof.competencias : Array.isArray(prof.competencias) ? prof.competencias.join(', ') : '')
     }
 
     // Calculate CV score
@@ -144,11 +157,20 @@ function CandidatoDashboard() {
     if (!session) return
 
     await supabase.from('users').update({ nome: editNome, telefone: editTelefone }).eq('email', session.user.email)
-    await supabase.from('profiles').upsert({
+    const { error } = await supabase.from('profiles').upsert({
       user_id: session.user.id,
       documentos,
+      area: editArea || null,
+      localizacao: editLocalizacao || null,
+      nivel_academico: editNivel || null,
+      bio: editBio || null,
+      experiencias: editExperiencias || null,
+      competencias: editCompetencias || null,
     }, { onConflict: 'user_id' })
-    alert('Perfil guardado!')
+    if (error) { alert('Erro ao guardar: ' + error.message); return }
+    setProfile((p: any) => ({ ...(p || {}), area: editArea, localizacao: editLocalizacao, nivel_academico: editNivel, bio: editBio, experiencias: editExperiencias, competencias: editCompetencias }))
+    setProfileSaved(true)
+    setTimeout(() => setProfileSaved(false), 2500)
   }
 
   const buildVagaContext = () => {
@@ -609,18 +631,82 @@ function CandidatoDashboard() {
 
         {activeTab === 'perfil' && (
           <div>
-            <h2 className="text-lg font-bold text-ms-dark mb-4">O Meu Perfil</h2>
+            <h2 className="text-lg font-bold text-ms-dark mb-1">O Meu Perfil</h2>
+            <p className="text-xs text-ms-gray mb-4">Um perfil completo aparece primeiro nas pesquisas dos recrutadores.</p>
+
+            {/* Profile header preview */}
+            <div className="bg-gradient-to-br from-ms-blue to-ms-purple rounded-2xl p-5 mb-5 text-white">
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center text-xl font-bold">
+                  {(editNome || 'U').charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="font-bold truncate">{editNome || 'O teu nome'}</p>
+                  <p className="text-sm text-white/80 truncate">{editArea || 'A tua área profissional'}</p>
+                  {editLocalizacao && <p className="text-xs text-white/70 truncate">{editLocalizacao}</p>}
+                </div>
+              </div>
+            </div>
+
             <div className="space-y-4">
-              <div>
-                <label className="text-xs font-medium text-ms-gray mb-1 block">Nome</label>
-                <input value={editNome} onChange={(e) => setEditNome(e.target.value)} className="input-field" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-medium text-ms-gray mb-1 block">Nome completo</label>
+                  <input value={editNome} onChange={(e) => setEditNome(e.target.value)} className="input-field" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-ms-gray mb-1 block">Telefone</label>
+                  <input value={editTelefone} onChange={(e) => setEditTelefone(e.target.value)} className="input-field" placeholder="+244 9XX XXX XXX" />
+                </div>
               </div>
-              <div>
-                <label className="text-xs font-medium text-ms-gray mb-1 block">Telefone</label>
-                <input value={editTelefone} onChange={(e) => setEditTelefone(e.target.value)} className="input-field" placeholder="+244 9XX XXX XXX" />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-medium text-ms-gray mb-1 block">Área / Cargo (título)</label>
+                  <input value={editArea} onChange={(e) => setEditArea(e.target.value)} className="input-field" placeholder="Ex: Contabilista, Engenheiro Civil" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-ms-gray mb-1 block">Localização</label>
+                  <input value={editLocalizacao} onChange={(e) => setEditLocalizacao(e.target.value)} className="input-field" placeholder="Ex: Luanda" />
+                </div>
               </div>
+
+              <div>
+                <label className="text-xs font-medium text-ms-gray mb-1 block">Nível académico</label>
+                <select value={editNivel} onChange={(e) => setEditNivel(e.target.value)} className="input-field">
+                  <option value="">Seleccionar...</option>
+                  <option value="Ensino Médio">Ensino Médio</option>
+                  <option value="Técnico Médio">Técnico Médio</option>
+                  <option value="Licenciatura">Licenciatura</option>
+                  <option value="Mestrado">Mestrado</option>
+                  <option value="Doutoramento">Doutoramento</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-ms-gray mb-1 block">Sobre mim</label>
+                <textarea value={editBio} onChange={(e) => setEditBio(e.target.value)} className="input-field min-h-[90px]" placeholder="Um resumo profissional sobre ti, os teus objectivos e o que te diferencia." />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-ms-gray mb-1 block">Experiência profissional</label>
+                <textarea value={editExperiencias} onChange={(e) => setEditExperiencias(e.target.value)} className="input-field min-h-[90px]" placeholder="Ex: Contabilista na Empresa X (2020-2023) — gestão de folha salarial e relatórios fiscais." />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-ms-gray mb-1 block">Competências (separadas por vírgula)</label>
+                <input value={editCompetencias} onChange={(e) => setEditCompetencias(e.target.value)} className="input-field" placeholder="Ex: Excel, Liderança, SAP, Inglês" />
+                {editCompetencias.trim() && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {editCompetencias.split(',').map(c => c.trim()).filter(Boolean).map((c, i) => (
+                      <span key={i} className="text-[11px] px-2.5 py-1 bg-ms-purple-light text-ms-purple rounded-full font-medium">{c}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <button onClick={handleSaveProfile} className="w-full bg-ms-blue text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition-colors">
-                Guardar Alterações
+                {profileSaved ? 'Guardado ✓' : 'Guardar Alterações'}
               </button>
             </div>
           </div>
