@@ -27,6 +27,7 @@ export default function HomePage() {
   const [vagas, setVagas] = useState<any[]>([])
   const [linkedinJobs, setLinkedinJobs] = useState<any[]>([])
   const [linkedinCat, setLinkedinCat] = useState('all')
+  const [showProfileMenu, setShowProfileMenu] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -141,30 +142,76 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Top Nav */}
-      <header className="sticky top-0 bg-white border-b border-ms-border z-50 px-4 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <button className="lg:hidden" onClick={() => setShowMenu(true)}>
-            <Menu size={22} className="text-ms-dark" />
-          </button>
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-ms-blue rounded-lg flex items-center justify-center">
-              <Briefcase size={16} className="text-white" />
-            </div>
-            <span className="font-bold text-lg text-ms-blue">MÔ SALO</span>
-          </Link>
-          <div className="flex items-center gap-3">
-            {isLoggedIn ? (
-              <Link href={`/dashboard/${userRole}/`} className="w-8 h-8 bg-ms-surface rounded-full flex items-center justify-center">
-                <User size={16} className="text-ms-gray" />
-              </Link>
-            ) : (
-              <>
-                <Link href="/auth/login/" className="hidden sm:block text-sm font-medium text-ms-blue hover:underline">Entrar</Link>
-                <Link href="/auth/registar/" className="hidden sm:block text-sm bg-ms-blue text-white px-4 py-2 rounded-lg font-medium">Registar</Link>
-              </>
-            )}
+      {/* Top Nav — professional */}
+      <header className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-ms-border z-50 px-4 py-2.5">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <button className="lg:hidden" onClick={() => setShowMenu(true)}>
+              <Menu size={22} className="text-ms-dark" />
+            </button>
+            <Link href="/" className="flex items-center gap-2">
+              <div className="w-9 h-9 bg-gradient-to-br from-ms-blue to-ms-purple rounded-xl flex items-center justify-center">
+                <span className="text-white font-black text-sm">MS</span>
+              </div>
+              <span className="font-bold text-lg text-ms-dark hidden sm:block">MÔ SALO</span>
+            </Link>
           </div>
+
+          {isLoggedIn ? (
+            <div className="flex items-center gap-1">
+              <Link href="/mensagens/" className="w-10 h-10 rounded-xl flex items-center justify-center text-ms-gray hover:bg-ms-surface transition-colors" title="Mensagens">
+                <MessageSquare size={20} />
+              </Link>
+              <Link href="/pessoas/" className="w-10 h-10 rounded-xl flex items-center justify-center text-ms-gray hover:bg-ms-surface transition-colors" title="Pessoas">
+                <Users size={20} />
+              </Link>
+              <div className="relative">
+                <button
+                  onClick={() => setShowProfileMenu(!showProfileMenu)}
+                  className="flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-xl hover:bg-ms-surface transition-colors"
+                >
+                  <div className="w-9 h-9 bg-gradient-to-br from-ms-blue to-ms-purple rounded-full flex items-center justify-center">
+                    <span className="text-white font-semibold text-xs">{(userName || 'U').charAt(0).toUpperCase()}</span>
+                  </div>
+                </button>
+                {showProfileMenu && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowProfileMenu(false)} />
+                    <div className="absolute right-0 top-12 w-64 bg-white rounded-2xl shadow-xl border border-ms-border z-50 overflow-hidden">
+                      <div className="px-4 py-3 border-b border-ms-border">
+                        <p className="text-sm font-semibold text-ms-dark truncate">{userName || 'Utilizador'}</p>
+                        <p className="text-xs text-ms-gray capitalize">{userRole}</p>
+                      </div>
+                      <div className="py-1">
+                        <Link href={`/dashboard/${userRole}/`} className="flex items-center gap-3 px-4 py-2.5 text-sm text-ms-dark hover:bg-ms-surface" onClick={() => setShowProfileMenu(false)}>
+                          <HomeIcon size={16} className="text-ms-gray" /> Minha conta
+                        </Link>
+                        <Link href={`/dashboard/${userRole}/?tab=perfil`} className="flex items-center gap-3 px-4 py-2.5 text-sm text-ms-dark hover:bg-ms-surface" onClick={() => setShowProfileMenu(false)}>
+                          <User size={16} className="text-ms-gray" /> Meu perfil
+                        </Link>
+                        <Link href="/pessoas/" className="flex items-center gap-3 px-4 py-2.5 text-sm text-ms-dark hover:bg-ms-surface" onClick={() => setShowProfileMenu(false)}>
+                          <Users size={16} className="text-ms-gray" /> Pessoas
+                        </Link>
+                        <Link href="/trabalho-rapido/" className="flex items-center gap-3 px-4 py-2.5 text-sm text-ms-dark hover:bg-ms-surface" onClick={() => setShowProfileMenu(false)}>
+                          <Zap size={16} className="text-orange-500" /> Trabalho Rápido
+                        </Link>
+                      </div>
+                      <div className="border-t border-ms-border py-1">
+                        <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-ms-red hover:bg-red-50">
+                          <LogOut size={16} /> Terminar Sessão
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Link href="/auth/login/" className="text-sm font-medium text-ms-dark hover:text-ms-blue px-3 py-2">Entrar</Link>
+              <Link href="/auth/registar/" className="text-sm bg-ms-blue text-white px-4 py-2 rounded-xl font-medium hover:bg-blue-700 transition-colors">Criar conta</Link>
+            </div>
+          )}
         </div>
       </header>
 

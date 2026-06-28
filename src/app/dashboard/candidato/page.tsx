@@ -8,6 +8,7 @@ import BottomNav from '@/components/BottomNav'
 import SubscriptionBanner from '@/components/SubscriptionBanner'
 import SubscriptionModal from '@/components/SubscriptionModal'
 import { Search, Bell, Briefcase, FileText, User, Upload, ArrowRight, Clock, CheckCircle, XCircle, Plus, Eye, Sparkles, Lightbulb, Target, Award, AlertCircle, ChevronRight, Zap, LogOut, Menu, X, CreditCard, Wallet } from 'lucide-react'
+import { improveCV, getTips } from '@/lib/ai'
 
 export default function CandidatoDashboardPage() {
   return <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center"><div className="w-8 h-8 border-2 border-ms-purple border-t-transparent rounded-full animate-spin" /></div>}><CandidatoDashboard /></Suspense>
@@ -34,6 +35,8 @@ function CandidatoDashboard() {
   const [aiImproveText, setAiImproveText] = useState('')
   const [aiImproveResult, setAiImproveResult] = useState('')
   const [aiImproveLoading, setAiImproveLoading] = useState(false)
+  const [aiVagaContext, setAiVagaContext] = useState('')
+  const [aiError, setAiError] = useState('')
   const [showMenu, setShowMenu] = useState(false)
   const router = useRouter()
 
@@ -148,73 +151,44 @@ function CandidatoDashboard() {
     alert('Perfil guardado!')
   }
 
-  const generateAiTips = () => {
-    setAiLoading(true)
-    setTimeout(() => {
-      const tips: string[] = []
-
-      if (!profile?.telefone) {
-        tips.push('Adicione o seu número de telefone ao perfil. Recrutadores preferem candidatos facilmente contactáveis.')
-      }
-      if (documentos.length === 0) {
-        tips.push('Carregue o seu CV em PDF. Candidatos com CV têm 3x mais hipóteses de serem contactados.')
-      }
-      if (documentos.length === 1) {
-        tips.push('Adicione um segundo documento (carta de motivação ou diploma). Isso diferencia-o dos outros candidatos.')
-      }
-      if (candidaturas.length === 0) {
-        tips.push('Candidate-se a pelo menos 5 vagas por semana para maximizar as suas oportunidades.')
-      }
-      if (candidaturas.length > 0 && candidaturas.length < 5) {
-        tips.push('Está no bom caminho! Tente candidatar-se a mais vagas — a média ideal é 8-10 por semana.')
-      }
-
-      tips.push('Use palavras-chave relevantes no seu CV: "gestão de projectos", "análise de dados", "liderança de equipas".')
-      tips.push('Personalize a carta de motivação para cada vaga. Mencione o nome da empresa e como pode contribuir.')
-      tips.push('Mantenha o CV com no máximo 2 páginas. Recrutadores gastam em média 7 segundos a ler um CV.')
-      tips.push('Inclua resultados quantificáveis: "Aumentei vendas em 30%" é mais forte que "Responsável por vendas".')
-      tips.push('Actualize o seu perfil regularmente. Perfis activos aparecem primeiro nas pesquisas dos recrutadores.')
-
-      setAiTips(tips)
-      setAiLoading(false)
-    }, 1500)
+  const buildVagaContext = () => {
+    if (!aiVagaContext.trim()) return undefined
+    return { titulo: '', area: profile?.area || '', descricao: aiVagaContext.trim() }
   }
 
-  const handleImproveText = () => {
+  const generateAiTips = async () => {
+    setAiLoading(true)
+    setAiError('')
+    const { tips, error } = await getTips({
+      nome: editNome,
+      telefone: editTelefone,
+      area: profile?.area,
+      nivel_academico: profile?.nivel_academico,
+      competencias: profile?.competencias,
+      bio: profile?.bio,
+      numDocumentos: documentos.length,
+      numCandidaturas: candidaturas.length,
+    }, buildVagaContext())
+
+    if (error || tips.length === 0) {
+      setAiError('A IA está temporariamente indisponível. Tenta novamente em instantes.')
+    } else {
+      setAiTips(tips)
+    }
+    setAiLoading(false)
+  }
+
+  const handleImproveText = async () => {
     if (!aiImproveText.trim()) return
     setAiImproveLoading(true)
-
-    setTimeout(() => {
-      const original = aiImproveText.trim()
-      let improved = ''
-
-      if (original.toLowerCase().includes('responsável') || original.toLowerCase().includes('responsavel')) {
-        improved = original
-          .replace(/responsável por/gi, 'Liderou a implementação de')
-          .replace(/responsavel por/gi, 'Liderou a implementação de')
-          .replace(/fiz/gi, 'Desenvolvi e implementei')
-          .replace(/trabalhei/gi, 'Colaborei activamente')
-        improved += '\n\n💡 Dica: Substitua "responsável por" por verbos de acção como "Liderou", "Implementou", "Desenvolveu".'
-      } else if (original.toLowerCase().includes('experiência') || original.toLowerCase().includes('experiencia')) {
-        improved = original
-          .replace(/tenho experiência/gi, 'Possuo mais de X anos de experiência comprovada')
-          .replace(/tenho experiencia/gi, 'Possuo mais de X anos de experiência comprovada')
-        improved += '\n\n💡 Dica: Quantifique sempre a sua experiência. "5 anos" é mais convincente que "vários anos".'
-      } else {
-        improved = `✨ Versão melhorada:\n\n${original.charAt(0).toUpperCase() + original.slice(1)}`
-        if (!original.endsWith('.')) improved += '.'
-        improved += '\n\n💡 Sugestões de melhoria:'
-        improved += '\n• Comece frases com verbos de acção (Liderou, Desenvolveu, Implementou, Optimizou)'
-        improved += '\n• Adicione números e métricas específicas'
-        improved += '\n• Mencione ferramentas e tecnologias concretas'
-        improved += '\n• Limite cada ponto a 1-2 linhas'
-        improved += '\n• Use o formato: Verbo + O quê + Como + Resultado'
-        improved += '\n\nExemplo: "Implementou sistema de gestão de inventário usando SAP, reduzindo custos em 25%"'
-      }
-
-      setAiImproveResult(improved)
-      setAiImproveLoading(false)
-    }, 2000)
+    setAiError('')
+    const { result, error } = await improveCV(aiImproveText.trim(), buildVagaContext())
+    if (error || !result) {
+      setAiError('A IA está temporariamente indisponível. Tenta novamente em instantes.')
+    } else {
+      setAiImproveResult(result)
+    }
+    setAiImproveLoading(false)
   }
 
   const handleLogout = async () => {
@@ -465,6 +439,26 @@ function CandidatoDashboard() {
               </div>
             </div>
 
+            {/* Vaga context for tailored AI */}
+            <div className="bg-ms-purple-light/40 border border-ms-purple/20 rounded-2xl p-4 mb-4">
+              <label className="text-xs font-semibold text-ms-dark mb-2 flex items-center gap-1">
+                <Target size={14} className="text-ms-purple" /> Cole a vaga para dicas à medida (opcional)
+              </label>
+              <textarea
+                value={aiVagaContext}
+                onChange={(e) => setAiVagaContext(e.target.value)}
+                placeholder="Cola aqui a descrição da vaga a que te queres candidatar. A IA adapta as dicas e o CV a ESTA vaga."
+                className="input-field min-h-[64px] text-sm"
+              />
+            </div>
+
+            {aiError && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4 flex items-center gap-2">
+                <AlertCircle size={16} className="text-ms-red flex-shrink-0" />
+                <p className="text-xs text-ms-red">{aiError}</p>
+              </div>
+            )}
+
             {/* Generate Tips */}
             <div className="mb-6">
               <button
@@ -473,7 +467,7 @@ function CandidatoDashboard() {
                 className="w-full bg-gradient-to-r from-ms-purple to-[#9B7BFF] text-white font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 <Zap size={18} />
-                {aiLoading ? 'A analisar o seu perfil...' : 'Gerar Dicas Personalizadas com IA'}
+                {aiLoading ? 'A analisar com IA (Groq)...' : 'Gerar Dicas Personalizadas com IA'}
               </button>
             </div>
 

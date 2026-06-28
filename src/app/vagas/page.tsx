@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { Search, SlidersHorizontal, Heart, Briefcase, ArrowLeft, Home as HomeIcon, User, Star, MapPin } from 'lucide-react'
+import { Search, SlidersHorizontal, Heart, Briefcase, ArrowLeft, Home as HomeIcon, User, Star, MapPin, Globe, ExternalLink, Building2 } from 'lucide-react'
+import { fetchCareerJet, CareerJetJob } from '@/lib/ai'
 
 const CATEGORIAS = [
   { key: 'Todas', label: 'Todas' },
@@ -28,6 +29,10 @@ export default function VagasPage() {
   const [vagas, setVagas] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [activeFilter, setActiveFilter] = useState('Todas')
+  const [source, setSource] = useState<'mosalo' | 'externas'>('mosalo')
+  const [externalJobs, setExternalJobs] = useState<CareerJetJob[]>([])
+  const [loadingExternal, setLoadingExternal] = useState(false)
+  const [externalError, setExternalError] = useState('')
 
   useEffect(() => {
     const loadVagas = async () => {
@@ -38,6 +43,29 @@ export default function VagasPage() {
     }
     loadVagas()
   }, [])
+
+  const loadExternalJobs = async (kw?: string) => {
+    setLoadingExternal(true)
+    setExternalError('')
+    const keywords = (kw ?? searchQuery).trim() || (activeFilter !== 'Todas' ? activeFilter : 'emprego')
+    const { jobs, error } = await fetchCareerJet(keywords, 'Angola')
+    if (error || jobs.length === 0) {
+      setExternalError(error ? 'Não foi possível carregar vagas externas agora.' : 'Sem vagas externas para esta pesquisa.')
+      setExternalJobs([])
+    } else {
+      setExternalJobs(jobs)
+    }
+    setLoadingExternal(false)
+  }
+
+  useEffect(() => {
+    if (source === 'externas' && externalJobs.length === 0 && !loadingExternal && !externalError) {
+      loadExternalJobs()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [source])
+
+  const stripHtml = (html: string) => (html || '').replace(/<[^>]*>/g, '').trim()
 
   const filteredVagas = vagas.filter(v => {
     const matchSearch = !searchQuery || v.titulo?.toLowerCase().includes(searchQuery.toLowerCase()) || v.empresa_nome?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -93,7 +121,24 @@ export default function VagasPage() {
           </button>
         </div>
 
+        {/* Source toggle: MÔ SALO vs External (CareerJet) */}
+        <div className="flex gap-2 mb-4 bg-ms-surface rounded-xl p-1">
+          <button
+            onClick={() => setSource('mosalo')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-colors ${source === 'mosalo' ? 'bg-white text-ms-blue shadow-sm' : 'text-ms-gray'}`}
+          >
+            <Briefcase size={14} /> MÔ SALO
+          </button>
+          <button
+            onClick={() => setSource('externas')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-colors ${source === 'externas' ? 'bg-white text-ms-blue shadow-sm' : 'text-ms-gray'}`}
+          >
+            <Globe size={14} /> Vagas Externas
+          </button>
+        </div>
+
         {/* Category chips */}
+        {source === 'mosalo' && (
         <div className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-hide">
           {CATEGORIAS.map(f => (
             <button
@@ -107,8 +152,61 @@ export default function VagasPage() {
             </button>
           ))}
         </div>
+        )}
+
+        {/* External jobs (CareerJet) */}
+        {source === 'externas' && (
+          <section className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Globe size={16} className="text-ms-blue" />
+                <h2 className="text-sm font-semibold text-ms-dark">Vagas de toda a web</h2>
+              </div>
+              <button onClick={() => loadExternalJobs()} className="text-xs text-ms-blue font-medium">Actualizar</button>
+            </div>
+            <p className="text-xs text-ms-gray mb-4">Resultados agregados via CareerJet. Ao candidatar, abre o site original.</p>
+
+            {loadingExternal ? (
+              <div className="flex justify-center py-12">
+                <div className="w-8 h-8 border-2 border-ms-blue border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : externalError ? (
+              <div className="text-center py-12">
+                <Globe size={32} className="text-ms-gray mx-auto mb-3" />
+                <p className="text-sm text-ms-gray">{externalError}</p>
+                <button onClick={() => loadExternalJobs('emprego')} className="text-sm text-ms-blue font-medium mt-2">Tentar novamente</button>
+              </div>
+            ) : (
+              <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
+                {externalJobs.map((j, i) => (
+                  <a key={i} href={j.url} target="_blank" rel="noopener noreferrer" className="block">
+                    <div className="bg-white border border-ms-border rounded-xl p-4 flex items-start gap-3 hover:shadow-md hover:border-ms-blue/30 transition-all">
+                      <div className="w-10 h-10 bg-ms-blue/5 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Building2 size={16} className="text-ms-blue" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-sm font-semibold text-ms-dark line-clamp-2">{j.title}</h3>
+                        {j.company && <p className="text-xs text-ms-gray mt-0.5">{j.company}</p>}
+                        <p className="text-xs text-ms-gray mt-1 line-clamp-2">{stripHtml(j.description)}</p>
+                        <div className="flex items-center gap-2 mt-2 flex-wrap">
+                          {j.locations && <span className="inline-flex items-center gap-0.5 text-[11px] text-ms-gray"><MapPin size={10} /> {j.locations}</span>}
+                          {j.salary && <span className="text-[11px] font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">{j.salary}</span>}
+                          <span className="text-[10px] text-ms-gray bg-ms-surface px-2 py-0.5 rounded-full">{j.source}</span>
+                        </div>
+                        <div className="flex items-center justify-end mt-2">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-ms-blue">Ver vaga <ExternalLink size={11} /></span>
+                        </div>
+                      </div>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
         {/* Vagas em Destaque */}
+        {source === 'mosalo' && (<>
         {destaques.length > 0 && (
           <section className="mb-6">
             <div className="flex items-center gap-2 mb-3">
@@ -193,8 +291,10 @@ export default function VagasPage() {
             <Briefcase size={32} className="text-ms-gray mx-auto mb-3" />
             <p className="text-sm text-ms-gray">Nenhuma vaga encontrada para &ldquo;{activeFilter}&rdquo;</p>
             <button onClick={() => setActiveFilter('Todas')} className="text-sm text-ms-blue font-medium mt-2">Ver todas as vagas</button>
+            <button onClick={() => setSource('externas')} className="block mx-auto text-sm text-ms-blue font-medium mt-2">Procurar em vagas externas</button>
           </div>
         )}
+        </>)}
       </main>
 
       {/* Bottom Nav */}

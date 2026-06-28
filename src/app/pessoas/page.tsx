@@ -111,6 +111,22 @@ export default function PessoasPage() {
     router.push(`/mensagens/?conv=${conv.id}`)
   }
 
+  const parseCompetencias = (comp: any): string[] => {
+    if (!comp) return []
+    if (Array.isArray(comp)) return comp.map(c => String(c).trim()).filter(Boolean)
+    if (typeof comp === 'string') {
+      const trimmed = comp.trim()
+      if (trimmed.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(trimmed)
+          if (Array.isArray(parsed)) return parsed.map(c => String(c).trim()).filter(Boolean)
+        } catch { /* fall through */ }
+      }
+      return trimmed.split(',').map(c => c.trim()).filter(Boolean)
+    }
+    return []
+  }
+
   const filtered = results.filter(p => {
     if (filtro === 'Talentos') return p.role === 'candidato'
     if (filtro === 'Recrutadores') return p.role === 'recrutador'
@@ -187,10 +203,10 @@ export default function PessoasPage() {
                         <MapPin size={11} /> {person.profile.localizacao}
                       </p>
                     )}
-                    {person.profile?.competencias && (
+                    {parseCompetencias(person.profile?.competencias).length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-2">
-                        {person.profile.competencias.split(',').slice(0, 4).map((c, i) => (
-                          <span key={i} className="text-[10px] px-2 py-0.5 bg-gray-50 text-gray-600 rounded-full">{c.trim()}</span>
+                        {parseCompetencias(person.profile?.competencias).slice(0, 4).map((c, i) => (
+                          <span key={i} className="text-[10px] px-2 py-0.5 bg-gray-50 text-gray-600 rounded-full">{c}</span>
                         ))}
                       </div>
                     )}
