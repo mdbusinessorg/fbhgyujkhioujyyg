@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Search, Bell, Briefcase, Users, UserCheck, Shield, Settings, CreditCard, CheckCircle, XCircle, Eye, TrendingUp, Plus, AlertTriangle, LogOut, Menu, X, Download, Linkedin, ExternalLink, Trash2, Edit2 } from 'lucide-react'
+import { Search, Bell, Briefcase, Users, UserCheck, Shield, Settings, CreditCard, CheckCircle, XCircle, Eye, TrendingUp, Plus, AlertTriangle, LogOut, Menu, X, Download, Linkedin, ExternalLink, Trash2, Edit2, Wallet, Zap } from 'lucide-react'
 
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
@@ -21,6 +21,8 @@ export default function AdminDashboard() {
   const [linkedinForm, setLinkedinForm] = useState({ titulo: '', descricao: '', categoria: 'Tecnologia', link: '', empresa: '', localizacao: 'Luanda' })
   const [editingLinkedinId, setEditingLinkedinId] = useState<string | null>(null)
   const [linkedinFilterCat, setLinkedinFilterCat] = useState('all')
+  const [paymentRequests, setPaymentRequests] = useState<any[]>([])
+  const [quickJobs, setQuickJobs] = useState<any[]>([])
   const router = useRouter()
 
   const LINKEDIN_CATEGORIAS = ['Tecnologia', 'Finanças', 'Engenharia', 'Saúde', 'Marketing', 'Direito', 'Petróleo & Gás', 'Educação', 'Administração', 'Logística', 'Hotelaria', 'Construção', 'RH', 'Design', 'Outro']
@@ -39,6 +41,16 @@ export default function AdminDashboard() {
     const { data: cands } = await supabase.from('candidaturas').select('*')
     const { data: subsRaw } = await supabase.from('subscriptions').select('*')
     const { data: ljobs } = await supabase.from('linkedin_jobs').select('*').order('created_at', { ascending: false })
+    const { data: payReqs } = await supabase.from('payment_requests').select('*').order('created_at', { ascending: false })
+    const { data: qjobs } = await supabase.from('quick_jobs').select('*').order('created_at', { ascending: false })
+
+    // Enrich payment requests
+    const enrichedPayReqs = (payReqs || []).map((p: any) => {
+      const u = (users || []).find((u: any) => u.id === p.user_id)
+      return { ...p, user: u ? { nome: u.nome, email: u.email } : null }
+    })
+    setPaymentRequests(enrichedPayReqs)
+    setQuickJobs(qjobs || [])
 
     setAllUsers(users || [])
     // Enrich subscriptions with user data
@@ -89,6 +101,33 @@ export default function AdminDashboard() {
 
   const sendPaymentReminder = (email: string) => {
     alert(`Lembrete de pagamento enviado para ${email}:\n\nMulticaixa Express: 926 115 429\nIBAN: 0005.0000.0626.9321.1011.5\nValor: 1.000 Kz/mês`)
+  }
+
+  const approvePayment = async (reqId: string, userId: string) => {
+    const expiresAt = new Date()
+    expiresAt.setDate(expiresAt.getDate() + 3)
+    await supabase.from('payment_requests').update({
+      status: 'approved',
+      reviewed_at: new Date().toISOString(),
+      premium_expires_at: expiresAt.toISOString(),
+    }).eq('id', reqId)
+    await supabase.from('users').update({ premium: true }).eq('id', userId)
+    loadData()
+  }
+
+  const rejectPayment = async (reqId: string) => {
+    const motivo = prompt('Motivo da rejeição (opcional):')
+    await supabase.from('payment_requests').update({
+      status: 'rejected',
+      reviewed_at: new Date().toISOString(),
+    }).eq('id', reqId)
+    loadData()
+  }
+
+  const deleteQuickJob = async (id: string) => {
+    if (!confirm('Remover este trabalho rápido?')) return
+    await supabase.from('quick_jobs').delete().eq('id', id)
+    loadData()
   }
 
   const handleLinkedinSubmit = async (e: React.FormEvent) => {
@@ -157,7 +196,9 @@ export default function AdminDashboard() {
                 { key: 'home', icon: Shield, label: 'Início' },
                 { key: 'recrutadores', icon: UserCheck, label: 'Aprovar Recrutadores' },
                 { key: 'vagas', icon: Briefcase, label: 'Aprovar Vagas' },
+                { key: 'pagamentos', icon: Wallet, label: 'Pagamentos' },
                 { key: 'linkedin', icon: Linkedin, label: 'LinkedIn Jobs' },
+                { key: 'trabalho_rapido', icon: Zap, label: 'Trabalho Rápido' },
                 { key: 'utilizadores', icon: Users, label: 'Utilizadores' },
                 { key: 'subscricoes', icon: CreditCard, label: 'Subscrições' },
               ].map(item => {
@@ -219,7 +260,9 @@ export default function AdminDashboard() {
             { key: 'home', icon: Shield, label: 'Início' },
             { key: 'recrutadores', icon: UserCheck, label: 'Aprovar Recrutadores', badge: pendentes.length },
             { key: 'vagas', icon: Briefcase, label: 'Aprovar Vagas', badge: vagasPendentes.length },
+            { key: 'pagamentos', icon: Wallet, label: 'Pagamentos', badge: paymentRequests.filter(p => p.status === 'pending').length },
             { key: 'linkedin', icon: Linkedin, label: 'LinkedIn Jobs', badge: linkedinJobs.length },
+            { key: 'trabalho_rapido', icon: Zap, label: 'Trabalho Rápido', badge: 0 },
             { key: 'utilizadores', icon: Users, label: 'Utilizadores' },
             { key: 'subscricoes', icon: CreditCard, label: 'Subscrições' },
           ].map(item => {
@@ -534,6 +577,80 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {activeTab === 'pagamentos' && (
+          <div>
+            <h2 className="text-lg font-bold text-ms-dark mb-4">Pedidos de Pagamento</h2>
+            <p className="text-xs text-ms-gray mb-4">{paymentRequests.filter(p => p.status === 'pending').length} pendentes</p>
+            {paymentRequests.length === 0 ? (
+              <div className="bg-ms-surface rounded-xl p-8 text-center">
+                <p className="text-sm text-ms-gray">Nenhum pedido de pagamento</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {paymentRequests.map((req: any) => (
+                  <div key={req.id} className="bg-ms-surface rounded-xl p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <p className="text-sm font-medium text-ms-dark">{req.user?.nome || req.user?.email || 'Utilizador'}</p>
+                        <p className="text-xs text-ms-gray">{req.user?.email} • {new Date(req.created_at).toLocaleDateString('pt-AO')}</p>
+                      </div>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                        req.status === 'pending' ? 'bg-amber-100 text-amber-700' :
+                        req.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                      }`}>{req.status === 'pending' ? 'Pendente' : req.status === 'approved' ? 'Aprovado' : 'Rejeitado'}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-ms-gray mb-2">
+                      <span>Valor: <strong>{req.amount} Kz</strong></span>
+                      <span>Plano: {req.plan}</span>
+                      {req.transaction_reference && <span>Ref: {req.transaction_reference}</span>}
+                    </div>
+                    {req.proof_file_url && (
+                      <a href={req.proof_file_url} target="_blank" rel="noopener noreferrer" className="text-xs text-ms-blue hover:underline mb-2 block">Ver comprovativo</a>
+                    )}
+                    {req.status === 'pending' && (
+                      <div className="flex gap-2 mt-2">
+                        <button onClick={() => approvePayment(req.id, req.user_id)} className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700"><CheckCircle size={12} /> Aprovar</button>
+                        <button onClick={() => rejectPayment(req.id)} className="flex items-center gap-1 px-3 py-1.5 bg-red-500 text-white text-xs rounded-lg hover:bg-red-600"><XCircle size={12} /> Rejeitar</button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'trabalho_rapido' && (
+          <div>
+            <h2 className="text-lg font-bold text-ms-dark mb-4">Moderação — Trabalho Rápido</h2>
+            <p className="text-xs text-ms-gray mb-4">{quickJobs.length} publicações</p>
+            {quickJobs.length === 0 ? (
+              <div className="bg-ms-surface rounded-xl p-8 text-center">
+                <p className="text-sm text-ms-gray">Nenhum trabalho rápido publicado</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {quickJobs.map((job: any) => (
+                  <div key={job.id} className="bg-ms-surface rounded-xl p-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 font-medium">{job.categoria}</span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${job.status === 'aberto' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{job.status}</span>
+                        </div>
+                        <p className="text-sm font-medium text-ms-dark">{job.titulo}</p>
+                        <p className="text-xs text-ms-gray">{job.localizacao} • {job.valor_kz} Kz/{job.tipo_pagamento} • {job.duracao_estimada}</p>
+                        <p className="text-xs text-ms-gray">Tel: {job.contacto_telefone}</p>
+                      </div>
+                      <button onClick={() => deleteQuickJob(job.id)} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg"><Trash2 size={14} /></button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === 'subscricoes' && (
           <div>
             <h2 className="text-lg font-bold text-ms-dark mb-4">Subscrições</h2>
@@ -570,7 +687,7 @@ export default function AdminDashboard() {
             { key: 'home', icon: Shield, label: 'Início' },
             { key: 'recrutadores', icon: UserCheck, label: 'Aprovar' },
             { key: 'vagas', icon: Briefcase, label: 'Vagas' },
-            { key: 'linkedin', icon: Linkedin, label: 'LinkedIn' },
+            { key: 'pagamentos', icon: Wallet, label: 'Pagam.' },
             { key: 'utilizadores', icon: Users, label: 'Users' },
           ].map(item => {
             const Icon = item.icon

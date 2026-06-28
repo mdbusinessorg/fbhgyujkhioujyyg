@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
+import SplashScreen from '@/components/SplashScreen'
 
 export const metadata: Metadata = {
   title: 'MÔ SALO — Encontre o Seu Emprego Ideal em Angola',
@@ -47,6 +48,7 @@ export default function RootLayout({
         <link rel="apple-touch-startup-image" href="/icons/icon-512x512.png" />
       </head>
       <body>
+        <SplashScreen />
         {children}
         <script
           dangerouslySetInnerHTML={{

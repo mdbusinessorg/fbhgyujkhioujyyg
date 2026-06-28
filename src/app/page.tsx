@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Search, SlidersHorizontal, Heart, Bell, Menu, X, Briefcase, Home as HomeIcon, User, LogOut, Settings, FileText, Star, MapPin, Monitor, Banknote, Stethoscope, Megaphone, Scale, GraduationCap, HardHat, Wrench, Linkedin, ExternalLink } from 'lucide-react'
+import { Search, SlidersHorizontal, Heart, Bell, Menu, X, Briefcase, Home as HomeIcon, User, LogOut, Settings, FileText, Star, MapPin, Monitor, Banknote, Stethoscope, Megaphone, Scale, GraduationCap, HardHat, Wrench, Linkedin, ExternalLink, MessageSquare, Zap, Users } from 'lucide-react'
 import InstallPWA from '@/components/InstallPWA'
 
 const CATEGORIAS_HOME = [
@@ -113,6 +113,15 @@ export default function HomePage() {
                   <Link href={`/dashboard/${userRole}/?tab=perfil`} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface" onClick={() => setShowMenu(false)}>
                     <User size={18} /> Perfil
                   </Link>
+                  <Link href="/pessoas/" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface" onClick={() => setShowMenu(false)}>
+                    <Users size={18} /> Pessoas
+                  </Link>
+                  <Link href="/mensagens/" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface" onClick={() => setShowMenu(false)}>
+                    <MessageSquare size={18} /> Mensagens
+                  </Link>
+                  <Link href="/trabalho-rapido/" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-orange-500 hover:bg-orange-50" onClick={() => setShowMenu(false)}>
+                    <Zap size={18} /> Trabalho Rápido
+                  </Link>
                   <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-ms-red hover:bg-red-50">
                     <LogOut size={18} /> Terminar Sessão
                   </button>
@@ -180,18 +189,32 @@ export default function HomePage() {
         {/* Quick Actions */}
         <section className="mb-6">
           <div className="grid grid-cols-3 gap-3">
-            <Link href={isLoggedIn ? `/dashboard/${userRole}/` : '/auth/login/'} className="bg-ms-surface rounded-xl p-4 text-center hover:shadow-sm transition-shadow">
-              <User size={24} className="text-ms-blue mx-auto mb-2" />
-              <p className="text-xs font-medium text-ms-dark">Entrar</p>
-            </Link>
+            {isLoggedIn ? (
+              <Link href={`/dashboard/${userRole}/`} className="bg-ms-surface rounded-xl p-4 text-center hover:shadow-sm transition-shadow">
+                <User size={24} className="text-ms-blue mx-auto mb-2" />
+                <p className="text-xs font-medium text-ms-dark">Meu Perfil</p>
+              </Link>
+            ) : (
+              <Link href="/auth/login/" className="bg-ms-surface rounded-xl p-4 text-center hover:shadow-sm transition-shadow">
+                <User size={24} className="text-ms-blue mx-auto mb-2" />
+                <p className="text-xs font-medium text-ms-dark">Entrar</p>
+              </Link>
+            )}
             <Link href="/vagas/" className="bg-ms-surface rounded-xl p-4 text-center hover:shadow-sm transition-shadow">
               <Briefcase size={24} className="text-ms-blue mx-auto mb-2" />
               <p className="text-xs font-medium text-ms-dark">Ver Vagas</p>
             </Link>
-            <Link href="/auth/registar/" className="bg-ms-surface rounded-xl p-4 text-center hover:shadow-sm transition-shadow">
-              <FileText size={24} className="text-ms-blue mx-auto mb-2" />
-              <p className="text-xs font-medium text-ms-dark">Registar</p>
-            </Link>
+            {isLoggedIn ? (
+              <Link href="/pessoas/" className="bg-ms-surface rounded-xl p-4 text-center hover:shadow-sm transition-shadow">
+                <Search size={24} className="text-ms-blue mx-auto mb-2" />
+                <p className="text-xs font-medium text-ms-dark">Pessoas</p>
+              </Link>
+            ) : (
+              <Link href="/auth/registar/" className="bg-ms-surface rounded-xl p-4 text-center hover:shadow-sm transition-shadow">
+                <FileText size={24} className="text-ms-blue mx-auto mb-2" />
+                <p className="text-xs font-medium text-ms-dark">Registar</p>
+              </Link>
+            )}
           </div>
         </section>
 
@@ -431,6 +454,9 @@ export default function HomePage() {
           <Link href="/vagas/" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface mb-1">
             <Search size={18} /> Pesquisar
           </Link>
+          <Link href="/trabalho-rapido/" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-orange-500 hover:bg-orange-50 mb-1">
+            <Zap size={18} /> Trabalho Rápido
+          </Link>
           {isLoggedIn ? (
             <>
               <Link href={`/dashboard/${userRole}/`} className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface mb-1">
@@ -438,6 +464,12 @@ export default function HomePage() {
               </Link>
               <Link href={`/dashboard/${userRole}/?tab=perfil`} className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface mb-1">
                 <User size={18} /> Perfil
+              </Link>
+              <Link href="/pessoas/" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface mb-1">
+                <Users size={18} /> Pessoas
+              </Link>
+              <Link href="/mensagens/" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface mb-1">
+                <MessageSquare size={18} /> Mensagens
               </Link>
             </>
           ) : (
