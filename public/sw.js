@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mosalo-v1';
+const CACHE_NAME = 'mosalo-v3';
 const STATIC_ASSETS = [
   '/',
   '/offline.html',
@@ -30,8 +30,13 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
-  // Network-first for API calls and auth
-  if (event.request.url.includes('supabase.co') || event.request.url.includes('/auth/')) {
+  // Network-only for API/function calls, supabase and auth (never cache dynamic data)
+  if (
+    event.request.url.includes('supabase.co') ||
+    event.request.url.includes('/auth/') ||
+    event.request.url.includes('/api/') ||
+    event.request.url.includes('/.netlify/')
+  ) {
     event.respondWith(fetch(event.request));
     return;
   }
