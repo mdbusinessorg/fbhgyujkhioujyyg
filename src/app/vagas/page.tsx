@@ -31,24 +31,41 @@ export default function VagasPage() {
   const [activeFilter, setActiveFilter] = useState('Todas')
   const [source, setSource] = useState<'mosalo' | 'externas'>('mosalo')
   const [externalJobs, setExternalJobs] = useState<CareerJetJob[]>([])
+  const [extLocation, setExtLocation] = useState('Luanda, Angola')
+  const [extPage, setExtPage] = useState(1)
+  const [extPages, setExtPages] = useState(1)
   const [loadingExternal, setLoadingExternal] = useState(false)
   const [externalError, setExternalError] = useState('')
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [userRole, setUserRole] = useState('candidato')
 
   useEffect(() => {
-    const loadVagas = async () => {
+    const init = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        setIsLoggedIn(true)
+        const { data } = await supabase.from('users').select('role, nome').eq('email', session.user.email).single()
+        if (data) {
+          setUserRole(data.role)
+        }
+      }
+
       const { data } = await supabase.from('vagas').select('*').eq('status', 'aberta').order('is_prioritaria', { ascending: false }).order('created_at', { ascending: false })
       if (data) {
         setVagas(data)
       }
     }
-    loadVagas()
+    init()
   }, [])
 
-  const loadExternalJobs = async (kw?: string) => {
+  const loadExternalJobs = async (kw?: string, location?: string, page = 1) => {
     setLoadingExternal(true)
     setExternalError('')
     const keywords = (kw ?? searchQuery).trim() || (activeFilter !== 'Todas' ? activeFilter : 'emprego')
-    const { jobs, error } = await fetchCareerJet(keywords, 'Angola')
+    const nextLocation = (location ?? extLocation).trim() || 'Luanda, Angola'
+    const { jobs, error, pages } = await fetchCareerJet(keywords, nextLocation, page)
+    setExtPage(page)
+    setExtPages(Number(pages) || 1)
     if (error || jobs.length === 0) {
       setExternalError(error ? 'Não foi possível carregar vagas externas agora.' : 'Sem vagas externas para esta pesquisa.')
       setExternalJobs([])
@@ -60,7 +77,7 @@ export default function VagasPage() {
 
   useEffect(() => {
     if (source === 'externas' && externalJobs.length === 0 && !loadingExternal && !externalError) {
-      loadExternalJobs()
+      loadExternalJobs(undefined, extLocation, 1)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source])
@@ -162,9 +179,27 @@ export default function VagasPage() {
                 <Globe size={16} className="text-ms-blue" />
                 <h2 className="text-sm font-semibold text-ms-dark">Vagas de toda a web</h2>
               </div>
-              <button onClick={() => loadExternalJobs()} className="text-xs text-ms-blue font-medium">Actualizar</button>
+              <button onClick={() => loadExternalJobs(undefined, extLocation, 1)} className="text-xs text-ms-blue font-medium">Actualizar</button>
             </div>
             <p className="text-xs text-ms-gray mb-4">Resultados agregados via CareerJet. Ao candidatar, abre o site original.</p>
+            <div className="flex items-center gap-2 bg-ms-surface rounded-full px-4 py-3 mb-4 border-2 border-ms-blue/10 focus-within:border-ms-blue">
+              <MapPin size={18} className="text-ms-gray flex-shrink-0" />
+              <input
+                type="text"
+                placeholder="Localização"
+                value={extLocation}
+                onChange={(e) => {
+                  setExtLocation(e.target.value)
+                  setExtPage(1)
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    loadExternalJobs(undefined, e.currentTarget.value, 1)
+                  }
+                }}
+                className="flex-1 bg-transparent outline-none text-sm text-ms-dark placeholder:text-ms-gray"
+              />
+            </div>
 
             {loadingExternal ? (
               <div className="flex justify-center py-12">
@@ -174,33 +209,63 @@ export default function VagasPage() {
               <div className="text-center py-12">
                 <Globe size={32} className="text-ms-gray mx-auto mb-3" />
                 <p className="text-sm text-ms-gray">{externalError}</p>
-                <button onClick={() => loadExternalJobs('emprego')} className="text-sm text-ms-blue font-medium mt-2">Tentar novamente</button>
+                <button onClick={() => loadExternalJobs(undefined, extLocation, 1)} className="text-sm text-ms-blue font-medium mt-2">Tentar novamente</button>
               </div>
             ) : (
-              <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
-                {externalJobs.map((j, i) => (
-                  <a key={i} href={j.url} target="_blank" rel="noopener noreferrer" className="block">
-                    <div className="bg-white border border-ms-border rounded-xl p-4 flex items-start gap-3 hover:shadow-md hover:border-ms-blue/30 transition-all">
-                      <div className="w-10 h-10 bg-ms-blue/5 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Building2 size={16} className="text-ms-blue" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-semibold text-ms-dark line-clamp-2">{j.title}</h3>
-                        {j.company && <p className="text-xs text-ms-gray mt-0.5">{j.company}</p>}
-                        <p className="text-xs text-ms-gray mt-1 line-clamp-2">{stripHtml(j.description)}</p>
-                        <div className="flex items-center gap-2 mt-2 flex-wrap">
-                          {j.locations && <span className="inline-flex items-center gap-0.5 text-[11px] text-ms-gray"><MapPin size={10} /> {j.locations}</span>}
-                          {j.salary && <span className="text-[11px] font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">{j.salary}</span>}
-                          <span className="text-[10px] text-ms-gray bg-ms-surface px-2 py-0.5 rounded-full">{j.source}</span>
+              <>
+                <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
+                  {externalJobs.map((j, i) => (
+                    <a key={i} href={j.url} target="_blank" rel="noopener noreferrer" className="block">
+                      <div className="bg-white border border-ms-border rounded-xl p-4 flex items-start gap-3 hover:shadow-md hover:border-ms-blue/30 transition-all">
+                        <div className="w-10 h-10 bg-ms-blue/5 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Building2 size={16} className="text-ms-blue" />
                         </div>
-                        <div className="flex items-center justify-end mt-2">
-                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-ms-blue">Ver vaga <ExternalLink size={11} /></span>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-sm font-semibold text-ms-dark line-clamp-2">{j.title}</h3>
+                          {j.company && <p className="text-xs text-ms-gray mt-0.5">{j.company}</p>}
+                          <p className="text-xs text-ms-gray mt-1 line-clamp-2">{stripHtml(j.description)}</p>
+                          <div className="flex items-center gap-2 mt-2 flex-wrap">
+                            {j.locations && <span className="inline-flex items-center gap-0.5 text-[11px] text-ms-gray"><MapPin size={10} /> {j.locations}</span>}
+                            {j.salary && <span className="text-[11px] font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">{j.salary}</span>}
+                            <span className="text-[10px] text-ms-gray bg-ms-surface px-2 py-0.5 rounded-full">{j.source}</span>
+                          </div>
+                          <div className="flex items-center justify-end mt-2">
+                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-ms-blue">Ver vaga <ExternalLink size={11} /></span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </a>
-                ))}
-              </div>
+                    </a>
+                  ))}
+                </div>
+                {extPages > 1 && (
+                  <div className="flex items-center justify-between gap-3 mt-4">
+                    <button
+                      onClick={() => {
+                        if (extPage > 1) {
+                          window.scrollTo({ top: 0, behavior: 'smooth' })
+                          loadExternalJobs(undefined, extLocation, extPage - 1)
+                        }
+                      }}
+                      disabled={extPage <= 1 || loadingExternal}
+                      className="flex-1 bg-ms-surface text-ms-dark border border-ms-border rounded-full py-2.5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Anterior
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (extPage < extPages) {
+                          window.scrollTo({ top: 0, behavior: 'smooth' })
+                          loadExternalJobs(undefined, extLocation, extPage + 1)
+                        }
+                      }}
+                      disabled={extPage >= extPages || loadingExternal}
+                      className="flex-1 bg-ms-blue text-white rounded-full py-2.5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Próxima
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </section>
         )}
@@ -308,11 +373,11 @@ export default function VagasPage() {
             <Search size={22} className="text-ms-blue" />
             <span className="text-[10px] text-ms-blue font-medium">Pesquisar</span>
           </Link>
-          <Link href="/auth/login/" className="flex flex-col items-center gap-0.5 py-1">
+          <Link href={isLoggedIn ? `/dashboard/${userRole}/` : '/auth/login/'} className="flex flex-col items-center gap-0.5 py-1">
             <Briefcase size={22} className="text-gray-400" />
             <span className="text-[10px] text-gray-400">Dashboard</span>
           </Link>
-          <Link href="/auth/login/" className="flex flex-col items-center gap-0.5 py-1">
+          <Link href={isLoggedIn ? `/dashboard/${userRole}/?tab=perfil` : '/auth/login/'} className="flex flex-col items-center gap-0.5 py-1">
             <User size={22} className="text-gray-400" />
             <span className="text-[10px] text-gray-400">Perfil</span>
           </Link>

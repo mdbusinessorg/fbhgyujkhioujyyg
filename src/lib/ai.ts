@@ -21,6 +21,12 @@ export interface CareerJetJob {
   source: string
 }
 
+export interface CareerJetResponse {
+  jobs: CareerJetJob[]
+  pages?: number
+  error?: string
+}
+
 export async function improveCV(text: string, vaga?: Vaga): Promise<{ result: string; error?: string }> {
   try {
     const res = await fetch('/api/ai-cv', {
@@ -67,12 +73,18 @@ export async function matchCandidate(vaga: Vaga, candidato: Record<string, unkno
   }
 }
 
-export async function fetchCareerJet(keywords: string, location = 'Angola', page = 1): Promise<{ jobs: CareerJetJob[]; error?: string }> {
+export async function fetchCareerJet(keywords: string, location = 'Luanda, Angola', page = 1): Promise<CareerJetResponse> {
   try {
-    const params = new URLSearchParams({ keywords, location, page: String(page) })
-    const res = await fetch(`/api/careerjet?${params.toString()}`)
+    const params = new URLSearchParams({
+      keywords,
+      location,
+      page: String(page),
+      page_size: '20',
+      sort: 'date',
+    })
+    const res = await fetch(`/api/vagas?${params.toString()}`)
     return await res.json()
   } catch (err) {
-    return { jobs: [], error: String(err) }
+    return { jobs: [], pages: 1, error: String(err) }
   }
 }
