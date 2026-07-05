@@ -33,3 +33,17 @@
   background: #d1d5db;
   border-radius: 3px;
 }
+
+/* Rendered HTML for aggregated external job descriptions */
+.external-job-desc h2, .external-job-desc h3, .external-job-desc h4 {
+  font-weight: 600;
+  color: #1f2937;
+  margin: 1rem 0 0.5rem;
+  font-size: 0.95rem;
+}
+.external-job-desc p { margin: 0.5rem 0; }
+.external-job-desc ul, .external-job-desc ol { margin: 0.5rem 0; padding-left: 1.25rem; }
+.external-job-desc ul { list-style: disc; }
+.external-job-desc ol { list-style: decimal; }
+.external-job-desc li { margin: 0.25rem 0; }
+.external-job-desc strong, .external-job-desc b { color: #1f2937; font-weight: 600; }

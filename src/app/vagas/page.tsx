@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { Search, SlidersHorizontal, Heart, Briefcase, ArrowLeft, Home as HomeIcon, User, Star, MapPin, Globe, ExternalLink, Building2 } from 'lucide-react'
-import { fetchCareerJet, CareerJetJob } from '@/lib/ai'
+import { Search, SlidersHorizontal, Heart, Briefcase, ArrowLeft, Home as HomeIcon, User, Star, MapPin, Globe, Building2 } from 'lucide-react'
+
+const EXT_PAGE_SIZE = 20
 
 const CATEGORIAS = [
   { key: 'Todas', label: 'Todas' },
@@ -30,10 +31,9 @@ export default function VagasPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeFilter, setActiveFilter] = useState('Todas')
   const [source, setSource] = useState<'mosalo' | 'externas'>('mosalo')
-  const [externalJobs, setExternalJobs] = useState<CareerJetJob[]>([])
-  const [extLocation, setExtLocation] = useState('Luanda, Angola')
+  const [externalJobs, setExternalJobs] = useState<any[]>([])
   const [extPage, setExtPage] = useState(1)
-  const [extPages, setExtPages] = useState(1)
+  const [extCount, setExtCount] = useState(0)
   const [loadingExternal, setLoadingExternal] = useState(false)
   const [externalError, setExternalError] = useState('')
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -58,29 +58,40 @@ export default function VagasPage() {
     init()
   }, [])
 
-  const loadExternalJobs = async (kw?: string, location?: string, page = 1) => {
+  const loadExternalJobs = async (page = 1) => {
     setLoadingExternal(true)
     setExternalError('')
-    const keywords = (kw ?? searchQuery).trim() || (activeFilter !== 'Todas' ? activeFilter : 'emprego')
-    const nextLocation = (location ?? extLocation).trim() || 'Luanda, Angola'
-    const { jobs, error, pages } = await fetchCareerJet(keywords, nextLocation, page)
+    let q = supabase.from('external_jobs').select('*', { count: 'exact' }).order('posted_at', { ascending: false, nullsFirst: false })
+    const kw = searchQuery.trim()
+    if (kw) q = q.ilike('title', `%${kw}%`)
+    if (activeFilter !== 'Todas') {
+      q = q.eq('category', activeFilter === 'TI' ? 'Tecnologia' : activeFilter)
+    }
+    const from = (page - 1) * EXT_PAGE_SIZE
+    q = q.range(from, from + EXT_PAGE_SIZE - 1)
+    const { data, error, count } = await q
     setExtPage(page)
-    setExtPages(Number(pages) || 1)
-    if (error || jobs.length === 0) {
-      setExternalError(error ? 'Não foi possível carregar vagas externas agora.' : 'Sem vagas externas para esta pesquisa.')
+    setExtCount(count || 0)
+    if (error) {
+      setExternalError('Não foi possível carregar vagas agora.')
+      setExternalJobs([])
+    } else if (!data || data.length === 0) {
+      setExternalError('Ainda não há vagas para esta pesquisa. Volta em breve — actualizamos diariamente.')
       setExternalJobs([])
     } else {
-      setExternalJobs(jobs)
+      setExternalJobs(data)
     }
     setLoadingExternal(false)
   }
 
   useEffect(() => {
-    if (source === 'externas' && externalJobs.length === 0 && !loadingExternal && !externalError) {
-      loadExternalJobs(undefined, extLocation, 1)
+    if (source === 'externas') {
+      loadExternalJobs(1)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [source])
+  }, [source, activeFilter])
+
+  const extPages = Math.max(1, Math.ceil(extCount / EXT_PAGE_SIZE))
 
   const stripHtml = (html: string) => (html || '').replace(/<[^>]*>/g, '').trim()
 
@@ -131,6 +142,7 @@ export default function VagasPage() {
             placeholder="título da vaga ou palavra-chave"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && source === 'externas') loadExternalJobs(1) }}
             className="flex-1 bg-transparent outline-none text-sm text-ms-dark placeholder:text-ms-gray"
           />
           <button className="w-8 h-8 bg-ms-blue rounded-lg flex items-center justify-center flex-shrink-0">
@@ -155,7 +167,6 @@ export default function VagasPage() {
         </div>
 
         {/* Category chips */}
-        {source === 'mosalo' && (
         <div className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-hide">
           {CATEGORIAS.map(f => (
             <button
@@ -169,37 +180,18 @@ export default function VagasPage() {
             </button>
           ))}
         </div>
-        )}
 
-        {/* External jobs (CareerJet) */}
+        {/* External jobs (aggregated Angolan boards, stored natively) */}
         {source === 'externas' && (
           <section className="mb-6">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Globe size={16} className="text-ms-blue" />
-                <h2 className="text-sm font-semibold text-ms-dark">Vagas de toda a web</h2>
+                <h2 className="text-sm font-semibold text-ms-dark">Vagas de Angola</h2>
               </div>
-              <button onClick={() => loadExternalJobs(undefined, extLocation, 1)} className="text-xs text-ms-blue font-medium">Actualizar</button>
+              <button onClick={() => loadExternalJobs(1)} className="text-xs text-ms-blue font-medium">Actualizar</button>
             </div>
-            <p className="text-xs text-ms-gray mb-4">Resultados agregados via CareerJet. Ao candidatar, abre o site original.</p>
-            <div className="flex items-center gap-2 bg-ms-surface rounded-full px-4 py-3 mb-4 border-2 border-ms-blue/10 focus-within:border-ms-blue">
-              <MapPin size={18} className="text-ms-gray flex-shrink-0" />
-              <input
-                type="text"
-                placeholder="Localização"
-                value={extLocation}
-                onChange={(e) => {
-                  setExtLocation(e.target.value)
-                  setExtPage(1)
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    loadExternalJobs(undefined, e.currentTarget.value, 1)
-                  }
-                }}
-                className="flex-1 bg-transparent outline-none text-sm text-ms-dark placeholder:text-ms-gray"
-              />
-            </div>
+            <p className="text-xs text-ms-gray mb-4">Lê a vaga completa aqui. Ao candidatar, vais direto à fonte oficial da empresa ou ao LinkedIn.</p>
 
             {loadingExternal ? (
               <div className="flex justify-center py-12">
@@ -209,13 +201,13 @@ export default function VagasPage() {
               <div className="text-center py-12">
                 <Globe size={32} className="text-ms-gray mx-auto mb-3" />
                 <p className="text-sm text-ms-gray">{externalError}</p>
-                <button onClick={() => loadExternalJobs(undefined, extLocation, 1)} className="text-sm text-ms-blue font-medium mt-2">Tentar novamente</button>
+                <button onClick={() => loadExternalJobs(1)} className="text-sm text-ms-blue font-medium mt-2">Tentar novamente</button>
               </div>
             ) : (
               <>
                 <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
-                  {externalJobs.map((j, i) => (
-                    <a key={i} href={j.url} target="_blank" rel="noopener noreferrer" className="block">
+                  {externalJobs.map((j) => (
+                    <Link key={j.id} href={`/vagas/externa/?id=${j.id}`} className="block">
                       <div className="bg-white border border-ms-border rounded-xl p-4 flex items-start gap-3 hover:shadow-md hover:border-ms-blue/30 transition-all">
                         <div className="w-10 h-10 bg-ms-blue/5 rounded-lg flex items-center justify-center flex-shrink-0">
                           <Building2 size={16} className="text-ms-blue" />
@@ -223,18 +215,17 @@ export default function VagasPage() {
                         <div className="flex-1 min-w-0">
                           <h3 className="text-sm font-semibold text-ms-dark line-clamp-2">{j.title}</h3>
                           {j.company && <p className="text-xs text-ms-gray mt-0.5">{j.company}</p>}
-                          <p className="text-xs text-ms-gray mt-1 line-clamp-2">{stripHtml(j.description)}</p>
+                          <p className="text-xs text-ms-gray mt-1 line-clamp-2">{stripHtml(j.excerpt || j.description)}</p>
                           <div className="flex items-center gap-2 mt-2 flex-wrap">
-                            {j.locations && <span className="inline-flex items-center gap-0.5 text-[11px] text-ms-gray"><MapPin size={10} /> {j.locations}</span>}
-                            {j.salary && <span className="text-[11px] font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">{j.salary}</span>}
-                            <span className="text-[10px] text-ms-gray bg-ms-surface px-2 py-0.5 rounded-full">{j.source}</span>
+                            {j.location && <span className="inline-flex items-center gap-0.5 text-[11px] text-ms-gray"><MapPin size={10} /> {j.location}</span>}
+                            {j.category && j.category !== 'Outro' && <span className="text-[10px] text-ms-blue bg-ms-blue/10 px-2 py-0.5 rounded-full">{j.category}</span>}
                           </div>
                           <div className="flex items-center justify-end mt-2">
-                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-ms-blue">Ver vaga <ExternalLink size={11} /></span>
+                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-ms-blue">Ver detalhes</span>
                           </div>
                         </div>
                       </div>
-                    </a>
+                    </Link>
                   ))}
                 </div>
                 {extPages > 1 && (
@@ -243,7 +234,7 @@ export default function VagasPage() {
                       onClick={() => {
                         if (extPage > 1) {
                           window.scrollTo({ top: 0, behavior: 'smooth' })
-                          loadExternalJobs(undefined, extLocation, extPage - 1)
+                          loadExternalJobs(extPage - 1)
                         }
                       }}
                       disabled={extPage <= 1 || loadingExternal}
@@ -251,11 +242,12 @@ export default function VagasPage() {
                     >
                       Anterior
                     </button>
+                    <span className="text-xs text-ms-gray self-center">{extPage}/{extPages}</span>
                     <button
                       onClick={() => {
                         if (extPage < extPages) {
                           window.scrollTo({ top: 0, behavior: 'smooth' })
-                          loadExternalJobs(undefined, extLocation, extPage + 1)
+                          loadExternalJobs(extPage + 1)
                         }
                       }}
                       disabled={extPage >= extPages || loadingExternal}
