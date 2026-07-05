@@ -3,8 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
-import { ArrowLeft, Heart, Building2, MapPin, Clock, ExternalLink, Linkedin, Send } from 'lucide-react'
+import { ArrowLeft, Heart, Building2, MapPin, Clock, Linkedin, Send } from 'lucide-react'
 
 function ExternaContent() {
   const searchParams = useSearchParams()
@@ -16,8 +15,12 @@ function ExternaContent() {
   useEffect(() => {
     const load = async () => {
       if (!jobId) { setLoading(false); return }
-      const { data } = await supabase.from('external_jobs').select('*').eq('id', jobId).single()
-      if (data) setJob(data)
+      try {
+        const res = await fetch(`/vagas-data/${encodeURIComponent(jobId)}.json`, { cache: 'no-store' })
+        if (res.ok) setJob(await res.json())
+      } catch {
+        // ignore — handled by not-found state below
+      }
       setLoading(false)
     }
     load()

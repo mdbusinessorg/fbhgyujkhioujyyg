@@ -31,9 +31,9 @@ export default function VagasPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeFilter, setActiveFilter] = useState('Todas')
   const [source, setSource] = useState<'mosalo' | 'externas'>('mosalo')
-  const [externalJobs, setExternalJobs] = useState<any[]>([])
+  const [allExternal, setAllExternal] = useState<any[]>([])
+  const [extLoaded, setExtLoaded] = useState(false)
   const [extPage, setExtPage] = useState(1)
-  const [extCount, setExtCount] = useState(0)
   const [loadingExternal, setLoadingExternal] = useState(false)
   const [externalError, setExternalError] = useState('')
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -58,40 +58,38 @@ export default function VagasPage() {
     init()
   }, [])
 
-  const loadExternalJobs = async (page = 1) => {
+  const loadExternalJobs = async () => {
+    if (extLoaded) return
     setLoadingExternal(true)
     setExternalError('')
-    let q = supabase.from('external_jobs').select('*', { count: 'exact' }).order('posted_at', { ascending: false, nullsFirst: false })
-    const kw = searchQuery.trim()
-    if (kw) q = q.ilike('title', `%${kw}%`)
-    if (activeFilter !== 'Todas') {
-      q = q.eq('category', activeFilter === 'TI' ? 'Tecnologia' : activeFilter)
-    }
-    const from = (page - 1) * EXT_PAGE_SIZE
-    q = q.range(from, from + EXT_PAGE_SIZE - 1)
-    const { data, error, count } = await q
-    setExtPage(page)
-    setExtCount(count || 0)
-    if (error) {
+    try {
+      const res = await fetch('/external-jobs.json', { cache: 'no-store' })
+      if (!res.ok) throw new Error('fetch failed')
+      const data = await res.json()
+      setAllExternal(Array.isArray(data.jobs) ? data.jobs : [])
+    } catch {
       setExternalError('Não foi possível carregar vagas agora.')
-      setExternalJobs([])
-    } else if (!data || data.length === 0) {
-      setExternalError('Ainda não há vagas para esta pesquisa. Volta em breve — actualizamos diariamente.')
-      setExternalJobs([])
-    } else {
-      setExternalJobs(data)
+      setAllExternal([])
     }
+    setExtLoaded(true)
     setLoadingExternal(false)
   }
 
   useEffect(() => {
-    if (source === 'externas') {
-      loadExternalJobs(1)
-    }
+    if (source === 'externas') loadExternalJobs()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [source, activeFilter])
+  }, [source])
 
-  const extPages = Math.max(1, Math.ceil(extCount / EXT_PAGE_SIZE))
+  useEffect(() => { setExtPage(1) }, [searchQuery, activeFilter])
+
+  const filteredExternal = allExternal.filter((j) => {
+    const kw = searchQuery.trim().toLowerCase()
+    const matchSearch = !kw || j.title?.toLowerCase().includes(kw) || j.company?.toLowerCase().includes(kw)
+    const matchCat = activeFilter === 'Todas' || j.category === (activeFilter === 'TI' ? 'Tecnologia' : activeFilter)
+    return matchSearch && matchCat
+  })
+  const extPages = Math.max(1, Math.ceil(filteredExternal.length / EXT_PAGE_SIZE))
+  const externalJobs = filteredExternal.slice((extPage - 1) * EXT_PAGE_SIZE, extPage * EXT_PAGE_SIZE)
 
   const stripHtml = (html: string) => (html || '').replace(/<[^>]*>/g, '').trim()
 
@@ -142,7 +140,7 @@ export default function VagasPage() {
             placeholder="título da vaga ou palavra-chave"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && source === 'externas') loadExternalJobs(1) }}
+            onKeyDown={(e) => { if (e.key === 'Enter' && source === 'externas') setExtPage(1) }}
             className="flex-1 bg-transparent outline-none text-sm text-ms-dark placeholder:text-ms-gray"
           />
           <button className="w-8 h-8 bg-ms-blue rounded-lg flex items-center justify-center flex-shrink-0">
@@ -189,7 +187,7 @@ export default function VagasPage() {
                 <Globe size={16} className="text-ms-blue" />
                 <h2 className="text-sm font-semibold text-ms-dark">Vagas de Angola</h2>
               </div>
-              <button onClick={() => loadExternalJobs(1)} className="text-xs text-ms-blue font-medium">Actualizar</button>
+              <button onClick={() => { setExtLoaded(false); setAllExternal([]); loadExternalJobs() }} className="text-xs text-ms-blue font-medium">Actualizar</button>
             </div>
             <p className="text-xs text-ms-gray mb-4">Lê a vaga completa aqui. Ao candidatar, vais direto à fonte oficial da empresa ou ao LinkedIn.</p>
 
@@ -201,7 +199,12 @@ export default function VagasPage() {
               <div className="text-center py-12">
                 <Globe size={32} className="text-ms-gray mx-auto mb-3" />
                 <p className="text-sm text-ms-gray">{externalError}</p>
-                <button onClick={() => loadExternalJobs(1)} className="text-sm text-ms-blue font-medium mt-2">Tentar novamente</button>
+                <button onClick={() => { setExtLoaded(false); loadExternalJobs() }} className="text-sm text-ms-blue font-medium mt-2">Tentar novamente</button>
+              </div>
+            ) : externalJobs.length === 0 ? (
+              <div className="text-center py-12">
+                <Globe size={32} className="text-ms-gray mx-auto mb-3" />
+                <p className="text-sm text-ms-gray">Sem vagas para esta pesquisa. Actualizamos diariamente.</p>
               </div>
             ) : (
               <>
@@ -234,7 +237,7 @@ export default function VagasPage() {
                       onClick={() => {
                         if (extPage > 1) {
                           window.scrollTo({ top: 0, behavior: 'smooth' })
-                          loadExternalJobs(extPage - 1)
+                          setExtPage(extPage - 1)
                         }
                       }}
                       disabled={extPage <= 1 || loadingExternal}
@@ -247,7 +250,7 @@ export default function VagasPage() {
                       onClick={() => {
                         if (extPage < extPages) {
                           window.scrollTo({ top: 0, behavior: 'smooth' })
-                          loadExternalJobs(extPage + 1)
+                          setExtPage(extPage + 1)
                         }
                       }}
                       disabled={extPage >= extPages || loadingExternal}

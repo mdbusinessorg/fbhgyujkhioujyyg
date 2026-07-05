@@ -1,19 +1,25 @@
-// Scrapes angolaemprego.com and upserts jobs into Supabase `external_jobs`.
+// Scrapes angolaemprego.com and writes the jobs as static JSON served by the site.
 // Usage:
-//   node scripts/ingest-angolaemprego.mjs --dry-run           (parse only, no DB)
-//   MAX_PAGES=30 node scripts/ingest-angolaemprego.mjs        (seed DB)
-// Env: SUPABASE_URL (default project url), SUPABASE_SERVICE_ROLE_KEY (required for DB writes)
+//   node scripts/ingest-angolaemprego.mjs --dry-run     (parse only, print samples)
+//   node scripts/ingest-angolaemprego.mjs --json        (write public/external-jobs.json + public/vagas-data/*.json)
+// Env: MAX_PAGES (default 30), START_PAGE (default 1), CONCURRENCY (default 4)
 
+import { writeFile, mkdir, rm } from 'node:fs/promises'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
 import { listPageUrls, parseJob, fetchHtml, listUrl } from './lib/angolaemprego.mjs'
 
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const ROOT = join(__dirname, '..')
+
 const DRY_RUN = process.argv.includes('--dry-run')
+const JSON_MODE = process.argv.includes('--json')
 const MAX_PAGES = parseInt(process.env.MAX_PAGES || '30', 10)
 const START_PAGE = parseInt(process.env.START_PAGE || '1', 10)
 const CONCURRENCY = parseInt(process.env.CONCURRENCY || '4', 10)
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://gwnjigmsuqasvotsksmk.supabase.co'
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+const slugOf = (url) => (url.split('/vagas/')[1] || url).replace(/[^a-z0-9-]/gi, '').slice(0, 120)
 
 async function mapPool(items, fn, concurrency) {
   const results = []
@@ -33,18 +39,16 @@ async function mapPool(items, fn, concurrency) {
   return results
 }
 
-export async function ingest({ maxPages = MAX_PAGES, startPage = START_PAGE, concurrency = CONCURRENCY, dryRun = DRY_RUN, onBatch } = {}) {
+async function scrape({ maxPages = MAX_PAGES, startPage = START_PAGE, concurrency = CONCURRENCY } = {}) {
   const seen = new Set()
-  let parsed = 0
+  const all = []
   let errors = 0
-  let upserted = 0
-  const samples = []
 
   for (let page = startPage; page < startPage + maxPages; page++) {
     let listHtml
     try {
       listHtml = await fetchHtml(listUrl(page))
-    } catch (e) {
+    } catch {
       errors++
       continue
     }
@@ -54,43 +58,59 @@ export async function ingest({ maxPages = MAX_PAGES, startPage = START_PAGE, con
 
     const jobs = (await mapPool(urls, async (u) => {
       const html = await fetchHtml(u)
-      return parseJob(html, u)
+      return { ...parseJob(html, u), id: slugOf(u) }
     }, concurrency)).filter((j) => j && !j.__error && j.title)
 
     errors += urls.length - jobs.length
-    parsed += jobs.length
-    if (samples.length < 3) samples.push(...jobs.slice(0, 3 - samples.length))
-
-    if (!dryRun && jobs.length > 0) {
-      upserted += await onBatch(jobs)
-    }
-    console.log(`page ${page}: ${urls.length} urls, ${jobs.length} parsed`)
+    all.push(...jobs)
+    console.log(`page ${page}: ${urls.length} urls, ${jobs.length} parsed (total ${all.length})`)
   }
 
-  return { parsed, errors, upserted, samples }
+  // Newest first; de-dupe by id keeping first occurrence.
+  const byId = new Map()
+  for (const j of all) if (!byId.has(j.id)) byId.set(j.id, j)
+  const unique = [...byId.values()].sort((a, b) => (b.posted_at || '').localeCompare(a.posted_at || ''))
+  return { jobs: unique, errors }
 }
 
-async function upsertBatch(client, jobs) {
-  const { error } = await client.from('external_jobs').upsert(jobs, { onConflict: 'source_url' })
-  if (error) { console.error('upsert error:', error.message); return 0 }
-  return jobs.length
+async function writeJson(jobs) {
+  const dataDir = join(ROOT, 'public', 'vagas-data')
+  await rm(dataDir, { recursive: true, force: true })
+  await mkdir(dataDir, { recursive: true })
+
+  // Slim index for the listing page.
+  const index = jobs.map((j) => ({
+    id: j.id,
+    title: j.title,
+    company: j.company,
+    location: j.location,
+    category: j.category,
+    excerpt: j.excerpt,
+    posted_at: j.posted_at,
+    has_apply: !!j.apply_url,
+  }))
+  await writeFile(join(ROOT, 'public', 'external-jobs.json'), JSON.stringify({ updated_at: new Date().toISOString(), count: index.length, jobs: index }))
+
+  // Full record per job for the detail page.
+  for (const j of jobs) {
+    await writeFile(join(dataDir, `${j.id}.json`), JSON.stringify(j))
+  }
+  console.log(`wrote public/external-jobs.json (${index.length}) + public/vagas-data/*.json`)
 }
 
 async function main() {
+  const { jobs, errors } = await scrape()
+  console.log(`\nparsed=${jobs.length} errors=${errors}`)
+
   if (DRY_RUN) {
-    const { parsed, errors, samples } = await ingest({ dryRun: true })
-    console.log(`\nDRY RUN: parsed=${parsed} errors=${errors}`)
-    console.log(JSON.stringify(samples.map((s) => ({ ...s, description: (s.description || '').slice(0, 160) + '…' })), null, 2))
+    console.log(JSON.stringify(jobs.slice(0, 3).map((s) => ({ ...s, description: (s.description || '').slice(0, 160) + '…' })), null, 2))
     return
   }
-  if (!SERVICE_KEY) {
-    console.error('SUPABASE_SERVICE_ROLE_KEY is required for DB writes.')
-    process.exit(1)
+  if (JSON_MODE) {
+    await writeJson(jobs)
+    return
   }
-  const { createClient } = await import('@supabase/supabase-js')
-  const client = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } })
-  const { parsed, errors, upserted } = await ingest({ onBatch: (jobs) => upsertBatch(client, jobs) })
-  console.log(`\nDONE: parsed=${parsed} upserted=${upserted} errors=${errors}`)
+  console.log('No output mode given. Use --json to write files or --dry-run to preview.')
 }
 
 main().catch((e) => { console.error(e); process.exit(1) })

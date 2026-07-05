@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mosalo-v3';
+const CACHE_NAME = 'mosalo-v4';
 const STATIC_ASSETS = [
   '/',
   '/offline.html',
@@ -35,7 +35,9 @@ self.addEventListener('fetch', (event) => {
     event.request.url.includes('supabase.co') ||
     event.request.url.includes('/auth/') ||
     event.request.url.includes('/api/') ||
-    event.request.url.includes('/.netlify/')
+    event.request.url.includes('/.netlify/') ||
+    event.request.url.includes('/external-jobs.json') ||
+    event.request.url.includes('/vagas-data/')
   ) {
     event.respondWith(fetch(event.request));
     return;
