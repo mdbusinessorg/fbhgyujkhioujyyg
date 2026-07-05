@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type MouseEvent } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { Search, SlidersHorizontal, Heart, Briefcase, ArrowLeft, Home as HomeIcon, User, Star, MapPin, Globe, Building2 } from 'lucide-react'
+import { useFavorites } from '@/lib/favorites'
 
 const EXT_PAGE_SIZE = 20
 
@@ -38,6 +39,7 @@ export default function VagasPage() {
   const [externalError, setExternalError] = useState('')
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userRole, setUserRole] = useState('candidato')
+  const { isFavorite, toggle } = useFavorites()
 
   useEffect(() => {
     const init = async () => {
@@ -115,6 +117,15 @@ export default function VagasPage() {
 
   const destaques = filteredVagas.filter(v => v.is_prioritaria)
   const normais = filteredVagas.filter(v => !v.is_prioritaria)
+  const primaryInternalJob = destaques[0] ?? normais[0]
+  const primaryInternalKey = primaryInternalJob ? `int:${primaryInternalJob.id}` : ''
+  const primaryInternalFavorite = primaryInternalKey ? isFavorite(primaryInternalKey) : false
+
+  const handleFavoriteToggle = (key: string) => (e: MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    toggle(key)
+  }
 
   return (
     <div className="min-h-screen bg-white pb-20 lg:pb-0">
@@ -125,8 +136,18 @@ export default function VagasPage() {
             <ArrowLeft size={20} className="text-ms-dark" />
           </Link>
           <span className="font-bold text-lg text-ms-blue">MÔ SALO</span>
-          <button>
-            <Heart size={20} className="text-ms-gray" />
+          <button
+            type="button"
+            onClick={primaryInternalKey ? handleFavoriteToggle(primaryInternalKey) : undefined}
+            disabled={!primaryInternalKey}
+            className="disabled:opacity-50"
+            aria-label={primaryInternalFavorite ? 'Remover dos favoritos' : 'Favoritar vaga'}
+          >
+            <Heart
+              size={20}
+              fill={primaryInternalFavorite ? 'currentColor' : 'none'}
+              className={primaryInternalFavorite ? 'text-red-500' : 'text-ms-gray'}
+            />
           </button>
         </div>
       </header>
@@ -300,7 +321,21 @@ export default function VagasPage() {
                       </div>
                       <div className="flex items-center justify-between mt-2">
                         <span className="text-[11px] text-ms-gray">{getTimeAgo(v.created_at)}</span>
-                        <span className="text-[11px] font-medium text-ms-blue bg-ms-blue/10 px-3 py-1 rounded-full">Candidatar</span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={handleFavoriteToggle(`int:${v.id}`)}
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white border border-amber-200"
+                            aria-label={isFavorite(`int:${v.id}`) ? 'Remover dos favoritos' : 'Favoritar vaga'}
+                          >
+                            <Heart
+                              size={14}
+                              fill={isFavorite(`int:${v.id}`) ? 'currentColor' : 'none'}
+                              className={isFavorite(`int:${v.id}`) ? 'text-red-500' : 'text-ms-gray'}
+                            />
+                          </button>
+                          <span className="text-[11px] font-medium text-ms-blue bg-ms-blue/10 px-3 py-1 rounded-full">Candidatar</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -337,7 +372,21 @@ export default function VagasPage() {
                     </div>
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-[11px] text-ms-gray">{getTimeAgo(v.created_at)}</span>
-                      <span className="text-[11px] font-medium text-ms-blue bg-ms-blue/5 px-3 py-1 rounded-full">Candidatar</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleFavoriteToggle(`int:${v.id}`)}
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white border border-ms-border"
+                          aria-label={isFavorite(`int:${v.id}`) ? 'Remover dos favoritos' : 'Favoritar vaga'}
+                        >
+                          <Heart
+                            size={14}
+                            fill={isFavorite(`int:${v.id}`) ? 'currentColor' : 'none'}
+                            className={isFavorite(`int:${v.id}`) ? 'text-red-500' : 'text-ms-gray'}
+                          />
+                        </button>
+                        <span className="text-[11px] font-medium text-ms-blue bg-ms-blue/5 px-3 py-1 rounded-full">Candidatar</span>
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, type MouseEvent } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
 import { ArrowLeft, Heart, Briefcase, MapPin, Building2, Send, Upload, MessageSquare } from 'lucide-react'
+import { useFavorites } from '@/lib/favorites'
 
 function VagaDetalheContent() {
   const searchParams = useSearchParams()
@@ -21,6 +22,7 @@ function VagaDetalheContent() {
   const [cvFile, setCvFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [respostas, setRespostas] = useState<Record<string, string>>({})
+  const { isFavorite, toggle } = useFavorites()
 
   useEffect(() => {
     const load = async () => {
@@ -104,6 +106,14 @@ function VagaDetalheContent() {
     setSending(false)
   }
 
+  const favoriteKey = vaga ? `int:${vaga.id}` : ''
+  const favorite = favoriteKey ? isFavorite(favoriteKey) : false
+  const handleFavoriteToggle = (e: MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (favoriteKey) toggle(favoriteKey)
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -132,8 +142,18 @@ function VagaDetalheContent() {
             <ArrowLeft size={20} className="text-ms-dark" />
           </button>
           <span className="font-bold text-lg text-ms-blue">MÔ SALO</span>
-          <button>
-            <Heart size={20} className="text-ms-gray" />
+          <button
+            type="button"
+            onClick={handleFavoriteToggle}
+            disabled={!favoriteKey}
+            className="disabled:opacity-50"
+            aria-label={favorite ? 'Remover dos favoritos' : 'Favoritar vaga'}
+          >
+            <Heart
+              size={20}
+              fill={favorite ? 'currentColor' : 'none'}
+              className={favorite ? 'text-red-500' : 'text-ms-gray'}
+            />
           </button>
         </div>
       </header>

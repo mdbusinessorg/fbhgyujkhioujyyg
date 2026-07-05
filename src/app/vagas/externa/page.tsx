@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, type MouseEvent } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Heart, Building2, MapPin, Clock, Linkedin, Send } from 'lucide-react'
+import { useFavorites } from '@/lib/favorites'
 
 function ExternaContent() {
   const searchParams = useSearchParams()
@@ -11,6 +12,7 @@ function ExternaContent() {
   const jobId = searchParams.get('id')
   const [job, setJob] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const { isFavorite, toggle } = useFavorites()
 
   useEffect(() => {
     const load = async () => {
@@ -56,6 +58,13 @@ function ExternaContent() {
   }
 
   const linkedinUrl = `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(job.title || '')}&location=Angola`
+  const favoriteKey = jobId ? `ext:${jobId}` : ''
+  const favorite = favoriteKey ? isFavorite(favoriteKey) : false
+  const handleFavoriteToggle = (e: MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (favoriteKey) toggle(favoriteKey)
+  }
 
   return (
     <div className="min-h-screen bg-white pb-28">
@@ -66,8 +75,18 @@ function ExternaContent() {
             <ArrowLeft size={20} className="text-ms-dark" />
           </button>
           <span className="font-bold text-lg text-ms-blue">MÔ SALO</span>
-          <button>
-            <Heart size={20} className="text-ms-gray" />
+          <button
+            type="button"
+            onClick={handleFavoriteToggle}
+            disabled={!favoriteKey}
+            className="disabled:opacity-50"
+            aria-label={favorite ? 'Remover dos favoritos' : 'Favoritar vaga'}
+          >
+            <Heart
+              size={20}
+              fill={favorite ? 'currentColor' : 'none'}
+              className={favorite ? 'text-red-500' : 'text-ms-gray'}
+            />
           </button>
         </div>
       </header>
