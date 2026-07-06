@@ -64,11 +64,35 @@ function CandidatoDashboard() {
   const [assistantLoading, setAssistantLoading] = useState(false)
   const [assistantError, setAssistantError] = useState('')
   const assistantEndRef = useRef<HTMLDivElement>(null)
+  const assistantLoadedRef = useRef(false)
   const router = useRouter()
 
   useEffect(() => {
     loadData()
   }, [])
+
+  useEffect(() => {
+    if (!userId) return
+    try {
+      const raw = window.localStorage.getItem(`mosalo_chat_${userId}`)
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed) && parsed.length > 0) setAssistantMessages(parsed)
+      }
+    } catch {
+      // ignore corrupted storage
+    }
+    assistantLoadedRef.current = true
+  }, [userId])
+
+  useEffect(() => {
+    if (!userId || !assistantLoadedRef.current) return
+    try {
+      window.localStorage.setItem(`mosalo_chat_${userId}`, JSON.stringify(assistantMessages))
+    } catch {
+      // ignore quota errors
+    }
+  }, [assistantMessages, userId])
 
   const loadData = async () => {
     const { data: { session } } = await supabase.auth.getSession()
