@@ -18,6 +18,7 @@ import {
   Globe2,
 } from 'lucide-react'
 import { useFavorites } from '@/lib/favorites'
+import VagaAssistant from '@/components/VagaAssistant'
 
 function ExternaContent() {
   const searchParams = useSearchParams()
@@ -299,6 +300,17 @@ function ExternaContent() {
 
             <div className="mt-5">
               {tabContent[activeTab]}
+            </div>
+
+            <div className="mt-5">
+              <VagaAssistant
+                titulo={job.title}
+                empresa={companyLabel}
+                localizacao={job.location}
+                area={job.category}
+                descricao={job.description}
+                requisitos={requirements}
+              />
             </div>
           </div>
         </section>
