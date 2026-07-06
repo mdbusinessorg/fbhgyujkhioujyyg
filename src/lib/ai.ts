@@ -88,3 +88,16 @@ export async function fetchCareerJet(keywords: string, location = 'Luanda, Angol
     return { jobs: [], pages: 1, error: String(err) }
   }
 }
+
+export async function chatWithAssistant(messages: Array<{ role: 'user' | 'assistant'; content: string }>, profile?: Record<string, unknown>): Promise<{ reply: string; error?: string }> {
+  try {
+    const res = await fetch('/api/ai-chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages, profile }),
+    })
+    return await res.json()
+  } catch (err) {
+    return { reply: '', error: String(err) }
+  }
+}

@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { Search, ArrowLeft, MapPin, Briefcase, MessageSquare, Eye, Filter, Users, User } from 'lucide-react'
+import { Search, ArrowLeft, MapPin, Briefcase, MessageSquare, Users, BadgeCheck, ChevronRight } from 'lucide-react'
+import UserAvatar from '@/components/UserAvatar'
 
 interface PersonResult {
   id: string
@@ -31,17 +32,15 @@ export default function PessoasPage() {
   const [results, setResults] = useState<PersonResult[]>([])
   const [loading, setLoading] = useState(false)
   const [currentUserId, setCurrentUserId] = useState('')
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { router.push('/auth/login/'); return }
-      setIsLoggedIn(true)
       const { data: u } = await supabase.from('users').select('id').eq('email', session.user.email).single()
       if (u) setCurrentUserId(u.id)
-      loadPeople('')
+      await loadPeople('')
     }
     init()
   }, [router])
@@ -68,7 +67,7 @@ export default function PessoasPage() {
 
     const enriched: PersonResult[] = users
       .filter(u => u.id !== currentUserId)
-      .filter(u => u.role !== 'admin') // admins never listed
+      .filter(u => u.role !== 'admin')
       .map(u => ({
         ...u,
         profile: profilesMap[u.id] || undefined,
@@ -93,7 +92,6 @@ export default function PessoasPage() {
 
   const startConversation = async (otherId: string) => {
     if (!currentUserId) return
-    // Check if conversation exists
     const { data: existing } = await supabase
       .from('conversations')
       .select('id')
@@ -138,7 +136,6 @@ export default function PessoasPage() {
     if (filtro === 'Talentos' && p.role !== 'candidato') return false
     if (filtro === 'Recrutadores' && p.role !== 'recrutador') return false
     if (catFiltro !== 'Todas') {
-      // category only applies to candidates
       if (p.role !== 'candidato') return false
       if (p.profile?.area !== catFiltro) return false
     }
@@ -146,48 +143,50 @@ export default function PessoasPage() {
   })
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 z-50">
-        <div className="max-w-2xl mx-auto flex items-center gap-3">
-          <Link href="/" className="p-1"><ArrowLeft size={20} className="text-gray-700" /></Link>
-          <h1 className="font-semibold text-gray-900">Pessoas</h1>
+    <div className="min-h-screen bg-ms-surface">
+      <header className="sticky top-0 z-50 border-b border-ms-border bg-white/95 backdrop-blur">
+        <div className="mx-auto flex max-w-4xl items-center gap-3 px-4 py-3">
+          <Link href="/" className="flex h-10 w-10 items-center justify-center rounded-full bg-ms-surface text-ms-dark">
+            <ArrowLeft size={20} />
+          </Link>
+          <div>
+            <p className="text-xs text-ms-gray">Diretório de talentos</p>
+            <h1 className="text-base font-semibold text-ms-dark">Pessoas</h1>
+          </div>
         </div>
       </header>
 
-      <div className="max-w-2xl mx-auto p-4">
-        {/* Search */}
-        <div className="flex items-center gap-2 bg-white rounded-xl px-4 py-3 mb-4 border border-gray-100">
-          <Search size={18} className="text-gray-400" />
+      <main className="mx-auto max-w-4xl px-4 pb-8 pt-4">
+        <div className="mb-4 flex items-center gap-3 rounded-full border border-ms-border bg-white px-4 py-3 shadow-sm focus-within:border-ms-blue">
+          <Search size={18} className="flex-shrink-0 text-ms-gray" />
           <input
             type="text"
             placeholder="Pesquisar por nome, competência ou cidade..."
             value={query}
             onChange={(e) => handleSearch(e.target.value)}
-            className="flex-1 bg-transparent outline-none text-sm text-gray-900 placeholder:text-gray-400"
+            className="min-w-0 flex-1 bg-transparent text-sm text-ms-dark outline-none placeholder:text-ms-gray"
           />
         </div>
 
-        {/* Filters */}
-        <div className="flex gap-2 mb-3">
+        <div className="mb-3 flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
           {FILTROS.map(f => (
             <button
               key={f}
               onClick={() => setFiltro(f)}
-              className={`px-4 py-2 rounded-xl text-xs font-medium transition-colors ${filtro === f ? 'bg-[#1A56FF] text-white' : 'bg-white text-gray-600 border border-gray-100 hover:bg-gray-50'}`}
+              className={`whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition-colors ${filtro === f ? 'border-ms-blue bg-ms-blue text-white' : 'border-ms-border bg-white text-ms-gray'}`}
             >
               {f}
             </button>
           ))}
         </div>
 
-        {/* Category filter (candidates) */}
         {filtro !== 'Recrutadores' && categorias.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
+          <div className="mb-5 flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
             {['Todas', ...categorias].map(c => (
               <button
                 key={c}
                 onClick={() => setCatFiltro(c)}
-                className={`px-3 py-1.5 rounded-full text-[11px] font-medium whitespace-nowrap transition-colors ${catFiltro === c ? 'bg-[#6C47FF] text-white' : 'bg-white text-gray-500 border border-gray-100'}`}
+                className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-[11px] font-medium transition-colors ${catFiltro === c ? 'border-ms-blue bg-ms-blue text-white' : 'border-ms-border bg-white text-ms-gray'}`}
               >
                 {c}
               </button>
@@ -195,77 +194,84 @@ export default function PessoasPage() {
           </div>
         )}
 
-        {/* Results */}
         {loading ? (
           <div className="flex justify-center py-12">
-            <div className="w-8 h-8 border-2 border-[#1A56FF] border-t-transparent rounded-full animate-spin" />
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-ms-blue border-t-transparent" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-12">
-            <Users size={40} className="text-gray-300 mx-auto mb-3" />
-            <p className="text-sm text-gray-500">Nenhuma pessoa encontrada</p>
+          <div className="py-12 text-center">
+            <Users size={40} className="mx-auto mb-3 text-ms-gray/30" />
+            <p className="text-sm text-ms-gray">Nenhuma pessoa encontrada</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {filtered.map(person => (
-              <div key={person.id} className="bg-white rounded-xl p-4 border border-gray-100 hover:border-gray-200 transition-colors">
-                <div className="flex items-start gap-3">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 text-white font-semibold ${person.role === 'recrutador' ? 'bg-gradient-to-br from-blue-500 to-blue-700' : 'bg-gradient-to-br from-[#1A56FF] to-[#6C47FF]'}`}>
-                    {(person.nome || 'U').charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-semibold text-gray-900 truncate">{person.nome || 'Utilizador'}</h3>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${person.role === 'recrutador' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`}>
-                        {person.role === 'recrutador' ? 'Recrutador' : 'Talento'}
-                      </span>
-                    </div>
+            {filtered.map(person => {
+              const competencias = parseCompetencias(person.profile?.competencias)
+              return (
+                <article key={person.id} className="overflow-hidden rounded-2xl border border-ms-border bg-white shadow-sm transition-shadow hover:shadow-md">
+                  <Link href={`/pessoas/detalhe/?id=${person.id}`} onClick={() => recordView(person.id)} className="block p-4">
+                    <div className="flex items-start gap-3">
+                      <UserAvatar userId={person.id} name={person.nome} size={56} className="shrink-0 border border-ms-border" imageClassName="object-cover" fallbackClassName="bg-ms-blue/10 text-ms-blue" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="truncate text-sm font-semibold text-ms-dark">{person.nome || 'Utilizador'}</h3>
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${person.role === 'recrutador' ? 'bg-ms-blue/10 text-ms-blue' : 'bg-ms-purple-light text-ms-purple'}`}>
+                            <BadgeCheck size={10} /> {person.role === 'recrutador' ? 'Recrutador' : 'Talento'}
+                          </span>
+                        </div>
 
-                    {person.role === 'recrutador' ? (
-                      /* Limited recruiter card — no personal/competence details */
-                      <p className="text-xs text-gray-400 mt-1">Perfil de recrutador · contacta por mensagem</p>
-                    ) : (
-                      <>
-                        {person.profile?.area && (
-                          <p className="text-xs text-gray-600 mt-0.5 font-medium flex items-center gap-1">
-                            <Briefcase size={11} /> {person.profile.area}
-                          </p>
-                        )}
-                        {person.profile?.localizacao && (
-                          <p className="text-xs text-gray-400 flex items-center gap-1">
-                            <MapPin size={11} /> {person.profile.localizacao}
-                          </p>
-                        )}
-                        {person.profile?.bio && (
-                          <p className="text-xs text-gray-500 mt-1.5"><span className="font-medium text-gray-700">Sobre:</span> {person.profile.bio}</p>
-                        )}
-                        {person.profile?.experiencias && (
-                          <p className="text-xs text-gray-500 mt-1 line-clamp-2"><span className="font-medium text-gray-700">Experiência:</span> {person.profile.experiencias}</p>
-                        )}
-                        {parseCompetencias(person.profile?.competencias).length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {parseCompetencias(person.profile?.competencias).slice(0, 6).map((c, i) => (
-                              <span key={i} className="text-[10px] px-2 py-0.5 bg-[#EEF0FF] text-[#6C47FF] rounded-full font-medium">{c}</span>
-                            ))}
+                        {person.role === 'recrutador' ? (
+                          <p className="mt-1 text-xs text-ms-gray">Perfil de recrutador · contacta por mensagem</p>
+                        ) : (
+                          <div className="mt-1 space-y-1">
+                            {person.profile?.area && (
+                              <p className="flex items-center gap-1 text-xs font-medium text-ms-dark">
+                                <Briefcase size={11} className="text-ms-blue" /> {person.profile.area}
+                              </p>
+                            )}
+                            {person.profile?.localizacao && (
+                              <p className="flex items-center gap-1 text-xs text-ms-gray">
+                                <MapPin size={11} className="text-ms-gray" /> {person.profile.localizacao}
+                              </p>
+                            )}
+                            {person.profile?.bio && (
+                              <p className="line-clamp-2 text-xs text-ms-gray"><span className="font-medium text-ms-dark">Sobre:</span> {person.profile.bio}</p>
+                            )}
+                            {person.profile?.experiencias && (
+                              <p className="line-clamp-2 text-xs text-ms-gray"><span className="font-medium text-ms-dark">Experiência:</span> {person.profile.experiencias}</p>
+                            )}
+                            {competencias.length > 0 && (
+                              <div className="flex flex-wrap gap-1 pt-1">
+                                {competencias.slice(0, 6).map((c, i) => (
+                                  <span key={i} className="rounded-full bg-ms-surface px-2 py-1 text-[10px] font-medium text-ms-gray">
+                                    {c}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         )}
-                      </>
-                    )}
+                      </div>
+                    </div>
+                  </Link>
+
+                  <div className="flex items-center justify-between gap-2 border-t border-ms-border px-4 py-3">
+                    <button
+                      onClick={() => { recordView(person.id); startConversation(person.id) }}
+                      className="inline-flex items-center gap-2 rounded-2xl bg-ms-blue px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+                    >
+                      <MessageSquare size={14} /> Mensagem
+                    </button>
+                    <Link href={`/pessoas/detalhe/?id=${person.id}`} className="inline-flex items-center gap-1 text-sm font-medium text-ms-blue">
+                      Ver perfil <ChevronRight size={14} />
+                    </Link>
                   </div>
-                </div>
-                <div className="flex gap-2 mt-3">
-                  <button
-                    onClick={() => { recordView(person.id); startConversation(person.id) }}
-                    className="flex items-center gap-1 px-3 py-1.5 bg-[#1A56FF] text-white text-xs font-medium rounded-lg hover:bg-[#1445DD] transition-colors"
-                  >
-                    <MessageSquare size={12} /> Mensagem
-                  </button>
-                </div>
-              </div>
-            ))}
+                </article>
+              )
+            })}
           </div>
         )}
-      </div>
+      </main>
     </div>
   )
 }
