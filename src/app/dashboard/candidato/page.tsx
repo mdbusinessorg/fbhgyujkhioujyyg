@@ -8,8 +8,9 @@ import BottomNav from '@/components/BottomNav'
 import JobsHeader from '@/components/JobsHeader'
 import SubscriptionBanner from '@/components/SubscriptionBanner'
 import SubscriptionModal from '@/components/SubscriptionModal'
+import UserAvatar from '@/components/UserAvatar'
 import { JOB_CATEGORIES } from '@/lib/jobCategories'
-import { Bell, Briefcase, FileText, User, Upload, ArrowRight, Clock, CheckCircle, XCircle, Plus, Eye, Sparkles, Lightbulb, Target, Award, AlertCircle, ChevronRight, Zap, LogOut, Menu, X, CreditCard, Wallet } from 'lucide-react'
+import { Bell, Briefcase, FileText, User, Upload, Camera, ArrowRight, Clock, CheckCircle, XCircle, Plus, Eye, Sparkles, Lightbulb, Target, Award, AlertCircle, ChevronRight, Zap, LogOut, Menu, X, CreditCard, Wallet } from 'lucide-react'
 import { improveCV, getTips } from '@/lib/ai'
 
 export default function CandidatoDashboardPage() {
@@ -23,6 +24,7 @@ function CandidatoDashboard() {
   const [subPlano, setSubPlano] = useState('trial')
   const [showExpiredModal, setShowExpiredModal] = useState(false)
   const [candidaturas, setCandidaturas] = useState<any[]>([])
+  const [userId, setUserId] = useState('')
   const searchParams = useSearchParams()
   const initialTab = searchParams.get('tab') || 'home'
   const [activeTab, setActiveTab] = useState(initialTab)
@@ -49,6 +51,9 @@ function CandidatoDashboard() {
   const [showMenu, setShowMenu] = useState(false)
   const [homeSearch, setHomeSearch] = useState('')
   const [homeCategory, setHomeCategory] = useState('Todas')
+  const [avatarRevision, setAvatarRevision] = useState<number | null>(null)
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const [avatarError, setAvatarError] = useState('')
   const router = useRouter()
 
   useEffect(() => {
@@ -62,6 +67,7 @@ function CandidatoDashboard() {
     const { data: user } = await supabase.from('users').select('*').eq('email', session.user.email).single()
     if (!user || user.role !== 'candidato') { router.push('/'); return }
 
+    setUserId(user.id)
     setUserName(user.nome || 'Candidato')
     setEditNome(user.nome || '')
 
@@ -220,6 +226,40 @@ function CandidatoDashboard() {
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push('/')
+  }
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    if (!userId) {
+      setAvatarError('Aguarde o carregamento do perfil antes de enviar a foto.')
+      return
+    }
+    if (!file.type.startsWith('image/')) {
+      setAvatarError('Seleciona uma imagem válida.')
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setAvatarError('A foto deve ter menos de 2 MB.')
+      return
+    }
+
+    setAvatarUploading(true)
+    setAvatarError('')
+
+    const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(`${userId}/avatar`, file, {
+      upsert: true,
+      contentType: file.type,
+    })
+
+    if (error) {
+      setAvatarError(`Erro ao carregar foto: ${error.message}`)
+    } else {
+      setAvatarRevision(Date.now())
+    }
+
+    setAvatarUploading(false)
   }
 
   const homeFilteredCandidaturas = useMemo(() => {
@@ -666,45 +706,73 @@ function CandidatoDashboard() {
             <h2 className="text-lg font-bold text-ms-dark mb-1">O Meu Perfil</h2>
             <p className="text-xs text-ms-gray mb-4">Um perfil completo aparece primeiro nas pesquisas dos recrutadores.</p>
 
-            {/* Profile header preview */}
-            <div className="bg-gradient-to-br from-ms-blue to-ms-purple rounded-2xl p-5 mb-5 text-white">
-              <div className="flex items-center gap-3">
-                <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center text-xl font-bold">
-                  {(editNome || 'U').charAt(0).toUpperCase()}
+            <div className="mb-5 rounded-2xl bg-gradient-to-br from-ms-blue to-ms-purple p-5 text-white shadow-sm">
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <UserAvatar
+                    userId={userId || undefined}
+                    name={editNome || userName || 'Utilizador'}
+                    size={72}
+                    cacheBuster={avatarRevision || undefined}
+                    className="border-2 border-white/20 shadow-lg"
+                    fallbackClassName="bg-white/15 text-white"
+                  />
+                  <label className="absolute -right-1 -bottom-1 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white text-ms-blue shadow-lg">
+                    <Camera size={15} />
+                    <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+                  </label>
                 </div>
-                <div className="min-w-0">
-                  <p className="font-bold truncate">{editNome || 'O teu nome'}</p>
-                  <p className="text-sm text-white/80 truncate">{editArea || 'A tua área profissional'}</p>
-                  {editLocalizacao && <p className="text-xs text-white/70 truncate">{editLocalizacao}</p>}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="truncate text-xl font-bold">{editNome || 'O teu nome'}</p>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-semibold">
+                      <CheckCircle size={11} /> Perfil verificado
+                    </span>
+                  </div>
+                  <p className="mt-1 truncate text-sm text-white/80">{editArea || 'A tua área profissional'}</p>
+                  {editLocalizacao && <p className="mt-1 truncate text-xs text-white/70">{editLocalizacao}</p>}
                 </div>
+              </div>
+              <div className="mt-4 flex items-center gap-2 text-xs text-white/80">
+                <Upload size={14} /> Foto de perfil pública para recrutadores
               </div>
             </div>
 
+            {avatarUploading && (
+              <p className="mb-4 text-sm text-ms-gray">A carregar foto...</p>
+            )}
+
+            {avatarError && (
+              <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                {avatarError}
+              </div>
+            )}
+
             <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="text-xs font-medium text-ms-gray mb-1 block">Nome completo</label>
+                  <label className="mb-1 block text-xs font-medium text-ms-gray">Nome completo</label>
                   <input value={editNome} onChange={(e) => setEditNome(e.target.value)} className="input-field" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-ms-gray mb-1 block">Telefone</label>
+                  <label className="mb-1 block text-xs font-medium text-ms-gray">Telefone</label>
                   <input value={editTelefone} onChange={(e) => setEditTelefone(e.target.value)} className="input-field" placeholder="+244 9XX XXX XXX" />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="text-xs font-medium text-ms-gray mb-1 block">Área / Cargo (título)</label>
+                  <label className="mb-1 block text-xs font-medium text-ms-gray">Área / Cargo (título)</label>
                   <input value={editArea} onChange={(e) => setEditArea(e.target.value)} className="input-field" placeholder="Ex: Contabilista, Engenheiro Civil" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-ms-gray mb-1 block">Localização</label>
+                  <label className="mb-1 block text-xs font-medium text-ms-gray">Localização</label>
                   <input value={editLocalizacao} onChange={(e) => setEditLocalizacao(e.target.value)} className="input-field" placeholder="Ex: Luanda" />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-medium text-ms-gray mb-1 block">Nível académico</label>
+                <label className="mb-1 block text-xs font-medium text-ms-gray">Nível académico</label>
                 <select value={editNivel} onChange={(e) => setEditNivel(e.target.value)} className="input-field">
                   <option value="">Seleccionar...</option>
                   <option value="Ensino Médio">Ensino Médio</option>
@@ -716,28 +784,28 @@ function CandidatoDashboard() {
               </div>
 
               <div>
-                <label className="text-xs font-medium text-ms-gray mb-1 block">Sobre mim</label>
+                <label className="mb-1 block text-xs font-medium text-ms-gray">Sobre mim</label>
                 <textarea value={editBio} onChange={(e) => setEditBio(e.target.value)} className="input-field min-h-[90px]" placeholder="Um resumo profissional sobre ti, os teus objectivos e o que te diferencia." />
               </div>
 
               <div>
-                <label className="text-xs font-medium text-ms-gray mb-1 block">Experiência profissional</label>
+                <label className="mb-1 block text-xs font-medium text-ms-gray">Experiência profissional</label>
                 <textarea value={editExperiencias} onChange={(e) => setEditExperiencias(e.target.value)} className="input-field min-h-[90px]" placeholder="Ex: Contabilista na Empresa X (2020-2023) — gestão de folha salarial e relatórios fiscais." />
               </div>
 
               <div>
-                <label className="text-xs font-medium text-ms-gray mb-1 block">Competências (separadas por vírgula)</label>
+                <label className="mb-1 block text-xs font-medium text-ms-gray">Competências (separadas por vírgula)</label>
                 <input value={editCompetencias} onChange={(e) => setEditCompetencias(e.target.value)} className="input-field" placeholder="Ex: Excel, Liderança, SAP, Inglês" />
                 {editCompetencias.trim() && (
-                  <div className="flex flex-wrap gap-1.5 mt-2">
+                  <div className="mt-2 flex flex-wrap gap-1.5">
                     {editCompetencias.split(',').map(c => c.trim()).filter(Boolean).map((c, i) => (
-                      <span key={i} className="text-[11px] px-2.5 py-1 bg-ms-purple-light text-ms-purple rounded-full font-medium">{c}</span>
+                      <span key={i} className="rounded-full bg-ms-purple-light px-2.5 py-1 text-[11px] font-medium text-ms-purple">{c}</span>
                     ))}
                   </div>
                 )}
               </div>
 
-              <button onClick={handleSaveProfile} className="w-full bg-ms-blue text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition-colors">
+              <button onClick={handleSaveProfile} className="w-full rounded-2xl bg-ms-blue py-3.5 font-semibold text-white transition-colors hover:bg-blue-700">
                 {profileSaved ? 'Guardado ✓' : 'Guardar Alterações'}
               </button>
             </div>
