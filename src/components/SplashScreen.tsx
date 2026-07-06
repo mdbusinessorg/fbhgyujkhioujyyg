@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Briefcase } from 'lucide-react'
+import AuthIllustration from '@/components/AuthIllustration'
 
 export default function SplashScreen() {
   const [show, setShow] = useState(true)
@@ -26,26 +28,25 @@ export default function SplashScreen() {
 
   return (
     <div
-      className={`fixed inset-0 z-[200] flex flex-col items-center justify-center transition-opacity duration-500 ${fadeOut ? 'opacity-0' : 'opacity-100'}`}
-      style={{ background: 'linear-gradient(135deg, #1A56FF 0%, #6C47FF 100%)' }}
+      className={`fixed inset-0 z-[200] flex flex-col items-center justify-center px-6 text-white transition-opacity duration-500 ${fadeOut ? 'opacity-0' : 'opacity-100'}`}
+      style={{ background: '#1A56FF' }}
     >
-      <div className="animate-bounce-slow">
-        <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center shadow-2xl mb-6">
-          <span className="text-4xl font-black bg-gradient-to-br from-[#1A56FF] to-[#6C47FF] bg-clip-text text-transparent">MS</span>
+      <div className="mx-auto flex max-w-sm flex-col items-center text-center">
+        <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/15">
+          <Briefcase size={28} className="text-white" />
+        </div>
+        <h1 className="text-4xl font-black tracking-tight sm:text-5xl">MÔ SALO</h1>
+        <p className="mt-2 text-sm font-medium text-white/80">Emprego ideal em Angola</p>
+        <div className="mt-8 w-full">
+          <AuthIllustration />
+        </div>
+        <p className="mt-6 max-w-xs text-sm leading-relaxed text-white/80">
+          Encontra vagas reais, guarda as tuas favoritas e candidata-te com confiança.
+        </p>
+        <div className="mt-8">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-white/30 border-t-white" />
         </div>
       </div>
-      <h1 className="text-white text-2xl font-bold tracking-tight mb-1">MÔ SALO</h1>
-      <p className="text-white/70 text-sm">Emprego Ideal em Angola</p>
-      <div className="mt-8">
-        <div className="w-8 h-8 border-3 border-white/30 border-t-white rounded-full animate-spin" />
-      </div>
-      <style jsx>{`
-        @keyframes bounce-slow {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-10px); }
-        }
-        .animate-bounce-slow { animation: bounce-slow 2s ease-in-out infinite; }
-      `}</style>
     </div>
   )
 }

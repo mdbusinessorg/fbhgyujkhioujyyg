@@ -1,43 +1,55 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState, type MouseEvent } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { Search, SlidersHorizontal, Heart, Briefcase, ArrowLeft, Home as HomeIcon, User, Star, MapPin, Globe, Building2 } from 'lucide-react'
+import BottomNav from '@/components/BottomNav'
+import JobsHeader from '@/components/JobsHeader'
+import JobGridCard from '@/components/JobGridCard'
+import { JOB_CATEGORIES } from '@/lib/jobCategories'
+import { useFavorites } from '@/lib/favorites'
+import { MapPin, Star } from 'lucide-react'
 
 const EXT_PAGE_SIZE = 20
 
-const CATEGORIAS = [
-  { key: 'Todas', label: 'Todas' },
-  { key: 'TI', label: 'TI', match: 'Tecnologia' },
-  { key: 'Finanças', label: 'Finanças', match: 'Finanças' },
-  { key: 'Engenharia', label: 'Engenharia', match: 'Engenharia' },
-  { key: 'Saúde', label: 'Saúde', match: 'Saúde' },
-  { key: 'Marketing', label: 'Marketing', match: 'Marketing' },
-  { key: 'Direito', label: 'Direito', match: 'Direito' },
-  { key: 'Petróleo', label: 'Petróleo', match: 'Petróleo' },
-  { key: 'Educação', label: 'Educação', match: 'Educação' },
-  { key: 'Administração', label: 'Administração', match: 'Administração' },
-  { key: 'Contabilidade', label: 'Contabilidade', match: 'Contabilidade' },
-  { key: 'Logística', label: 'Logística', match: 'Logística' },
-  { key: 'Hotelaria', label: 'Hotelaria', match: 'Hotelaria' },
-  { key: 'Construção', label: 'Construção', match: 'Construção' },
-  { key: 'RH', label: 'RH', match: 'Recursos Humanos' },
-  { key: 'Design', label: 'Design', match: 'Design' },
-]
+type VagaItem = {
+  id: string
+  titulo?: string
+  empresa_nome?: string
+  area?: string
+  localizacao?: string
+  salario?: string
+  is_prioritaria?: boolean
+  created_at?: string
+}
+
+type ExternalItem = {
+  id: string
+  title?: string
+  company?: string
+  location?: string
+  category?: string
+  excerpt?: string
+  description?: string
+  posted_at?: string
+  salary?: string
+}
 
 export default function VagasPage() {
-  const [vagas, setVagas] = useState<any[]>([])
+  const [vagas, setVagas] = useState<VagaItem[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [activeFilter, setActiveFilter] = useState('Todas')
   const [source, setSource] = useState<'mosalo' | 'externas'>('mosalo')
-  const [allExternal, setAllExternal] = useState<any[]>([])
+  const [allExternal, setAllExternal] = useState<ExternalItem[]>([])
   const [extLoaded, setExtLoaded] = useState(false)
   const [extPage, setExtPage] = useState(1)
   const [loadingExternal, setLoadingExternal] = useState(false)
   const [externalError, setExternalError] = useState('')
   const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [userRole, setUserRole] = useState('candidato')
+  const [userName, setUserName] = useState('')
+  const [featuredIndex, setFeaturedIndex] = useState(0)
+  const [featuredPaused, setFeaturedPaused] = useState(false)
+  const { isFavorite, toggle } = useFavorites()
 
   useEffect(() => {
     const init = async () => {
@@ -46,7 +58,7 @@ export default function VagasPage() {
         setIsLoggedIn(true)
         const { data } = await supabase.from('users').select('role, nome').eq('email', session.user.email).single()
         if (data) {
-          setUserRole(data.role)
+          setUserName(data.nome || '')
         }
       }
 
@@ -58,8 +70,8 @@ export default function VagasPage() {
     init()
   }, [])
 
-  const loadExternalJobs = async () => {
-    if (extLoaded) return
+  const loadExternalJobs = async (force = false) => {
+    if (extLoaded && !force) return
     setLoadingExternal(true)
     setExternalError('')
     try {
@@ -80,159 +92,235 @@ export default function VagasPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source])
 
-  useEffect(() => { setExtPage(1) }, [searchQuery, activeFilter])
+  useEffect(() => {
+    setExtPage(1)
+    setFeaturedIndex(0)
+  }, [searchQuery, activeFilter, source])
 
-  const filteredExternal = allExternal.filter((j) => {
+  const activeCategoryLabel = JOB_CATEGORIES.find((item) => item.key === activeFilter)?.label || activeFilter
+
+  const filteredExternal = allExternal.filter((job) => {
     const kw = searchQuery.trim().toLowerCase()
-    const matchSearch = !kw || j.title?.toLowerCase().includes(kw) || j.company?.toLowerCase().includes(kw)
-    const matchCat = activeFilter === 'Todas' || j.category === (activeFilter === 'TI' ? 'Tecnologia' : activeFilter)
+    const matchSearch = !kw || job.title?.toLowerCase().includes(kw) || job.company?.toLowerCase().includes(kw)
+    const matchCat = activeFilter === 'Todas' || job.category === activeCategoryLabel
     return matchSearch && matchCat
   })
   const extPages = Math.max(1, Math.ceil(filteredExternal.length / EXT_PAGE_SIZE))
   const externalJobs = filteredExternal.slice((extPage - 1) * EXT_PAGE_SIZE, extPage * EXT_PAGE_SIZE)
 
-  const stripHtml = (html: string) => (html || '').replace(/<[^>]*>/g, '').trim()
+  const filteredVagas = useMemo(() => {
+    return vagas.filter((vaga) => {
+      const matchSearch = !searchQuery || vaga.titulo?.toLowerCase().includes(searchQuery.toLowerCase()) || vaga.empresa_nome?.toLowerCase().includes(searchQuery.toLowerCase())
+      let matchFilter = activeFilter === 'Todas'
+      if (!matchFilter) {
+        matchFilter = activeCategoryLabel ? Boolean(vaga.area?.includes(activeCategoryLabel)) : false
+      }
+      return matchSearch && matchFilter
+    })
+  }, [activeCategoryLabel, activeFilter, searchQuery, vagas])
 
-  const filteredVagas = vagas.filter(v => {
-    const matchSearch = !searchQuery || v.titulo?.toLowerCase().includes(searchQuery.toLowerCase()) || v.empresa_nome?.toLowerCase().includes(searchQuery.toLowerCase())
-    let matchFilter = activeFilter === 'Todas'
-    if (!matchFilter) {
-      const cat = CATEGORIAS.find(c => c.key === activeFilter)
-      matchFilter = cat?.match ? v.area?.includes(cat.match) : false
-    }
-    return matchSearch && matchFilter
-  })
+  const destaques = filteredVagas.filter((vaga) => vaga.is_prioritaria)
+  const normais = filteredVagas.filter((vaga) => !vaga.is_prioritaria)
+  const featuredJobs = source === 'mosalo' ? destaques.slice(0, 5) : []
 
-  const getTimeAgo = (date: string) => {
-    const diff = Date.now() - new Date(date).getTime()
-    const mins = Math.floor(diff / 60000)
-    if (mins < 60) return `${mins} min`
-    const hours = Math.floor(mins / 60)
-    if (hours < 24) return `${hours}h`
-    const days = Math.floor(hours / 24)
-    return `${days}d`
+  useEffect(() => {
+    if (source !== 'mosalo' || featuredJobs.length < 2 || featuredPaused) return
+    const timer = window.setInterval(() => {
+      setFeaturedIndex((current) => (current + 1) % featuredJobs.length)
+    }, 4000)
+    return () => window.clearInterval(timer)
+  }, [featuredJobs.length, featuredPaused, source])
+
+  const handleToggleFavorite = (key: string, event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+    toggle(key)
   }
 
-  const destaques = filteredVagas.filter(v => v.is_prioritaria)
-  const normais = filteredVagas.filter(v => !v.is_prioritaria)
+  const renderExternalCard = (job: ExternalItem) => {
+    const favoriteKey = `ext:${job.id}`
+    const favorite = isFavorite(favoriteKey)
+    const chip = job.category && job.category !== 'Outro' ? job.category : 'Externa'
+    const subtitle = [job.company, job.location].filter(Boolean).join(' • ') || 'Angola'
+    const initials = job.company || job.title || 'MS'
+
+    return (
+      <JobGridCard
+        key={job.id}
+        href={`/vagas/externa/?id=${job.id}`}
+        title={job.title || 'Vaga'}
+        subtitle={subtitle}
+        chip={chip}
+        initials={initials}
+        favoriteKey={favoriteKey}
+        favorite={favorite}
+        salary={job.salary}
+        onToggleFavorite={handleToggleFavorite}
+      />
+    )
+  }
+
+  const renderInternalCard = (vaga: VagaItem) => {
+    const favoriteKey = `int:${vaga.id}`
+    const favorite = isFavorite(favoriteKey)
+    const subtitle = [vaga.empresa_nome, vaga.localizacao].filter(Boolean).join(' • ') || 'MÔ SALO'
+    const chip = activeFilter === 'Todas' ? (vaga.area || 'MÔ SALO') : activeCategoryLabel
+    const initials = vaga.empresa_nome || vaga.titulo || 'MS'
+
+    return (
+      <JobGridCard
+        key={vaga.id}
+        href={`/vagas/detalhe/?id=${vaga.id}`}
+        title={vaga.titulo || 'Vaga'}
+        subtitle={subtitle}
+        chip={chip}
+        initials={initials}
+        favoriteKey={favoriteKey}
+        favorite={favorite}
+        salary={vaga.salario}
+        onToggleFavorite={handleToggleFavorite}
+      />
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-white pb-20 lg:pb-0">
-      {/* Top Nav */}
-      <header className="sticky top-0 bg-white border-b border-ms-border z-50 px-4 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <ArrowLeft size={20} className="text-ms-dark" />
-          </Link>
-          <span className="font-bold text-lg text-ms-blue">MÔ SALO</span>
-          <button>
-            <Heart size={20} className="text-ms-gray" />
-          </button>
-        </div>
-      </header>
+    <div className="min-h-screen bg-white pb-24 lg:pb-0">
+      <main className="mx-auto max-w-6xl px-4 pb-6 pt-4 lg:px-8 lg:pt-6">
+        <JobsHeader
+          userName={userName || (isLoggedIn ? 'Utilizador' : 'Visitante')}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          activeCategory={activeFilter}
+          onCategoryChange={setActiveFilter}
+          categories={JOB_CATEGORIES}
+          onFilterClick={() => setActiveFilter('Todas')}
+        />
 
-      <main className="max-w-4xl mx-auto px-4 pt-4">
-        {/* Search */}
-        <div className="flex items-center gap-2 bg-ms-surface rounded-full px-4 py-3 mb-4 border-2 border-ms-blue/10 focus-within:border-ms-blue">
-          <Search size={18} className="text-ms-gray flex-shrink-0" />
-          <input
-            type="text"
-            placeholder="título da vaga ou palavra-chave"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && source === 'externas') setExtPage(1) }}
-            className="flex-1 bg-transparent outline-none text-sm text-ms-dark placeholder:text-ms-gray"
-          />
-          <button className="w-8 h-8 bg-ms-blue rounded-lg flex items-center justify-center flex-shrink-0">
-            <SlidersHorizontal size={14} className="text-white" />
-          </button>
-        </div>
-
-        {/* Source toggle: MÔ SALO vs External (CareerJet) */}
-        <div className="flex gap-2 mb-4 bg-ms-surface rounded-xl p-1">
+        <div className="mb-5 flex gap-2 rounded-2xl bg-ms-surface p-1">
           <button
             onClick={() => setSource('mosalo')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-colors ${source === 'mosalo' ? 'bg-white text-ms-blue shadow-sm' : 'text-ms-gray'}`}
+            className={`flex-1 rounded-2xl py-3 text-sm font-semibold transition-colors ${source === 'mosalo' ? 'bg-white text-ms-blue shadow-sm' : 'text-ms-gray'}`}
           >
-            <Briefcase size={14} /> MÔ SALO
+            MÔ SALO
           </button>
           <button
             onClick={() => setSource('externas')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-colors ${source === 'externas' ? 'bg-white text-ms-blue shadow-sm' : 'text-ms-gray'}`}
+            className={`flex-1 rounded-2xl py-3 text-sm font-semibold transition-colors ${source === 'externas' ? 'bg-white text-ms-blue shadow-sm' : 'text-ms-gray'}`}
           >
-            <Globe size={14} /> Vagas Externas
+            Vagas Externas
           </button>
         </div>
 
-        {/* Category chips */}
-        <div className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-hide">
-          {CATEGORIAS.map(f => (
-            <button
-              key={f.key}
-              onClick={() => setActiveFilter(f.key)}
-              className={`text-xs px-4 py-2 rounded-full whitespace-nowrap font-medium transition-colors ${
-                activeFilter === f.key ? 'bg-ms-blue text-white' : 'bg-ms-surface text-ms-gray border border-ms-border hover:bg-ms-border'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-
-        {/* External jobs (aggregated Angolan boards, stored natively) */}
-        {source === 'externas' && (
+        {source === 'mosalo' && featuredJobs.length > 0 && (
           <section className="mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Globe size={16} className="text-ms-blue" />
-                <h2 className="text-sm font-semibold text-ms-dark">Vagas de Angola</h2>
-              </div>
-              <button onClick={() => { setExtLoaded(false); setAllExternal([]); loadExternalJobs() }} className="text-xs text-ms-blue font-medium">Actualizar</button>
+            <div className="mb-3 flex items-center gap-2">
+              <Star size={16} className="fill-amber-500 text-amber-500" />
+              <h2 className="text-sm font-semibold text-ms-dark">Vagas em Destaque</h2>
             </div>
-            <p className="text-xs text-ms-gray mb-4">Lê a vaga completa aqui. Ao candidatar, vais direto à fonte oficial da empresa ou ao LinkedIn.</p>
+            <div
+              className="overflow-hidden rounded-2xl"
+              onMouseEnter={() => setFeaturedPaused(true)}
+              onMouseLeave={() => setFeaturedPaused(false)}
+              onTouchStart={() => setFeaturedPaused(true)}
+              onTouchEnd={() => setFeaturedPaused(false)}
+            >
+              <div
+                className="flex transition-transform duration-500 ease-out"
+                style={{ transform: `translateX(-${featuredIndex * 100}%)` }}
+              >
+                {featuredJobs.map((vaga) => {
+                  const initials = (vaga.empresa_nome || vaga.titulo || 'MS').trim().split(/\s+/).filter(Boolean)
+                  const badge = initials.length > 1 ? `${initials[0][0]}${initials[1][0]}` : (initials[0] || 'MS').slice(0, 2)
+                  return (
+                    <Link
+                      key={vaga.id}
+                      href={`/vagas/detalhe/?id=${vaga.id}`}
+                      className="block w-full shrink-0"
+                    >
+                      <article className="rounded-2xl bg-gradient-to-br from-ms-blue to-ms-purple p-5 text-white shadow-lg">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="min-w-0 flex-1">
+                            <span className="inline-flex rounded-full bg-white/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-white/90">
+                              Destaque
+                            </span>
+                            <h3 className="mt-3 line-clamp-2 text-lg font-bold leading-tight">
+                              {vaga.titulo}
+                            </h3>
+                            <p className="mt-2 text-sm text-white/85">{vaga.empresa_nome || 'Empresa'}</p>
+                            <p className="mt-1 flex items-center gap-1 text-xs text-white/75">
+                              <MapPin size={12} />
+                              {vaga.localizacao || 'Angola'}
+                            </p>
+                          </div>
+                          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-sm font-bold text-white">
+                            {badge.toUpperCase()}
+                          </div>
+                        </div>
+                        <div className="mt-5 flex items-center justify-between gap-3">
+                          <span className="inline-flex rounded-full bg-ms-amber px-4 py-2 text-sm font-semibold text-ms-dark shadow-sm">
+                            Ver vaga
+                          </span>
+                          {vaga.salario && <span className="text-xs text-white/80">{vaga.salario}</span>}
+                        </div>
+                      </article>
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+            {featuredJobs.length > 1 && (
+              <div className="mt-3 flex items-center justify-center gap-2">
+                {featuredJobs.map((_, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => setFeaturedIndex(index)}
+                    className={`h-2.5 rounded-full transition-all ${featuredIndex === index ? 'w-6 bg-ms-blue' : 'w-2.5 bg-ms-border'}`}
+                    aria-label={`Ver destaque ${index + 1}`}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {source === 'externas' ? (
+          <section className="mb-8">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Star size={16} className="fill-amber-500 text-amber-500" />
+                <h2 className="text-sm font-semibold text-ms-dark">Vagas Externas</h2>
+              </div>
+              <button onClick={() => { setExtLoaded(false); setAllExternal([]); loadExternalJobs(true) }} className="text-xs font-medium text-ms-blue">
+                Actualizar
+              </button>
+            </div>
+            <p className="mb-4 text-xs text-ms-gray">Vagas de toda a Angola, actualizadas diariamente. Ao candidatar, abre o site oficial.</p>
 
             {loadingExternal ? (
               <div className="flex justify-center py-12">
-                <div className="w-8 h-8 border-2 border-ms-blue border-t-transparent rounded-full animate-spin" />
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-ms-blue border-t-transparent" />
               </div>
             ) : externalError ? (
-              <div className="text-center py-12">
-                <Globe size={32} className="text-ms-gray mx-auto mb-3" />
+              <div className="py-12 text-center">
+                <Star size={32} className="mx-auto mb-3 text-ms-gray" />
                 <p className="text-sm text-ms-gray">{externalError}</p>
-                <button onClick={() => { setExtLoaded(false); loadExternalJobs() }} className="text-sm text-ms-blue font-medium mt-2">Tentar novamente</button>
+                <button onClick={() => { setExtLoaded(false); loadExternalJobs(true) }} className="mt-2 text-sm font-medium text-ms-blue">
+                  Tentar novamente
+                </button>
               </div>
             ) : externalJobs.length === 0 ? (
-              <div className="text-center py-12">
-                <Globe size={32} className="text-ms-gray mx-auto mb-3" />
+              <div className="py-12 text-center">
+                <Star size={32} className="mx-auto mb-3 text-ms-gray" />
                 <p className="text-sm text-ms-gray">Sem vagas para esta pesquisa. Actualizamos diariamente.</p>
               </div>
             ) : (
               <>
-                <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
-                  {externalJobs.map((j) => (
-                    <Link key={j.id} href={`/vagas/externa/?id=${j.id}`} className="block">
-                      <div className="bg-white border border-ms-border rounded-xl p-4 flex items-start gap-3 hover:shadow-md hover:border-ms-blue/30 transition-all">
-                        <div className="w-10 h-10 bg-ms-blue/5 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <Building2 size={16} className="text-ms-blue" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-sm font-semibold text-ms-dark line-clamp-2">{j.title}</h3>
-                          {j.company && <p className="text-xs text-ms-gray mt-0.5">{j.company}</p>}
-                          <p className="text-xs text-ms-gray mt-1 line-clamp-2">{stripHtml(j.excerpt || j.description)}</p>
-                          <div className="flex items-center gap-2 mt-2 flex-wrap">
-                            {j.location && <span className="inline-flex items-center gap-0.5 text-[11px] text-ms-gray"><MapPin size={10} /> {j.location}</span>}
-                            {j.category && j.category !== 'Outro' && <span className="text-[10px] text-ms-blue bg-ms-blue/10 px-2 py-0.5 rounded-full">{j.category}</span>}
-                          </div>
-                          <div className="flex items-center justify-end mt-2">
-                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-ms-blue">Ver detalhes</span>
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+                  {externalJobs.map(renderExternalCard)}
                 </div>
                 {extPages > 1 && (
-                  <div className="flex items-center justify-between gap-3 mt-4">
+                  <div className="mt-5 flex items-center justify-between gap-3">
                     <button
                       onClick={() => {
                         if (extPage > 1) {
@@ -241,11 +329,11 @@ export default function VagasPage() {
                         }
                       }}
                       disabled={extPage <= 1 || loadingExternal}
-                      className="flex-1 bg-ms-surface text-ms-dark border border-ms-border rounded-full py-2.5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex-1 rounded-2xl border border-ms-border bg-white py-3.5 text-sm font-semibold text-ms-dark disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Anterior
                     </button>
-                    <span className="text-xs text-ms-gray self-center">{extPage}/{extPages}</span>
+                    <span className="text-xs text-ms-gray">{extPage}/{extPages}</span>
                     <button
                       onClick={() => {
                         if (extPage < extPages) {
@@ -254,7 +342,7 @@ export default function VagasPage() {
                         }
                       }}
                       disabled={extPage >= extPages || loadingExternal}
-                      className="flex-1 bg-ms-blue text-white rounded-full py-2.5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex-1 rounded-2xl bg-ms-blue py-3.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Próxima
                     </button>
@@ -263,121 +351,34 @@ export default function VagasPage() {
               </>
             )}
           </section>
-        )}
-
-        {/* Vagas em Destaque */}
-        {source === 'mosalo' && (<>
-        {destaques.length > 0 && (
-          <section className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <Star size={16} className="text-amber-500 fill-amber-500" />
-              <h2 className="text-sm font-semibold text-ms-dark">Vagas em Destaque</h2>
-            </div>
-            <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
-              {destaques.map(v => (
-                <Link key={v.id} href={`/vagas/detalhe/?id=${v.id}`} className="block">
-                  <div className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl p-4 flex items-start gap-3 hover:shadow-md transition-shadow relative overflow-hidden">
-                    <div className="absolute top-2 right-2">
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
-                        <Star size={10} className="fill-amber-500 text-amber-500" /> DESTAQUE
-                      </span>
-                    </div>
-                    <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center flex-shrink-0 border border-amber-200">
-                      <Briefcase size={16} className="text-amber-600" />
-                    </div>
-                    <div className="flex-1 min-w-0 pr-16">
-                      <h3 className="text-sm font-semibold text-ms-dark truncate">{v.titulo}</h3>
-                      <p className="text-xs text-ms-gray">{v.empresa_nome}</p>
-                      <div className="flex items-center gap-2 mt-2 flex-wrap">
-                        {v.localizacao && (
-                          <span className="inline-flex items-center gap-0.5 text-[11px] text-ms-gray">
-                            <MapPin size={10} /> {v.localizacao}
-                          </span>
-                        )}
-                        {v.salario && (
-                          <span className="text-[11px] font-medium text-green-700 bg-green-100 px-2 py-0.5 rounded-full">{v.salario}</span>
-                        )}
-                      </div>
-                      <div className="flex items-center justify-between mt-2">
-                        <span className="text-[11px] text-ms-gray">{getTimeAgo(v.created_at)}</span>
-                        <span className="text-[11px] font-medium text-ms-blue bg-ms-blue/10 px-3 py-1 rounded-full">Candidatar</span>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Normal jobs */}
-        <section>
-          {normais.length > 0 && destaques.length > 0 && (
-            <h2 className="text-sm font-semibold text-ms-dark mb-3">Todas as Vagas</h2>
-          )}
-          <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
-            {normais.map(v => (
-              <Link key={v.id} href={`/vagas/detalhe/?id=${v.id}`} className="block">
-                <div className="bg-ms-surface rounded-xl p-4 flex items-start gap-3 hover:shadow-sm transition-shadow">
-                  <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center flex-shrink-0 border border-ms-border">
-                    <Briefcase size={16} className="text-ms-blue" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-medium text-ms-dark truncate">{v.titulo}</h3>
-                    <p className="text-xs text-ms-gray">{v.empresa_nome}</p>
-                    <div className="flex items-center gap-2 mt-1 flex-wrap">
-                      {v.localizacao && (
-                        <span className="inline-flex items-center gap-0.5 text-[11px] text-ms-gray">
-                          <MapPin size={10} /> {v.localizacao}
-                        </span>
-                      )}
-                      {v.salario && (
-                        <span className="text-[11px] font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">{v.salario}</span>
-                      )}
-                    </div>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-[11px] text-ms-gray">{getTimeAgo(v.created_at)}</span>
-                      <span className="text-[11px] font-medium text-ms-blue bg-ms-blue/5 px-3 py-1 rounded-full">Candidatar</span>
-                    </div>
-                  </div>
+        ) : (
+          <>
+            <section className="mb-3">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Star size={16} className="fill-amber-500 text-amber-500" />
+                  <h2 className="text-sm font-semibold text-ms-dark">Vagas Encontradas</h2>
                 </div>
-              </Link>
-            ))}
-          </div>
-        </section>
+                <span className="text-xs text-ms-gray">{filteredVagas.length} vagas</span>
+              </div>
+            </section>
 
-        {filteredVagas.length === 0 && (
-          <div className="text-center py-12">
-            <Briefcase size={32} className="text-ms-gray mx-auto mb-3" />
-            <p className="text-sm text-ms-gray">Nenhuma vaga encontrada para &ldquo;{activeFilter}&rdquo;</p>
-            <button onClick={() => setActiveFilter('Todas')} className="text-sm text-ms-blue font-medium mt-2">Ver todas as vagas</button>
-            <button onClick={() => setSource('externas')} className="block mx-auto text-sm text-ms-blue font-medium mt-2">Procurar em vagas externas</button>
-          </div>
+            <section className="mb-8">
+              {normais.length > 0 ? (
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+                  {normais.map(renderInternalCard)}
+                </div>
+              ) : (
+                <div className="py-12 text-center">
+                  <p className="text-sm text-ms-gray">Nenhuma vaga encontrada para esta pesquisa.</p>
+                </div>
+              )}
+            </section>
+          </>
         )}
-        </>)}
       </main>
 
-      {/* Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-ms-border z-50 lg:hidden">
-        <div className="flex items-center justify-around py-2 px-4 max-w-md mx-auto">
-          <Link href="/" className="flex flex-col items-center gap-0.5 py-1">
-            <HomeIcon size={22} className="text-gray-400" />
-            <span className="text-[10px] text-gray-400">Início</span>
-          </Link>
-          <Link href="/vagas/" className="flex flex-col items-center gap-0.5 py-1">
-            <Search size={22} className="text-ms-blue" />
-            <span className="text-[10px] text-ms-blue font-medium">Pesquisar</span>
-          </Link>
-          <Link href={isLoggedIn ? `/dashboard/${userRole}/` : '/auth/login/'} className="flex flex-col items-center gap-0.5 py-1">
-            <Briefcase size={22} className="text-gray-400" />
-            <span className="text-[10px] text-gray-400">Dashboard</span>
-          </Link>
-          <Link href={isLoggedIn ? `/dashboard/${userRole}/?tab=perfil` : '/auth/login/'} className="flex flex-col items-center gap-0.5 py-1">
-            <User size={22} className="text-gray-400" />
-            <span className="text-[10px] text-gray-400">Perfil</span>
-          </Link>
-        </div>
-      </nav>
+      <BottomNav active="vagas" userRole="candidato" />
     </div>
   )
 }

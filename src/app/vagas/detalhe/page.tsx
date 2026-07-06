@@ -1,10 +1,26 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, type MouseEvent, useMemo } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
-import { ArrowLeft, Heart, Briefcase, MapPin, Building2, Send, Upload, MessageSquare } from 'lucide-react'
+import {
+  ArrowLeft,
+  Heart,
+  Briefcase,
+  MapPin,
+  Building2,
+  Send,
+  Upload,
+  MessageSquare,
+  Share2,
+  BadgeCheck,
+  Users,
+  Clock3,
+  Building,
+  ChevronRight,
+} from 'lucide-react'
+import { useFavorites } from '@/lib/favorites'
 
 function VagaDetalheContent() {
   const searchParams = useSearchParams()
@@ -21,6 +37,8 @@ function VagaDetalheContent() {
   const [cvFile, setCvFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [respostas, setRespostas] = useState<Record<string, string>>({})
+  const [activeTab, setActiveTab] = useState<'descricao' | 'requisitos' | 'empresa'>('descricao')
+  const { isFavorite, toggle } = useFavorites()
 
   useEffect(() => {
     const load = async () => {
@@ -49,7 +67,6 @@ function VagaDetalheContent() {
 
     setSending(true)
 
-    // Check if already applied
     const { data: existing } = await supabase
       .from('candidaturas')
       .select('id')
@@ -64,7 +81,6 @@ function VagaDetalheContent() {
       return
     }
 
-    // Upload CV if provided
     if (cvFile) {
       setUploading(true)
       const { data: { session } } = await supabase.auth.getSession()
@@ -73,7 +89,6 @@ function VagaDetalheContent() {
         const { error: uploadError } = await supabase.storage.from(STORAGE_BUCKET).upload(path, cvFile)
         if (!uploadError) {
           const url = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`
-          // Save to profile
           const { data: prof } = await supabase.from('profiles').select('documentos').eq('user_id', session.user.id).single()
           const existingDocs = prof?.documentos || []
           if (existingDocs.length < 2) {
@@ -104,6 +119,50 @@ function VagaDetalheContent() {
     setSending(false)
   }
 
+  const favoriteKey = vaga ? `int:${vaga.id}` : ''
+  const favorite = favoriteKey ? isFavorite(favoriteKey) : false
+  const handleFavoriteToggle = (e: MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (favoriteKey) toggle(favoriteKey)
+  }
+
+  const shareJob = async () => {
+    if (!vagaId) return
+    const url = window.location.href
+    const title = vaga?.titulo ? `${vaga.titulo} — MÔ SALO` : 'Vaga — MÔ SALO'
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, url })
+        return
+      } catch {
+        // ignore
+      }
+    }
+    await navigator.clipboard.writeText(url)
+    alert('Link da vaga copiado!')
+  }
+
+  const companyLabel = vaga?.empresa_nome || 'Empresa'
+  const initials = useMemo(() => {
+    const base = companyLabel || vaga?.titulo || 'MS'
+    const parts = base.trim().split(/\s+/).filter(Boolean)
+    if (parts.length === 0) return 'MS'
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+  }, [companyLabel, vaga?.titulo])
+
+  const requirements = useMemo(() => {
+    const text = String(vaga?.descricao || '')
+    const idx = text.toLowerCase().indexOf('requisitos')
+    if (idx === -1) return []
+    return text
+      .slice(idx)
+      .split('\n')
+      .map((line: string) => line.replace(/^[-•\d.)\s]+/, '').trim())
+      .filter((line: string) => line && !/^requisitos[:]?$/i.test(line))
+  }, [vaga?.descricao])
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -123,143 +182,249 @@ function VagaDetalheContent() {
     )
   }
 
+  const stats = [
+    vaga.area ? { icon: Building, value: vaga.area, label: 'Categoria' } : null,
+    vaga.localizacao ? { icon: MapPin, value: vaga.localizacao, label: 'Localização' } : null,
+    vaga.tipo_emprego ? { icon: Users, value: vaga.tipo_emprego === 'formal' ? 'Formal' : vaga.tipo_emprego === 'informal' ? 'Informal' : vaga.tipo_emprego === 'freelance' ? 'Freelance' : vaga.tipo_emprego === 'estagio' ? 'Estágio' : 'Temporário', label: 'Regime' } : null,
+    vaga.created_at ? { icon: Clock3, value: new Date(vaga.created_at).toLocaleDateString('pt-PT'), label: 'Publicado' } : null,
+  ].filter(Boolean) as Array<{ icon: typeof Building; value: string; label: string }>
+
+  const applyLabel = sent ? 'Candidatura enviada' : sending ? 'A candidatar...' : 'Candidatar-me'
+
   return (
-    <div className="min-h-screen bg-white pb-24">
-      {/* Top Nav */}
-      <header className="sticky top-0 bg-white border-b border-ms-border z-50 px-4 py-3">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <button onClick={() => router.back()}>
-            <ArrowLeft size={20} className="text-ms-dark" />
-          </button>
-          <span className="font-bold text-lg text-ms-blue">MÔ SALO</span>
-          <button>
-            <Heart size={20} className="text-ms-gray" />
-          </button>
-        </div>
-      </header>
+    <div className="min-h-screen bg-ms-surface pb-36">
+      <main className="mx-auto max-w-4xl pb-6">
+        <section className="relative overflow-hidden bg-gradient-to-br from-ms-blue to-ms-purple px-4 pb-10 pt-5 text-white">
+          <div className="absolute inset-0 opacity-15">
+            <div className="absolute -left-8 top-6 h-24 w-24 rounded-full border border-white/40" />
+            <div className="absolute right-6 top-12 h-16 w-16 rounded-full border border-white/30" />
+            <div className="absolute bottom-0 left-1/2 h-28 w-28 -translate-x-1/2 translate-y-1/2 rounded-full border border-white/20" />
+          </div>
 
-      <main className="max-w-3xl mx-auto px-4 pt-6">
-        {/* Company & Title */}
-        <div className="text-center mb-6">
-          <div className="w-14 h-14 bg-ms-surface rounded-full flex items-center justify-center mx-auto mb-3 border border-ms-border">
-            <Briefcase size={24} className="text-ms-blue" />
+          <div className="relative mx-auto flex max-w-4xl items-center justify-between">
+            <button onClick={() => router.back()} className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-ms-dark shadow-lg shadow-black/10" aria-label="Voltar">
+              <ArrowLeft size={20} />
+            </button>
+            <div className="flex h-20 w-20 items-center justify-center rounded-[28px] bg-white/15 text-3xl font-black text-white shadow-lg shadow-black/10">
+              {initials}
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={shareJob} className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-ms-dark shadow-lg shadow-black/10" aria-label="Partilhar vaga">
+                <Share2 size={18} />
+              </button>
+              <button
+                type="button"
+                onClick={handleFavoriteToggle}
+                disabled={!favoriteKey}
+                className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-ms-dark shadow-lg shadow-black/10 disabled:opacity-50"
+                aria-label={favorite ? 'Remover dos favoritos' : 'Favoritar vaga'}
+              >
+                <Heart size={18} fill={favorite ? 'currentColor' : 'none'} className={favorite ? 'text-red-500' : 'text-ms-gray'} />
+              </button>
+            </div>
           </div>
-          <h1 className="text-xl font-bold text-ms-dark mb-1">{vaga.titulo}</h1>
-          <div className="flex items-center justify-center gap-2 text-sm text-ms-gray">
-            <MapPin size={14} /> {vaga.localizacao || 'Angola'}
-          </div>
-          <p className="text-sm text-ms-gray mt-1">{vaga.empresa_nome}</p>
-          {vaga.salario && (
-            <p className="text-sm font-semibold text-ms-blue mt-2">{vaga.salario}</p>
-          )}
-          <div className="flex items-center justify-center gap-2 mt-2 flex-wrap">
-            {vaga.tipo_emprego && (
-              <span className={`text-[11px] px-3 py-1 rounded-full font-medium ${vaga.tipo_emprego === 'formal' ? 'bg-blue-100 text-blue-700' : vaga.tipo_emprego === 'informal' ? 'bg-orange-100 text-orange-700' : 'bg-purple-100 text-purple-700'}`}>
-                {vaga.tipo_emprego === 'formal' ? 'Formal' : vaga.tipo_emprego === 'informal' ? 'Informal' : vaga.tipo_emprego === 'freelance' ? 'Freelance' : vaga.tipo_emprego === 'estagio' ? 'Estágio' : 'Temporário'}
+
+          <div className="relative mx-auto mt-8 max-w-4xl text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/75">MÔ SALO</p>
+            <h1 className="mt-2 text-2xl font-black leading-tight sm:text-3xl">{vaga.titulo}</h1>
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-sm text-white/85">
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1">
+                <BadgeCheck size={14} /> {companyLabel}
               </span>
-            )}
-            <span className="text-[11px] px-3 py-1 rounded-full bg-ms-surface text-ms-gray">{vaga.area}</span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1">
+                <MapPin size={14} /> {vaga.localizacao || 'Angola'}
+              </span>
+            </div>
           </div>
-        </div>
+        </section>
 
-        {/* About */}
-        {vaga.descricao && (
-          <div className="mb-6">
-            <h2 className="text-sm font-semibold text-ms-dark mb-2">Sobre a Vaga</h2>
-            <p className="text-sm text-ms-gray leading-relaxed whitespace-pre-line">{vaga.descricao}</p>
-          </div>
-        )}
+        <section className="relative -mt-8 rounded-t-[28px] bg-white px-4 pb-6 pt-6 shadow-[0_-18px_40px_rgba(17,24,39,0.08)] sm:px-6">
+          <div className="mx-auto max-w-4xl">
+            <div className="flex items-center justify-center gap-2 rounded-full border border-ms-border bg-ms-surface px-3 py-2 text-xs font-medium text-ms-gray">
+              <BadgeCheck size={14} className="text-ms-blue" /> Vaga verificada
+            </div>
 
-        {/* Requirements - extracted from descricao if present */}
-        {vaga.descricao && vaga.descricao.includes('Requisitos:') && (
-          <div className="mb-6">
-            <h2 className="text-sm font-semibold text-ms-dark mb-2">Requisitos</h2>
-            <ul className="space-y-1">
-              {vaga.descricao.split('Requisitos:')[1]?.split('\n').filter(Boolean).map((req: string, i: number) => (
-                <li key={i} className="text-sm text-ms-gray flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 bg-ms-purple rounded-full mt-1.5 flex-shrink-0" />
-                  {req}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+            <div className="mt-5 flex items-center justify-center gap-2 text-sm text-ms-gray">
+              <MapPin size={14} /> {vaga.localizacao || 'Angola'}
+            </div>
 
-        {/* Application form */}
-        {sent ? (
-          <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
-            <p className="text-sm font-medium text-green-700">Candidatura enviada com sucesso!</p>
-            <Link href="/dashboard/candidato/" className="text-xs text-ms-blue mt-2 inline-block">Ver as minhas candidaturas →</Link>
-          </div>
-        ) : isLoggedIn && userRole === 'candidato' ? (
-          <div className="mb-4">
-            <h2 className="text-sm font-semibold text-ms-dark mb-2">Candidatar-se</h2>
-            <textarea
-              value={mensagem}
-              onChange={(e) => setMensagem(e.target.value)}
-              placeholder="Porquê queres esta vaga? (opcional)"
-              className="input-field min-h-[80px] mb-3"
-            />
-            {/* Custom Questions from Recruiter */}
-            {vaga.perguntas && vaga.perguntas.length > 0 && (
-              <div className="mb-4">
-                <h3 className="text-xs font-semibold text-ms-dark mb-2 flex items-center gap-1">
-                  <MessageSquare size={14} className="text-ms-purple" /> Perguntas do Recrutador
-                </h3>
-                <div className="space-y-3">
-                  {vaga.perguntas.map((pergunta: string, i: number) => (
-                    <div key={i}>
-                      <label className="text-xs text-ms-gray mb-1 block">{pergunta}</label>
-                      <input
-                        type="text"
-                        value={respostas[pergunta] || ''}
-                        onChange={(e) => setRespostas({...respostas, [pergunta]: e.target.value})}
-                        placeholder="A sua resposta..."
-                        className="input-field !py-2"
-                      />
+            <div className="mt-5 flex items-center justify-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-ms-surface text-ms-blue">
+                <Briefcase size={22} />
+              </div>
+              <div className="min-w-0 text-center">
+                <p className="text-sm font-semibold text-ms-dark">{companyLabel}</p>
+                <p className="text-xs text-ms-gray">{vaga.area || 'Oportunidade profissional'}</p>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-4 gap-2 sm:gap-3">
+              <button type="button" onClick={() => setActiveTab('empresa')} className="flex flex-col items-center gap-2 rounded-2xl border border-ms-border bg-white px-2 py-3 text-center">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-ms-blue/10 text-ms-blue"><Building2 size={18} /></span>
+                <span className="text-[11px] font-medium text-ms-gray">Empresa</span>
+              </button>
+              <button type="button" onClick={handleFavoriteToggle} className="flex flex-col items-center gap-2 rounded-2xl border border-ms-border bg-white px-2 py-3 text-center">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-ms-blue/10 text-ms-blue"><Heart size={18} fill={favorite ? 'currentColor' : 'none'} className={favorite ? 'text-red-500' : 'text-ms-blue'} /></span>
+                <span className="text-[11px] font-medium text-ms-gray">Guardar</span>
+              </button>
+              <button type="button" onClick={shareJob} className="flex flex-col items-center gap-2 rounded-2xl border border-ms-border bg-white px-2 py-3 text-center">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-ms-blue/10 text-ms-blue"><Share2 size={18} /></span>
+                <span className="text-[11px] font-medium text-ms-gray">Partilhar</span>
+              </button>
+              <a href={`https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(vaga.titulo || '')}&location=Angola`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 rounded-2xl border border-ms-border bg-white px-2 py-3 text-center">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-ms-blue/10 text-ms-blue">in</span>
+                <span className="text-[11px] font-medium text-ms-gray">LinkedIn</span>
+              </a>
+            </div>
+
+            {stats.length > 0 && (
+              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {stats.map((stat, index) => {
+                  const Icon = stat.icon
+                  return (
+                    <div key={index} className="rounded-2xl border border-ms-border bg-ms-surface p-4">
+                      <div className="flex items-center gap-2 text-ms-blue">
+                        <Icon size={16} />
+                        <span className="text-[11px] font-medium text-ms-gray">{stat.label}</span>
+                      </div>
+                      <p className="mt-2 text-sm font-semibold leading-snug text-ms-dark">{stat.value}</p>
                     </div>
-                  ))}
-                </div>
+                  )
+                })}
               </div>
             )}
 
-            {/* Document Upload */}
-            <div className="mb-3">
-              <label className="block">
-                <div className="bg-ms-surface border border-dashed border-ms-border rounded-xl p-4 text-center cursor-pointer hover:border-ms-blue transition-colors">
-                  <Upload size={20} className="text-ms-gray mx-auto mb-1" />
-                  <p className="text-xs text-ms-gray">{cvFile ? cvFile.name : 'Anexar CV (PDF, opcional)'}</p>
+            <div className="mt-6 border-b border-ms-border">
+              <div className="flex gap-6 overflow-x-auto text-sm font-semibold scrollbar-hide">
+                {[
+                  { key: 'descricao', label: 'Descrição' },
+                  { key: 'requisitos', label: 'Requisitos' },
+                  { key: 'empresa', label: 'Empresa' },
+                ].map((tab) => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setActiveTab(tab.key as typeof activeTab)}
+                    className={`pb-3 transition-colors ${activeTab === tab.key ? 'border-b-2 border-ms-blue text-ms-blue' : 'text-ms-gray'}`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-5 space-y-5">
+              {activeTab === 'descricao' && (
+                <div className="rounded-2xl border border-ms-border bg-white p-5 shadow-sm">
+                  <h2 className="text-sm font-semibold text-ms-dark">Descrição da vaga</h2>
+                  <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ms-gray">{vaga.descricao}</p>
                 </div>
-                <input type="file" className="hidden" accept=".pdf,.doc,.docx" onChange={(e) => setCvFile(e.target.files?.[0] || null)} />
-              </label>
+              )}
+
+              {activeTab === 'requisitos' && (
+                <div className="space-y-3">
+                  {requirements.length > 0 ? requirements.map((req: string, i: number) => (
+                    <div key={i} className="flex items-start justify-between gap-4 rounded-2xl border border-ms-border bg-white p-4 shadow-sm">
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-ms-blue/10 text-ms-blue">
+                          <ChevronRight size={14} />
+                        </div>
+                        <p className="text-sm leading-relaxed text-ms-dark">{req}</p>
+                      </div>
+                    </div>
+                  )) : (
+                    <div className="rounded-2xl border border-ms-border bg-white p-5 text-sm text-ms-gray shadow-sm">
+                      A descrição desta vaga não separa requisitos em lista. Consulta a descrição para ver todos os detalhes.
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'empresa' && (
+                <div className="space-y-3">
+                  <div className="rounded-2xl border border-ms-border bg-white p-5 shadow-sm">
+                    <h2 className="text-sm font-semibold text-ms-dark">{companyLabel}</h2>
+                    <p className="mt-2 text-sm leading-relaxed text-ms-gray">
+                      {vaga.area ? `Área: ${vaga.area}` : 'Empresa anunciante'}
+                      {vaga.tipo_emprego ? ` • ${vaga.tipo_emprego}` : ''}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-ms-border bg-white p-5 shadow-sm">
+                    <h3 className="text-sm font-semibold text-ms-dark">Como candidatar</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-ms-gray">
+                      Usa o botão fixo no fundo da página para enviar a tua candidatura e anexar o teu CV.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-ms-border bg-white p-5 shadow-sm">
+              <h2 className="text-sm font-semibold text-ms-dark mb-2">Candidatar-se</h2>
+              {sent ? (
+                <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-center">
+                  <p className="text-sm font-medium text-green-700">Candidatura enviada com sucesso!</p>
+                  <Link href="/dashboard/candidato/" className="mt-2 inline-block text-xs text-ms-blue">Ver as minhas candidaturas →</Link>
+                </div>
+              ) : isLoggedIn && userRole === 'candidato' ? (
+                <div>
+                  <textarea
+                    value={mensagem}
+                    onChange={(e) => setMensagem(e.target.value)}
+                    placeholder="Porquê queres esta vaga? (opcional)"
+                    className="mb-3 min-h-[100px] w-full rounded-2xl border border-ms-border bg-ms-surface px-4 py-3.5 text-sm text-ms-dark outline-none placeholder:text-ms-gray focus:border-ms-blue focus:bg-white"
+                  />
+
+                  {vaga.perguntas && vaga.perguntas.length > 0 && (
+                    <div className="mb-4 space-y-3">
+                      <h3 className="flex items-center gap-1 text-xs font-semibold text-ms-dark">
+                        <MessageSquare size={14} className="text-ms-blue" /> Perguntas do Recrutador
+                      </h3>
+                      {vaga.perguntas.map((pergunta: string, i: number) => (
+                        <div key={i} className="rounded-2xl border border-ms-border bg-ms-surface p-4">
+                          <label className="mb-2 block text-xs font-medium text-ms-gray">{pergunta}</label>
+                          <input
+                            type="text"
+                            value={respostas[pergunta] || ''}
+                            onChange={(e) => setRespostas({ ...respostas, [pergunta]: e.target.value })}
+                            placeholder="A tua resposta..."
+                            className="w-full rounded-2xl border border-ms-border bg-white px-4 py-3 text-sm text-ms-dark outline-none placeholder:text-ms-gray focus:border-ms-blue"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <label className="block">
+                    <div className="rounded-2xl border border-dashed border-ms-border bg-ms-surface p-4 text-center transition-colors hover:border-ms-blue">
+                      <Upload size={20} className="mx-auto mb-1 text-ms-gray" />
+                      <p className="text-xs text-ms-gray">{cvFile ? cvFile.name : 'Anexar CV (PDF, opcional)'}</p>
+                    </div>
+                    <input type="file" className="hidden" accept=".pdf,.doc,.docx" onChange={(e) => setCvFile(e.target.files?.[0] || null)} />
+                  </label>
+                </div>
+              ) : !isLoggedIn ? (
+                <div className="rounded-2xl border border-ms-border bg-ms-surface p-4 text-center">
+                  <p className="text-sm text-ms-gray mb-2">Regista-te para te candidatar a esta vaga</p>
+                  <Link href="/auth/registar/" className="text-sm font-medium text-ms-blue">Criar conta →</Link>
+                </div>
+              ) : null}
             </div>
           </div>
-        ) : !isLoggedIn ? (
-          <div className="bg-ms-surface rounded-xl p-4 text-center mb-4">
-            <p className="text-sm text-ms-gray mb-2">Regista-te para te candidatar a esta vaga</p>
-            <Link href="/auth/registar/" className="text-sm text-ms-blue font-medium">Criar conta →</Link>
-          </div>
-        ) : null}
+        </section>
       </main>
 
-      {/* Sticky bottom bar */}
-      {!sent && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-ms-border p-4 z-50">
-          <div className="max-w-3xl mx-auto flex gap-3">
-            <button className="flex-shrink-0 border border-ms-border px-4 py-3 rounded-xl text-sm font-medium text-ms-dark hover:bg-ms-surface">
-              Guardar
-            </button>
-            <button
-              onClick={handleCandidatar}
-              disabled={sending}
-              className="flex-1 bg-ms-blue text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              <Send size={16} />
-              {sending ? 'A enviar...' : isLoggedIn ? 'Candidatar Agora' : 'Registar para Candidatar'}
-            </button>
-          </div>
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-ms-border bg-white p-4 shadow-[0_-10px_30px_rgba(17,24,39,0.08)]">
+        <div className="mx-auto max-w-4xl">
+          <button
+            onClick={handleCandidatar}
+            disabled={sending || uploading || sent || !isLoggedIn || userRole !== 'candidato'}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-ms-blue px-4 py-3.5 text-base font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Send size={16} /> {applyLabel}
+          </button>
         </div>
-      )}
+      </div>
     </div>
   )
 }
