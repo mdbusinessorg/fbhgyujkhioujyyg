@@ -21,6 +21,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { useFavorites } from '@/lib/favorites'
+import VagaAssistant from '@/components/VagaAssistant'
 
 function VagaDetalheContent() {
   const searchParams = useSearchParams()
@@ -357,6 +358,17 @@ function VagaDetalheContent() {
                   </div>
                 </div>
               )}
+            </div>
+
+            <div className="mt-5">
+              <VagaAssistant
+                titulo={vaga.titulo}
+                empresa={companyLabel}
+                localizacao={vaga.localizacao}
+                area={vaga.area}
+                descricao={vaga.descricao}
+                requisitos={requirements}
+              />
             </div>
 
             <div className="mt-6 rounded-2xl border border-ms-border bg-white p-5 shadow-sm">
