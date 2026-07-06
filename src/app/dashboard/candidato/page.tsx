@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense, useMemo } from 'react'
+import { useState, useEffect, Suspense, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
@@ -10,8 +10,8 @@ import SubscriptionBanner from '@/components/SubscriptionBanner'
 import SubscriptionModal from '@/components/SubscriptionModal'
 import UserAvatar from '@/components/UserAvatar'
 import { JOB_CATEGORIES } from '@/lib/jobCategories'
-import { Bell, Briefcase, FileText, User, Upload, Camera, ArrowRight, Clock, CheckCircle, XCircle, Plus, Eye, Sparkles, Lightbulb, Target, Award, AlertCircle, ChevronRight, Zap, LogOut, Menu, X, CreditCard, Wallet } from 'lucide-react'
-import { improveCV, getTips } from '@/lib/ai'
+import { Bell, Briefcase, FileText, User, Upload, Camera, ArrowRight, Clock, CheckCircle, XCircle, Plus, Eye, Sparkles, Lightbulb, Target, Award, AlertCircle, ChevronRight, Zap, LogOut, Menu, X, CreditCard, Wallet, MessageSquare, Send, Bot, Loader2 } from 'lucide-react'
+import { chatWithAssistant, improveCV, getTips } from '@/lib/ai'
 
 export default function CandidatoDashboardPage() {
   return <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center"><div className="w-8 h-8 border-2 border-ms-purple border-t-transparent rounded-full animate-spin" /></div>}><CandidatoDashboard /></Suspense>
@@ -54,6 +54,16 @@ function CandidatoDashboard() {
   const [avatarRevision, setAvatarRevision] = useState<number | null>(null)
   const [avatarUploading, setAvatarUploading] = useState(false)
   const [avatarError, setAvatarError] = useState('')
+  const [assistantMessages, setAssistantMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([
+    {
+      role: 'assistant',
+      content: 'Olá! Sou o Assistente MÔ SALO. Posso ajudar-te a preparar o CV, treinar entrevistas e perceber melhor qualquer vaga.',
+    },
+  ])
+  const [assistantInput, setAssistantInput] = useState('')
+  const [assistantLoading, setAssistantLoading] = useState(false)
+  const [assistantError, setAssistantError] = useState('')
+  const assistantEndRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -262,6 +272,53 @@ function CandidatoDashboard() {
     setAvatarUploading(false)
   }
 
+  const assistantProfile = useMemo(() => ({
+    nome: userName,
+    area: profile?.area,
+    localizacao: profile?.localizacao,
+    nivel_academico: profile?.nivel_academico,
+    competencias: profile?.competencias,
+    bio: profile?.bio,
+    experiencias: profile?.experiencias,
+    numDocumentos: documentos.length,
+    numCandidaturas: candidaturas.length,
+  }), [
+    userName,
+    profile?.area,
+    profile?.localizacao,
+    profile?.nivel_academico,
+    profile?.competencias,
+    profile?.bio,
+    profile?.experiencias,
+    documentos.length,
+    candidaturas.length,
+  ])
+
+  useEffect(() => {
+    assistantEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [assistantMessages, assistantLoading, activeTab])
+
+  const sendAssistantMessage = async (messageText?: string) => {
+    const content = (messageText ?? assistantInput).trim()
+    if (!content || assistantLoading) return
+
+    const nextMessages: Array<{ role: 'user' | 'assistant'; content: string }> = [...assistantMessages, { role: 'user', content }]
+    setAssistantMessages(nextMessages)
+    setAssistantInput('')
+    setAssistantLoading(true)
+    setAssistantError('')
+
+    const { reply, error } = await chatWithAssistant(nextMessages.slice(-10), assistantProfile)
+
+    if (error || !reply.trim()) {
+      setAssistantError('Não consegui responder agora. Tenta outra vez dentro de instantes.')
+    } else {
+      setAssistantMessages((prev) => [...prev, { role: 'assistant', content: reply.trim() }])
+    }
+
+    setAssistantLoading(false)
+  }
+
   const homeFilteredCandidaturas = useMemo(() => {
     const categoryLabel = JOB_CATEGORIES.find((item) => item.key === homeCategory)?.label || homeCategory
 
@@ -308,6 +365,7 @@ function CandidatoDashboard() {
               {[
                 { key: 'home', icon: Briefcase, label: 'Início' },
                 { key: 'ia', icon: Sparkles, label: 'IA & Dicas CV' },
+                { key: 'assistente', icon: MessageSquare, label: 'Assistente MÔ SALO' },
                 { key: 'candidaturas', icon: FileText, label: 'Candidaturas' },
                 { key: 'documentos', icon: Upload, label: 'Documentos' },
                 { key: 'perfil', icon: User, label: 'Perfil' },
@@ -349,6 +407,7 @@ function CandidatoDashboard() {
           {[
             { key: 'home', icon: Briefcase, label: 'Início' },
             { key: 'ia', icon: Sparkles, label: 'IA & Dicas CV' },
+            { key: 'assistente', icon: MessageSquare, label: 'Assistente MÔ SALO' },
             { key: 'candidaturas', icon: FileText, label: 'Candidaturas' },
             { key: 'documentos', icon: Upload, label: 'Documentos' },
             { key: 'perfil', icon: User, label: 'Perfil' },
@@ -631,6 +690,105 @@ function CandidatoDashboard() {
                     </div>
                   )
                 })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'assistente' && (
+          <div>
+            <div className="flex items-center gap-2 mb-6">
+              <div className="w-10 h-10 bg-ms-blue rounded-xl flex items-center justify-center">
+                <Bot size={20} className="text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-ms-dark">Assistente MÔ SALO</h2>
+                <p className="text-xs text-ms-gray">Conversa sobre carreira, vagas, CV e entrevistas</p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 mb-4">
+              {[
+                'Dicas de carreira',
+                'Como melhorar o meu CV?',
+                'Preparar entrevista',
+                'Ajuda a escolher uma vaga',
+              ].map((prompt) => (
+                <button
+                  key={prompt}
+                  type="button"
+                  onClick={() => sendAssistantMessage(prompt)}
+                  disabled={assistantLoading}
+                  className="rounded-full border border-ms-border bg-white px-4 py-2 text-xs font-medium text-ms-gray transition-colors hover:border-ms-blue hover:text-ms-blue disabled:opacity-60"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+
+            {assistantError && (
+              <div className="mb-4 flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
+                <AlertCircle size={16} className="text-ms-red" />
+                <p className="text-xs text-ms-red">{assistantError}</p>
+              </div>
+            )}
+
+            <div className="overflow-hidden rounded-2xl border border-ms-border bg-white shadow-sm">
+              <div className="max-h-[56vh] space-y-3 overflow-y-auto bg-ms-surface/40 p-4">
+                {assistantMessages.map((message, index) => (
+                  <div
+                    key={`${message.role}-${index}`}
+                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-line shadow-sm ${
+                        message.role === 'user'
+                          ? 'bg-ms-blue text-white'
+                          : 'bg-white text-ms-dark border border-ms-border'
+                      }`}
+                    >
+                      {message.content}
+                    </div>
+                  </div>
+                ))}
+
+                {assistantLoading && (
+                  <div className="flex justify-start">
+                    <div className="flex max-w-[85%] items-center gap-2 rounded-2xl border border-ms-border bg-white px-4 py-3 text-sm text-ms-gray shadow-sm">
+                      <Loader2 size={16} className="animate-spin text-ms-blue" />
+                      A pensar na melhor resposta...
+                    </div>
+                  </div>
+                )}
+
+                <div ref={assistantEndRef} />
+              </div>
+
+              <div className="border-t border-ms-border bg-white p-3">
+                <div className="flex items-end gap-2">
+                  <textarea
+                    value={assistantInput}
+                    onChange={(e) => setAssistantInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault()
+                        sendAssistantMessage()
+                      }
+                    }}
+                    placeholder="Pergunta algo ao Assistente MÔ SALO..."
+                    rows={1}
+                    className="min-h-[48px] flex-1 resize-none rounded-2xl border border-ms-border bg-ms-surface px-4 py-3 text-sm text-ms-dark outline-none placeholder:text-ms-gray focus:border-ms-blue"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => sendAssistantMessage()}
+                    disabled={assistantLoading || !assistantInput.trim()}
+                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-ms-blue text-white transition-colors hover:bg-blue-700 disabled:opacity-60"
+                    aria-label="Enviar mensagem"
+                  >
+                    <Send size={18} />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
