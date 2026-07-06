@@ -1,13 +1,15 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
+import JobsHeader from '@/components/JobsHeader'
 import SubscriptionBanner from '@/components/SubscriptionBanner'
 import SubscriptionModal from '@/components/SubscriptionModal'
-import { Search, Bell, Briefcase, FileText, User, Upload, ArrowRight, Clock, CheckCircle, XCircle, Plus, Eye, Sparkles, Lightbulb, Target, Award, AlertCircle, ChevronRight, Zap, LogOut, Menu, X, CreditCard, Wallet } from 'lucide-react'
+import { JOB_CATEGORIES } from '@/lib/jobCategories'
+import { Bell, Briefcase, FileText, User, Upload, ArrowRight, Clock, CheckCircle, XCircle, Plus, Eye, Sparkles, Lightbulb, Target, Award, AlertCircle, ChevronRight, Zap, LogOut, Menu, X, CreditCard, Wallet } from 'lucide-react'
 import { improveCV, getTips } from '@/lib/ai'
 
 export default function CandidatoDashboardPage() {
@@ -45,6 +47,8 @@ function CandidatoDashboard() {
   const [aiVagaContext, setAiVagaContext] = useState('')
   const [aiError, setAiError] = useState('')
   const [showMenu, setShowMenu] = useState(false)
+  const [homeSearch, setHomeSearch] = useState('')
+  const [homeCategory, setHomeCategory] = useState('Todas')
   const router = useRouter()
 
   useEffect(() => {
@@ -218,6 +222,20 @@ function CandidatoDashboard() {
     router.push('/')
   }
 
+  const homeFilteredCandidaturas = useMemo(() => {
+    const categoryLabel = JOB_CATEGORIES.find((item) => item.key === homeCategory)?.label || homeCategory
+
+    return candidaturas.filter((c) => {
+      const title = c.vagas?.titulo || 'Vaga'
+      const company = c.vagas?.empresa_nome || 'Empresa'
+      const area = c.vagas?.area || ''
+      const kw = homeSearch.trim().toLowerCase()
+      const matchSearch = !kw || title.toLowerCase().includes(kw) || company.toLowerCase().includes(kw)
+      const matchCategory = homeCategory === 'Todas' || area.includes(categoryLabel)
+      return matchSearch && matchCategory
+    })
+  }, [candidaturas, homeCategory, homeSearch])
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -317,28 +335,42 @@ function CandidatoDashboard() {
       {/* Main */}
       <main className="px-4 pt-6 max-w-3xl mx-auto lg:pt-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <button className="lg:hidden" onClick={() => setShowMenu(true)}>
-              <Menu size={22} className="text-ms-dark" />
-            </button>
-            <div>
-              <h1 className="text-xl font-bold text-ms-dark">Olá, {userName}!</h1>
-              <p className="text-sm text-ms-gray">Bem-vindo de volta</p>
+        {activeTab !== 'home' && (
+          <div className="mb-6 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button className="lg:hidden" onClick={() => setShowMenu(true)}>
+                <Menu size={22} className="text-ms-dark" />
+              </button>
+              <div>
+                <h1 className="text-xl font-bold text-ms-dark">Olá, {userName}!</h1>
+                <p className="text-sm text-ms-gray">Bem-vindo de volta</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button className="relative flex h-9 w-9 items-center justify-center rounded-full bg-ms-surface">
+                <Bell size={16} className="text-ms-gray" />
+                {candidaturas.filter(c => c.status === 'aprovada').length > 0 && (
+                  <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-ms-green text-[9px] font-bold text-white">
+                    {candidaturas.filter(c => c.status === 'aprovada').length}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button className="w-9 h-9 bg-ms-surface rounded-full flex items-center justify-center relative">
-              <Bell size={16} className="text-ms-gray" />
-              {candidaturas.filter(c => c.status === 'aprovada').length > 0 && (
-                <span className="absolute top-1 right-1 w-4 h-4 bg-ms-green text-white text-[9px] font-bold rounded-full flex items-center justify-center">{candidaturas.filter(c => c.status === 'aprovada').length}</span>
-              )}
-            </button>
-          </div>
-        </div>
+        )}
 
         {activeTab === 'home' && (
           <>
+            <JobsHeader
+              userName={userName || 'Candidato'}
+              searchQuery={homeSearch}
+              onSearchChange={setHomeSearch}
+              activeCategory={homeCategory}
+              onCategoryChange={setHomeCategory}
+              categories={JOB_CATEGORIES}
+              onFilterClick={() => setHomeCategory('Todas')}
+            />
+
             {/* Stats Card */}
             <div className="bg-gradient-to-br from-[#6C47FF] to-[#9B7BFF] rounded-2xl p-5 mb-6 text-white relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-8 translate-x-8" />
@@ -381,14 +413,14 @@ function CandidatoDashboard() {
                 <h3 className="text-sm font-semibold text-ms-dark">Actividade Recente</h3>
                 <button onClick={() => setActiveTab('candidaturas')} className="text-xs text-ms-blue font-medium">Ver tudo</button>
               </div>
-              {candidaturas.length === 0 ? (
+              {homeFilteredCandidaturas.length === 0 ? (
                 <div className="bg-ms-surface rounded-xl p-6 text-center">
-                  <p className="text-sm text-ms-gray">Nenhuma candidatura ainda</p>
+                  <p className="text-sm text-ms-gray">Nenhuma candidatura encontrada</p>
                   <Link href="/vagas/" className="text-sm text-ms-blue font-medium mt-2 inline-block">Explorar vagas →</Link>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {candidaturas.slice(0, 5).map((c) => (
+                  {homeFilteredCandidaturas.slice(0, 5).map((c) => (
                     <div key={c.id} className="bg-ms-surface rounded-xl p-3 flex items-center gap-3">
                       <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-ms-border flex-shrink-0">
                         <Briefcase size={16} className="text-ms-blue" />

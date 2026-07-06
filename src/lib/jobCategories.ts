@@ -1,0 +1,18 @@
+export const JOB_CATEGORIES = [
+  { key: 'Todas', label: 'Todas' },
+  { key: 'TI', label: 'Tecnologia' },
+  { key: 'Engenharia', label: 'Engenharia' },
+  { key: 'Finanças', label: 'Finanças' },
+  { key: 'Saúde', label: 'Saúde' },
+  { key: 'Marketing', label: 'Marketing' },
+  { key: 'Direito', label: 'Direito' },
+  { key: 'Petróleo', label: 'Petróleo' },
+  { key: 'Educação', label: 'Educação' },
+  { key: 'Administração', label: 'Administração' },
+  { key: 'Contabilidade', label: 'Contabilidade' },
+  { key: 'Logística', label: 'Logística' },
+  { key: 'Hotelaria', label: 'Hotelaria' },
+  { key: 'Construção', label: 'Construção' },
+  { key: 'RH', label: 'RH' },
+  { key: 'Design', label: 'Design' },
+] as const
