@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import SplashScreen from '@/components/SplashScreen'
-
 export const metadata: Metadata = {
   title: 'MÔ SALO — Encontre o Seu Emprego Ideal em Angola',
   description: 'Plataforma de recrutamento inteligente angolana. Conectamos talentos às melhores oportunidades.',
@@ -24,8 +23,10 @@ export const metadata: Metadata = {
       { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
     ],
   },
+  verification: {
+    google: 'GZpYPvswsiKq7w2HSdmc1ENYGjEm9mKjUeaAAHeMMEA',
+  },
 }
-
 export const viewport: Viewport = {
   themeColor: '#1A56FF',
   width: 'device-width',
@@ -33,7 +34,6 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
 }
-
 export default function RootLayout({
   children,
 }: {
