@@ -316,7 +316,7 @@ export default function VagasPage() {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {externalJobs.map(renderExternalCard)}
                 </div>
                 {extPages > 1 && (
@@ -365,7 +365,7 @@ export default function VagasPage() {
 
             <section className="mb-8">
               {normais.length > 0 ? (
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {normais.map(renderInternalCard)}
                 </div>
               ) : (

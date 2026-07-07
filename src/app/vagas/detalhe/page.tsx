@@ -195,7 +195,7 @@ function VagaDetalheContent() {
   return (
     <div className="min-h-screen bg-ms-surface pb-36">
       <main className="mx-auto max-w-4xl pb-6">
-        <section className="relative overflow-hidden bg-gradient-to-br from-ms-blue to-ms-purple px-4 pb-10 pt-5 text-white">
+        <section className="relative overflow-hidden bg-gradient-to-br from-ms-blue to-ms-purple px-4 pb-8 pt-4 text-white">
           <div className="absolute inset-0 opacity-15">
             <div className="absolute -left-8 top-6 h-24 w-24 rounded-full border border-white/40" />
             <div className="absolute right-6 top-12 h-16 w-16 rounded-full border border-white/30" />
@@ -206,7 +206,7 @@ function VagaDetalheContent() {
             <button onClick={() => router.back()} className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-ms-dark shadow-lg shadow-black/10" aria-label="Voltar">
               <ArrowLeft size={20} />
             </button>
-            <div className="flex h-20 w-20 items-center justify-center rounded-[28px] bg-white/15 text-3xl font-black text-white shadow-lg shadow-black/10">
+            <div className="flex h-16 w-16 items-center justify-center rounded-[28px] bg-white/15 text-2xl font-black text-white shadow-lg shadow-black/10 sm:h-20 sm:w-20 sm:text-3xl">
               {initials}
             </div>
             <div className="flex items-center gap-2">

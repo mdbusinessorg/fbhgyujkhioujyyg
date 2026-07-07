@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Heart } from 'lucide-react'
+import { Heart, MapPin } from 'lucide-react'
 import type { MouseEvent } from 'react'
 
 interface JobGridCardProps {
@@ -34,13 +34,17 @@ export default function JobGridCard({
   salary,
   onToggleFavorite,
 }: JobGridCardProps) {
+  const subtitleParts = subtitle.split('•').map((part) => part.trim()).filter(Boolean)
+  const companyText = subtitleParts[0] || subtitle
+  const locationText = subtitleParts.slice(1).join(' • ')
+
   return (
     <Link href={href} className="block h-full">
-      <div className="relative flex h-full flex-col rounded-2xl border border-ms-border bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
+      <div className="relative flex h-full min-h-[168px] flex-col rounded-2xl border border-ms-border bg-white p-[18px] shadow-sm transition-shadow hover:shadow-md">
         <button
           type="button"
           onClick={(e) => onToggleFavorite(favoriteKey, e)}
-          className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full border border-ms-border bg-white text-ms-gray transition-colors hover:border-ms-blue hover:text-ms-blue"
+          className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border border-ms-border bg-white text-ms-gray transition-colors hover:border-ms-blue hover:text-ms-blue"
           aria-label={favorite ? 'Remover dos favoritos' : 'Favoritar vaga'}
         >
           <Heart
@@ -50,24 +54,39 @@ export default function JobGridCard({
           />
         </button>
 
-        <div className="flex items-start gap-3 pr-10">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-ms-surface text-sm font-semibold text-ms-blue">
+        <div className="flex flex-1 flex-col pr-11">
+          <div className="flex items-start gap-3">
+            <div className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl bg-ms-surface text-sm font-semibold text-ms-blue">
             {getInitials(initials)}
-          </div>
-          <div className="min-w-0 flex-1">
-            <span className="inline-flex rounded-full bg-ms-blue/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-ms-blue">
-              {chip}
-            </span>
-            <h3 className="mt-2 line-clamp-2 text-sm font-semibold leading-snug text-ms-dark">
-              {title}
-            </h3>
-            <p className="mt-1 line-clamp-1 text-xs text-ms-gray">{subtitle}</p>
-            {salary && (
-              <span className="mt-2 inline-flex rounded-full bg-green-50 px-2.5 py-1 text-[11px] font-medium text-green-700">
-                {salary}
+            </div>
+            <div className="min-w-0 flex-1">
+              <span className="inline-flex rounded-full bg-ms-blue/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-ms-blue">
+                {chip}
               </span>
-            )}
+              <h3 className="mt-2 line-clamp-2 text-[15px] font-semibold leading-snug text-ms-dark">
+                {title}
+              </h3>
+              <div className="mt-1 space-y-0.5">
+                <p className="line-clamp-1 text-[12px] font-medium text-ms-dark/90">
+                  {companyText}
+                </p>
+                {locationText ? (
+                  <p className="flex items-center gap-1 text-[12px] text-ms-gray">
+                    <MapPin size={11} className="shrink-0" />
+                    <span className="line-clamp-1">{locationText}</span>
+                  </p>
+                ) : (
+                  <p className="line-clamp-1 text-[12px] text-ms-gray">{subtitle}</p>
+                )}
+              </div>
+            </div>
           </div>
+
+          {salary && (
+            <span className="mt-auto inline-flex w-fit rounded-full bg-green-50 px-2.5 py-1 text-[11px] font-medium text-green-700">
+              {salary}
+            </span>
+          )}
         </div>
       </div>
     </Link>
