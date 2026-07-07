@@ -1,35 +1,28 @@
 name: Atualizar vagas de Angola
-
 on:
   schedule:
     - cron: '0 5 * * *' # diariamente às 05:00 UTC
   workflow_dispatch: {}
-
 permissions:
   contents: write
-
 concurrency:
   group: scrape-jobs
   cancel-in-progress: false
-
 jobs:
   scrape:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: devin/1781432763-k10-opportunities
-
+          ref: main
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-
       - name: Recolher vagas (angolaemprego.com)
         env:
           MAX_PAGES: '30'
           CONCURRENCY: '4'
         run: node scripts/ingest-angolaemprego.mjs --json
-
       - name: Commit se houver alterações
         run: |
           git config user.name "mosalo-bot"
