@@ -216,8 +216,8 @@ export default function VagasPage() {
                           <Building2 size={16} className="text-ms-blue" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-sm font-semibold text-ms-dark line-clamp-2">{j.title}</h3>
-                          {j.company && <p className="text-xs text-ms-gray mt-0.5">{j.company}</p>}
+                          <h3 className="text-base font-bold text-ms-dark leading-snug mb-1">{j.title}</h3>
+                          {j.company && <p className="text-xs text-ms-gray mb-1">{j.company}</p>}
                           <p className="text-xs text-ms-gray mt-1 line-clamp-2">{stripHtml(j.excerpt || j.description)}</p>
                           <div className="flex items-center gap-2 mt-2 flex-wrap">
                             {j.location && <span className="inline-flex items-center gap-0.5 text-[11px] text-ms-gray"><MapPin size={10} /> {j.location}</span>}
@@ -377,6 +377,10 @@ export default function VagasPage() {
             <span className="text-[10px] text-gray-400">Perfil</span>
           </Link>
         </div>
+      </nav>
+    </div>
+  )
+}
       </nav>
     </div>
   )
