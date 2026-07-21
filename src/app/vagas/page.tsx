@@ -263,20 +263,6 @@ export default function VagasPage() {
           </button>
         </div>
 
-        {/* Vagas Recentes (internas + externas, visível sempre no topo) */}
-        {(recentVagas.length > 0 || recentExternal.length > 0) && (
-          <section className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <h2 className="text-sm font-semibold text-ms-dark">Vagas Recentes <span className="text-xs font-normal text-ms-gray">(últimas 60h)</span></h2>
-            </div>
-            <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
-              {recentVagas.map(v => <JobCard key={v.id} v={v} variant="recent" />)}
-              {recentExternal.slice(0, 10).map(j => <ExternalJobCard key={j.id} j={j} variant="recent" />)}
-            </div>
-          </section>
-        )}
-
         {/* Source toggle: MÔ SALO vs External (CareerJet) */}
         <div className="flex gap-2 mb-4 bg-ms-surface rounded-xl p-1">
           <button
@@ -307,6 +293,20 @@ export default function VagasPage() {
             </button>
           ))}
         </div>
+
+        {/* Vagas Recentes (internas + externas, visível sempre no topo) */}
+        {(recentVagas.length > 0 || recentExternal.length > 0) && (
+          <section className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <h2 className="text-sm font-semibold text-ms-dark">Vagas Recentes <span className="text-xs font-normal text-ms-gray">(últimas 60h)</span></h2>
+            </div>
+            <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
+              {recentVagas.map(v => <JobCard key={v.id} v={v} variant="recent" />)}
+              {recentExternal.slice(0, 10).map(j => <ExternalJobCard key={j.id} j={j} variant="recent" />)}
+            </div>
+          </section>
+        )}
 
         {/* External jobs (aggregated Angolan boards, stored natively) */}
         {source === 'externas' && (
