@@ -30,29 +30,62 @@ export default function HomePage() {
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const router = useRouter()
 
+  const loadUserFromSession = async (session: any) => {
+    if (!session?.user?.email) return { role: 'candidato', nome: '' }
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('role, nome')
+        .eq('email', session.user.email)
+        .single()
+      if (error || !data) {
+        return { role: 'candidato', nome: session.user.email?.split('@')[0] || '' }
+      }
+      return { role: data.role || 'candidato', nome: data.nome || session.user.email?.split('@')[0] || '' }
+    } catch {
+      return { role: 'candidato', nome: session.user.email?.split('@')[0] || '' }
+    }
+  }
+
+  const loadVagas = async () => {
+    const { data: vagasData } = await supabase.from('vagas').select('*').eq('status', 'aberta').order('created_at', { ascending: false }).limit(10)
+    if (vagasData && vagasData.length > 0) {
+      setVagas(vagasData)
+    }
+  }
+
+  const loadLinkedInJobs = async () => {
+    const { data: ljobs } = await supabase.from('linkedin_jobs').select('*').order('created_at', { ascending: false })
+    if (ljobs) setLinkedinJobs(ljobs)
+  }
+
   useEffect(() => {
+    const syncAuth = async (session: any) => {
+      if (session) {
+        const user = await loadUserFromSession(session)
+        setIsLoggedIn(true)
+        setUserRole(user.role)
+        setUserName(user.nome)
+      } else {
+        setIsLoggedIn(false)
+        setUserRole('')
+        setUserName('')
+      }
+    }
+
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession()
-      if (session) {
-        setIsLoggedIn(true)
-        const { data } = await supabase.from('users').select('role, nome').eq('email', session.user.email).single()
-        if (data) {
-          setUserRole(data.role)
-          setUserName(data.nome || '')
-        }
-      }
-
-      // Load real vagas
-      const { data: vagasData } = await supabase.from('vagas').select('*').eq('status', 'aberta').order('created_at', { ascending: false }).limit(10)
-      if (vagasData && vagasData.length > 0) {
-        setVagas(vagasData)
-      }
-
-      // Load LinkedIn jobs
-      const { data: ljobs } = await supabase.from('linkedin_jobs').select('*').order('created_at', { ascending: false })
-      if (ljobs) setLinkedinJobs(ljobs)
+      await syncAuth(session)
+      await loadVagas()
+      await loadLinkedInJobs()
     }
     init()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      syncAuth(session)
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
 
   const handleLogout = async () => {

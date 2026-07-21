@@ -16,6 +16,7 @@ export default function CandidatoDashboardPage() {
 
 function CandidatoDashboard() {
   const [userName, setUserName] = useState('')
+  const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null)
   const [subPlano, setSubPlano] = useState('trial')
@@ -58,6 +59,7 @@ function CandidatoDashboard() {
     const { data: user } = await supabase.from('users').select('*').eq('email', session.user.email).single()
     if (!user || user.role !== 'candidato') { router.push('/'); return }
 
+    setUserId(user.id)
     setUserName(user.nome || 'Candidato')
     setEditNome(user.nome || '')
 
@@ -142,12 +144,14 @@ function CandidatoDashboard() {
       const newDocs = [...documentos, url]
       setDocumentos(newDocs)
 
-      await supabase.from('profiles').upsert({
-        user_id: session.user.id,
-        documentos: newDocs,
-      }, { onConflict: 'user_id' })
-      // Save telefone to users table
-      await supabase.from('users').update({ telefone: editTelefone }).eq('email', session.user.email)
+      if (userId) {
+        await supabase.from('profiles').upsert({
+          user_id: userId,
+          documentos: newDocs,
+        }, { onConflict: 'user_id' })
+        // Save telefone to users table
+        await supabase.from('users').update({ telefone: editTelefone }).eq('id', userId)
+      }
     }
     setUploading(false)
   }
@@ -156,9 +160,10 @@ function CandidatoDashboard() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return
 
-    await supabase.from('users').update({ nome: editNome, telefone: editTelefone }).eq('email', session.user.email)
+    if (!userId) return
+    await supabase.from('users').update({ nome: editNome, telefone: editTelefone }).eq('id', userId)
     const { error } = await supabase.from('profiles').upsert({
-      user_id: session.user.id,
+      user_id: userId,
       documentos,
       area: editArea || null,
       localizacao: editLocalizacao || null,

@@ -39,16 +39,23 @@ export default function VagasPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userRole, setUserRole] = useState('candidato')
 
+  const syncUserFromSession = async (session: any) => {
+    if (session?.user?.email) {
+      const { data, error } = await supabase.from('users').select('role, nome').eq('email', session.user.email).single()
+      if (!error && data) {
+        setIsLoggedIn(true)
+        setUserRole(data.role || 'candidato')
+        return
+      }
+    }
+    setIsLoggedIn(!!session)
+    setUserRole('candidato')
+  }
+
   useEffect(() => {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession()
-      if (session) {
-        setIsLoggedIn(true)
-        const { data } = await supabase.from('users').select('role, nome').eq('email', session.user.email).single()
-        if (data) {
-          setUserRole(data.role)
-        }
-      }
+      await syncUserFromSession(session)
 
       const { data } = await supabase.from('vagas').select('*').eq('status', 'aberta').order('is_prioritaria', { ascending: false }).order('created_at', { ascending: false })
       if (data) {
@@ -56,6 +63,12 @@ export default function VagasPage() {
       }
     }
     init()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      syncUserFromSession(session)
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
 
   const loadExternalJobs = async () => {
@@ -221,7 +234,9 @@ export default function VagasPage() {
                           <p className="text-xs text-ms-gray mt-1 line-clamp-2">{stripHtml(j.excerpt || j.description)}</p>
                           <div className="flex items-center gap-2 mt-2 flex-wrap">
                             {j.location && <span className="inline-flex items-center gap-0.5 text-[11px] text-ms-gray"><MapPin size={10} /> {j.location}</span>}
+                            {j.salary && <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">{j.salary}</span>}
                             {j.category && j.category !== 'Outro' && <span className="text-[10px] text-ms-blue bg-ms-blue/10 px-2 py-0.5 rounded-full">{j.category}</span>}
+                            {(j.score || 0) >= 20 && <span className="text-[10px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">Destaque</span>}
                           </div>
                           <div className="flex items-center justify-end mt-2">
                             <span className="inline-flex items-center gap-1 text-[11px] font-medium text-ms-blue">Ver detalhes</span>
@@ -377,10 +392,6 @@ export default function VagasPage() {
             <span className="text-[10px] text-gray-400">Perfil</span>
           </Link>
         </div>
-      </nav>
-    </div>
-  )
-}
       </nav>
     </div>
   )

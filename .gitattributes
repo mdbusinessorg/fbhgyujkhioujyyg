@@ -1,0 +1,3 @@
+# Mark scraped/generated data so GitHub collapses diffs.
+public/external-jobs.json linguist-generated=true
+public/vagas-data/*.json linguist-generated=true

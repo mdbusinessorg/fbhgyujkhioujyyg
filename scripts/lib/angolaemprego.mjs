@@ -30,6 +30,56 @@ function inferCategory(text) {
   return 'Outro'
 }
 
+const PRIORITY_COMPANIES = ['total', 'shell', 'bp', 'chevron', 'exxon', 'schlumberger', 'halliburton', 'baker hughes', 'saipem', 'subsea7', 'technip', 'modec', 'nestle', 'dhl', 'standard bank', 'africell', 'unitel', 'movicel', 'angola lng', 'bp angola', 'eni', 'azule energy', 'ocm obary', 'grupo simples oil', 'sonepral', 'omatapalo', 'cimenfort', 'casais', 'mota-engil', 'mota engil', 'soico', 'spi']
+const SENIORITY_KEYWORDS = ['sénior', 'senior', 'manager', 'gestor', 'director', 'diretor', 'coordenador', 'coordinator', 'chefe', 'head', 'lead', 'supervisor', 'especialista', 'especialista']
+
+function computeScore(title, company, description, applyUrl) {
+  const text = `${title} ${company} ${description}`.toLowerCase()
+  let score = 0
+
+  if (applyUrl) score += 5
+
+  if (SENIORITY_KEYWORDS.some((k) => text.includes(k))) score += 10
+
+  const companyLower = (company || '').toLowerCase()
+  if (PRIORITY_COMPANIES.some((c) => companyLower.includes(c))) score += 15
+
+  if (/\b(urgente|urgência|immediate|asap|hoje)\b/i.test(text)) score += 5
+
+  // Salary signals: explicit mention of salary terms, or a number paired with a currency.
+  if (/(sal[áa]rio|remunera[çc][ãa]o|pretens[ãa]o|vencimento|ordenado|benef[íi]cios)/i.test(text)) score += 10
+  if (/(\d{1,3}(?:\.\d{3})+|\d{3,})\s*(kz|kwanza|usd|\$|€|£)/i.test(text)) score += 15
+
+  return Math.min(score, 100)
+}
+
+function cleanText(text) {
+  return (text || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+function extractSalary(text) {
+  if (!text) return ''
+  const t = cleanText(text)
+  // Ignore standalone years / country counts that are not salaries.
+  const contextual = t.replace(/(\d{1,3}(?:\.\d{3})+|\d{3,})\s*(pa[íi]ses|anos|meses|dias|semanas|projetos|profissionais)/gi, '')
+
+  // 1. Explicit salary phrase (salário/ordenado/vencimento ... number/currency).
+  const salaryPhrase = contextual.match(
+    /\b(?:sal[áa]rio|remunera[çc][ãa]o|pretens[ãa]o|vencimento|ordenado)\b[^.,:]{0,80}?((?:\d{1,3}(?:\.\d{3})+|\d{3,}))\s*(kz|kwanza|USD|\$|€|£)?/i
+  )
+  if (salaryPhrase) {
+    const amount = salaryPhrase[1] || ''
+    const currency = salaryPhrase[2] || 'Kz'
+    return `${amount} ${currency}`.trim().slice(0, 80)
+  }
+
+  // 2. Number + currency anywhere (stronger signal than a standalone number).
+  const numberCurrency = contextual.match(/(\d{1,3}(?:\.\d{3})+|\d{3,})\s*(kz|kwanza|USD|\$|€|£)/i)
+  if (numberCurrency) return `${numberCurrency[1]} ${numberCurrency[2]}`.trim().slice(0, 80)
+
+  return ''
+}
+
 function decodeEntities(s) {
   if (!s) return s
   return s
@@ -145,6 +195,8 @@ export function parseJob(html, url) {
   }
 
   const category = inferCategory(`${title} ${excerpt}`)
+  const salary = extractSalary(`${description} ${excerpt}`)
+  const score = computeScore(title, company, `${description} ${excerpt}`, apply_url)
 
   return {
     source: 'AngolaEmprego',
@@ -156,7 +208,8 @@ export function parseJob(html, url) {
     description,
     excerpt,
     apply_url: apply_url || null,
-    salary: '',
+    salary,
+    score,
     posted_at,
   }
 }
