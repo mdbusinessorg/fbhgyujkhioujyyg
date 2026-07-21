@@ -129,8 +129,12 @@ function mergeWithPrevious(freshJobs, previousById) {
     return Number.isNaN(ts) || ts >= cutoff
   })
  
-  // Newest-first by when WE first saw it, not the source site's own date field.
-  kept.sort((a, b) => (b.first_seen_at || '').localeCompare(a.first_seen_at || ''))
+  // Sort by priority score (importance/payment signals), then by when we first saw it.
+  kept.sort((a, b) => {
+    const scoreDiff = (b.score || 0) - (a.score || 0)
+    if (scoreDiff !== 0) return scoreDiff
+    return (b.first_seen_at || '').localeCompare(a.first_seen_at || '')
+  })
   return kept
 }
  
@@ -159,6 +163,8 @@ async function writeJson(jobs) {
     location: j.location,
     category: j.category,
     excerpt: j.excerpt,
+    salary: j.salary || '',
+    score: j.score || 0,
     posted_at: j.posted_at,
     first_seen_at: j.first_seen_at,
     has_apply: !!j.apply_url,

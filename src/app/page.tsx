@@ -30,29 +30,62 @@ export default function HomePage() {
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const router = useRouter()
 
+  const loadUserFromSession = async (session: any) => {
+    if (!session?.user?.email) return { role: 'candidato', nome: '' }
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('role, nome')
+        .eq('email', session.user.email)
+        .single()
+      if (error || !data) {
+        return { role: 'candidato', nome: session.user.email?.split('@')[0] || '' }
+      }
+      return { role: data.role || 'candidato', nome: data.nome || session.user.email?.split('@')[0] || '' }
+    } catch {
+      return { role: 'candidato', nome: session.user.email?.split('@')[0] || '' }
+    }
+  }
+
+  const loadVagas = async () => {
+    const { data: vagasData } = await supabase.from('vagas').select('*').eq('status', 'aberta').order('created_at', { ascending: false }).limit(10)
+    if (vagasData && vagasData.length > 0) {
+      setVagas(vagasData)
+    }
+  }
+
+  const loadLinkedInJobs = async () => {
+    const { data: ljobs } = await supabase.from('linkedin_jobs').select('*').order('created_at', { ascending: false })
+    if (ljobs) setLinkedinJobs(ljobs)
+  }
+
   useEffect(() => {
+    const syncAuth = async (session: any) => {
+      if (session) {
+        const user = await loadUserFromSession(session)
+        setIsLoggedIn(true)
+        setUserRole(user.role)
+        setUserName(user.nome)
+      } else {
+        setIsLoggedIn(false)
+        setUserRole('')
+        setUserName('')
+      }
+    }
+
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession()
-      if (session) {
-        setIsLoggedIn(true)
-        const { data } = await supabase.from('users').select('role, nome').eq('email', session.user.email).single()
-        if (data) {
-          setUserRole(data.role)
-          setUserName(data.nome || '')
-        }
-      }
-
-      // Load real vagas
-      const { data: vagasData } = await supabase.from('vagas').select('*').eq('status', 'aberta').order('created_at', { ascending: false }).limit(10)
-      if (vagasData && vagasData.length > 0) {
-        setVagas(vagasData)
-      }
-
-      // Load LinkedIn jobs
-      const { data: ljobs } = await supabase.from('linkedin_jobs').select('*').order('created_at', { ascending: false })
-      if (ljobs) setLinkedinJobs(ljobs)
+      await syncAuth(session)
+      await loadVagas()
+      await loadLinkedInJobs()
     }
     init()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      syncAuth(session)
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
 
   const handleLogout = async () => {
@@ -71,6 +104,56 @@ export default function HomePage() {
     if (hours < 24) return `${hours}h`
     const days = Math.floor(hours / 24)
     return `${days}d`
+  }
+
+  const stripHtml = (html: string) => (html || '').replace(/<[^>]*>/g, '').trim()
+  const HOURS_60 = 60 * 60 * 60 * 1000
+  const isRecent = (date?: string) => !!date && (Date.now() - new Date(date).getTime()) <= HOURS_60
+
+  const recentVagas = vagas.filter(v => isRecent(v.created_at))
+  const olderVagas = vagas.filter(v => !isRecent(v.created_at))
+  const filteredSearch = (v: any) => !searchQuery || v.titulo?.toLowerCase().includes(searchQuery.toLowerCase()) || v.empresa_nome?.toLowerCase().includes(searchQuery.toLowerCase())
+
+  const JobCard = ({ job, variant }: { job: any; variant: 'recent' | 'destaque' | 'normal' }) => {
+    const isDestaque = variant === 'destaque'
+    const isRecent = variant === 'recent'
+    const baseBg = isDestaque ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200 border-2' : isRecent ? 'bg-green-50 border border-green-200' : 'bg-ms-surface'
+    const iconColor = isDestaque ? 'text-amber-600' : isRecent ? 'text-green-600' : 'text-ms-blue'
+    const iconBg = isDestaque ? 'bg-white border-amber-200' : isRecent ? 'bg-white border-green-200' : 'bg-white border-ms-border'
+    return (
+      <Link key={job.id} href={`/vagas/detalhe/?id=${job.id}`} className="block">
+        <div className={`${baseBg} rounded-xl p-4 hover:shadow-md transition-shadow relative overflow-hidden`}>
+          {isDestaque && (
+            <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full mb-2">
+              <Star size={8} className="fill-amber-500 text-amber-500" /> DESTAQUE
+            </span>
+          )}
+          {isRecent && (
+            <div className="absolute top-2 right-2">
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">NOVA</span>
+            </div>
+          )}
+          <div className="flex items-start gap-3">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border ${iconBg}`}>
+              <Briefcase size={16} className={iconColor} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className={`text-sm ${isDestaque ? 'font-semibold' : 'font-medium'} text-ms-dark line-clamp-2`}>{job.titulo}</h3>
+              <p className="text-xs text-ms-gray">{job.empresa_nome} {job.localizacao ? `• ${job.localizacao}` : ''}</p>
+              <p className="text-xs text-ms-gray mt-1.5 line-clamp-3 sm:line-clamp-2">{stripHtml(job.descricao || '').slice(0, 180)}</p>
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                {job.area && <span className="text-[10px] text-ms-blue bg-ms-blue/10 px-2 py-0.5 rounded-full">{job.area}</span>}
+                {job.salario && <span className="text-[10px] font-medium text-green-700 bg-green-100 px-2 py-0.5 rounded-full">{job.salario}</span>}
+              </div>
+              <div className="flex items-center justify-between mt-2">
+                <span className="text-[11px] text-ms-gray bg-white px-2 py-0.5 rounded-full">{getTimeAgo(job.created_at)}</span>
+                <span className="text-[11px] font-medium text-ms-blue bg-ms-blue/10 px-3 py-1 rounded-full">Candidatar</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Link>
+    )
   }
 
   return (
@@ -286,28 +369,31 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* Vagas Recentes */}
+        {recentVagas.filter(filteredSearch).length > 0 && (
+          <section className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <h2 className="text-sm font-semibold text-ms-dark">Vagas Recentes <span className="text-xs font-normal text-ms-gray">(últimas 60h)</span></h2>
+            </div>
+            <div className="space-y-3 lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-4 lg:space-y-0">
+              {recentVagas.filter(filteredSearch).map(job => <JobCard key={job.id} job={job} variant="recent" />)}
+            </div>
+          </section>
+        )}
+
         {/* Vagas em Destaque */}
-        {vagas.filter(v => v.is_prioritaria).length > 0 && (
+        {olderVagas.filter(v => v.is_prioritaria && filteredSearch(v)).length > 0 && (
           <section className="mb-6">
             <div className="flex items-center gap-2 mb-3">
               <Star size={16} className="text-amber-500 fill-amber-500" />
               <h2 className="text-sm font-semibold text-ms-dark">Vagas em Destaque</h2>
             </div>
             <div className="flex gap-3 overflow-x-auto pb-2">
-              {vagas.filter(v => v.is_prioritaria).map(job => (
-                <Link key={job.id} href={`/vagas/detalhe/?id=${job.id}`} className="flex-shrink-0 w-64">
-                  <div className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl p-4 h-full hover:shadow-md transition-shadow relative">
-                    <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full mb-2">
-                      <Star size={8} className="fill-amber-500 text-amber-500" /> DESTAQUE
-                    </span>
-                    <h3 className="text-sm font-semibold text-ms-dark truncate">{job.titulo}</h3>
-                    <p className="text-xs text-ms-gray mt-0.5">{job.empresa_nome}</p>
-                    <div className="flex items-center gap-2 mt-2">
-                      {job.localizacao && <span className="inline-flex items-center gap-0.5 text-[10px] text-ms-gray"><MapPin size={9} />{job.localizacao}</span>}
-                      {job.salario && <span className="text-[10px] font-medium text-green-700">{job.salario}</span>}
-                    </div>
-                  </div>
-                </Link>
+              {olderVagas.filter(v => v.is_prioritaria && filteredSearch(v)).map(job => (
+                <div key={job.id} className="flex-shrink-0 w-72">
+                  <JobCard job={job} variant="destaque" />
+                </div>
               ))}
             </div>
           </section>
@@ -328,22 +414,8 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="space-y-3 lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-4 lg:space-y-0">
-              {vagas.filter(v => !v.is_prioritaria && (v.titulo?.toLowerCase().includes(searchQuery.toLowerCase()) || !searchQuery)).map((job) => (
-                <Link key={job.id} href={`/vagas/detalhe/?id=${job.id}`} className="block">
-                  <div className="bg-ms-surface rounded-xl p-4 flex items-start gap-3 hover:shadow-sm transition-shadow">
-                    <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center flex-shrink-0 border border-ms-border">
-                      <Briefcase size={16} className="text-ms-blue" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-sm font-medium text-ms-dark truncate">{job.titulo}</h3>
-                      <p className="text-xs text-ms-gray">{job.empresa_nome} • {job.localizacao}</p>
-                      <div className="flex items-center justify-between mt-2">
-                        <span className="text-[11px] text-ms-gray bg-white px-2 py-0.5 rounded-full">{getTimeAgo(job.created_at)}</span>
-                        <span className="text-[11px] font-medium text-ms-blue bg-ms-blue/5 px-3 py-1 rounded-full">Candidatar</span>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
+              {olderVagas.filter(v => !v.is_prioritaria && filteredSearch(v)).map((job) => (
+                <JobCard key={job.id} job={job} variant="normal" />
               ))}
             </div>
           )}

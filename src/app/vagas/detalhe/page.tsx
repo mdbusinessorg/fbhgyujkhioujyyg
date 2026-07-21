@@ -74,11 +74,11 @@ function VagaDetalheContent() {
         if (!uploadError) {
           const url = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`
           // Save to profile
-          const { data: prof } = await supabase.from('profiles').select('documentos').eq('user_id', session.user.id).single()
+          const { data: prof } = await supabase.from('profiles').select('documentos').eq('user_id', userId).single()
           const existingDocs = prof?.documentos || []
           if (existingDocs.length < 2) {
             await supabase.from('profiles').upsert({
-              user_id: session.user.id,
+              user_id: userId,
               documentos: [...existingDocs, url],
             }, { onConflict: 'user_id' })
           }
