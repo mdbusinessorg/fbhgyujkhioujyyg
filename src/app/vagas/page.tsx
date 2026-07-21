@@ -93,6 +93,12 @@ export default function VagasPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source])
 
+  // Carrega vagas externas logo ao abrir a página para mostrar secção "Recentes"
+  useEffect(() => {
+    loadExternalJobs()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   useEffect(() => { setExtPage(1) }, [searchQuery, activeFilter])
 
   const filteredExternal = allExternal.filter((j) => {
@@ -101,9 +107,6 @@ export default function VagasPage() {
     const matchCat = activeFilter === 'Todas' || j.category === (activeFilter === 'TI' ? 'Tecnologia' : activeFilter)
     return matchSearch && matchCat
   })
-  const extPages = Math.max(1, Math.ceil(filteredExternal.length / EXT_PAGE_SIZE))
-  const externalJobs = filteredExternal.slice((extPage - 1) * EXT_PAGE_SIZE, extPage * EXT_PAGE_SIZE)
-
   const stripHtml = (html: string) => (html || '').replace(/<[^>]*>/g, '').trim()
 
   const filteredVagas = vagas.filter(v => {
@@ -136,7 +139,6 @@ export default function VagasPage() {
 
   const recentExternal = filteredExternal.filter(j => isRecent(j.first_seen_at))
   const olderExternal = filteredExternal.filter(j => !isRecent(j.first_seen_at))
-  const extRecentPages = Math.max(1, Math.ceil(recentExternal.length / EXT_PAGE_SIZE))
   const extOlderPages = Math.max(1, Math.ceil(olderExternal.length / EXT_PAGE_SIZE))
 
   const JobCard = ({ v, variant }: { v: any; variant: 'recent' | 'destaque' | 'normal' }) => {
@@ -261,6 +263,20 @@ export default function VagasPage() {
           </button>
         </div>
 
+        {/* Vagas Recentes (internas + externas, visível sempre no topo) */}
+        {(recentVagas.length > 0 || recentExternal.length > 0) && (
+          <section className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <h2 className="text-sm font-semibold text-ms-dark">Vagas Recentes <span className="text-xs font-normal text-ms-gray">(últimas 60h)</span></h2>
+            </div>
+            <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
+              {recentVagas.map(v => <JobCard key={v.id} v={v} variant="recent" />)}
+              {recentExternal.slice(0, 10).map(j => <ExternalJobCard key={j.id} j={j} variant="recent" />)}
+            </div>
+          </section>
+        )}
+
         {/* Source toggle: MÔ SALO vs External (CareerJet) */}
         <div className="flex gap-2 mb-4 bg-ms-surface rounded-xl p-1">
           <button
@@ -321,20 +337,6 @@ export default function VagasPage() {
               </div>
             ) : (
               <>
-                {/* Vagas Externas Recentes */}
-                {recentExternal.length > 0 && (
-                  <div className="mb-6">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                      <h2 className="text-sm font-semibold text-ms-dark">Vagas Externas Recentes <span className="text-xs font-normal text-ms-gray">(últimas 60h)</span></h2>
-                    </div>
-                    <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
-                      {recentExternal.slice(0, 10).map((j) => <ExternalJobCard key={j.id} j={j} variant="recent" />)}
-                    </div>
-                  </div>
-                )}
-
-                {/* Outras vagas externas */}
                 <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
                   {olderExternal.slice((extPage - 1) * EXT_PAGE_SIZE, extPage * EXT_PAGE_SIZE).map((j) => (
                     <ExternalJobCard key={j.id} j={j} variant="normal" />
@@ -374,20 +376,7 @@ export default function VagasPage() {
           </section>
         )}
 
-        {/* Vagas Recentes (MÔ SALO) */}
         {source === 'mosalo' && (<>
-        {recentVagas.length > 0 && (
-          <section className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <h2 className="text-sm font-semibold text-ms-dark">Vagas Recentes <span className="text-xs font-normal text-ms-gray">(últimas 60h)</span></h2>
-            </div>
-            <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
-              {recentVagas.map(v => <JobCard key={v.id} v={v} variant="recent" />)}
-            </div>
-          </section>
-        )}
-
         {/* Vagas em Destaque */}
         {destaques.length > 0 && (
           <section className="mb-6">
