@@ -206,7 +206,7 @@ export default function VagasPage() {
             </div>
           )}
           <div className="flex items-start gap-3">
-            <CompanyLogo company={j.company} size={40} rounded="rounded-lg" className="border border-ms-border" />
+            <CompanyLogo company={j.company} logoUrl={j.logo_url} size={40} rounded="rounded-lg" className="border border-ms-border" />
             <div className="flex-1 min-w-0">
               <h3 className="text-base font-bold text-ms-dark leading-snug mb-1 line-clamp-2">{j.title}</h3>
               {j.company && <p className="text-xs text-ms-gray mb-1">{j.company}</p>}

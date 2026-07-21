@@ -11,6 +11,7 @@ import { writeFile, mkdir, readFile, readdir, unlink } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { listPageUrls, parseJob, fetchHtml, listUrl } from './lib/angolaemprego.mjs'
+import { getCompanyLogoUrl } from './lib/company-logos.mjs'
  
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..')
@@ -154,12 +155,16 @@ async function writeJson(jobs) {
     // dir didn't exist yet — fine
   }
  
+  // Enrich every job with its company logo (if known).
+  const enriched = jobs.map((j) => ({ ...j, logo_url: getCompanyLogoUrl(j.company, j.logo_url) }))
+
   // Slim index for the listing page. first_seen_at lets the site show a
   // "novo hoje" badge and sort by when the job actually appeared on mosalo.
-  const index = jobs.map((j) => ({
+  const index = enriched.map((j) => ({
     id: j.id,
     title: j.title,
     company: j.company,
+    logo_url: j.logo_url,
     location: j.location,
     category: j.category,
     excerpt: j.excerpt,
@@ -175,7 +180,7 @@ async function writeJson(jobs) {
   )
  
   // Full record per job for the detail page.
-  for (const j of jobs) {
+  for (const j of enriched) {
     await writeFile(join(DATA_DIR, `${j.id}.json`), JSON.stringify(j))
   }
   console.log(`wrote public/external-jobs.json (${index.length}) + public/vagas-data/*.json`)

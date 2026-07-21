@@ -5,14 +5,15 @@ import { getCompanyLogoUrl, getCompanyInitials, getCompanyColor } from "@/lib/co
 
 interface CompanyLogoProps {
   company?: string
+  logoUrl?: string
   size?: number
   className?: string
   rounded?: string
 }
 
-export function CompanyLogo({ company, size = 40, className = "", rounded = "rounded-lg" }: CompanyLogoProps) {
+export function CompanyLogo({ company, logoUrl, size = 40, className = "", rounded = "rounded-lg" }: CompanyLogoProps) {
   const [error, setError] = useState(false)
-  const src = getCompanyLogoUrl(company)
+  const src = getCompanyLogoUrl(company, logoUrl)
   const initials = getCompanyInitials(company)
   const bg = getCompanyColor(company)
 

@@ -76,7 +76,7 @@ function ExternaContent() {
       <main className="max-w-3xl mx-auto px-4 pt-6">
         <div className="text-center mb-6">
           <div className="w-14 h-14 mx-auto mb-3">
-            <CompanyLogo company={job.company} size={56} rounded="rounded-2xl" className="border border-ms-border" />
+            <CompanyLogo company={job.company} logoUrl={job.logo_url} size={56} rounded="rounded-2xl" className="border border-ms-border" />
           </div>
           <h1 className="text-xl font-bold text-ms-dark mb-1">{job.title}</h1>
           {job.company && <p className="text-sm text-ms-gray">{job.company}</p>}
