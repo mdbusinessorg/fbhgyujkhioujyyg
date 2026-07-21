@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Search, SlidersHorizontal, Heart, Bell, Menu, X, Briefcase, Home as HomeIcon, User, LogOut, Settings, FileText, Star, MapPin, Monitor, Banknote, Stethoscope, Megaphone, Scale, GraduationCap, HardHat, Wrench, Linkedin, ExternalLink, MessageSquare, Zap, Users } from 'lucide-react'
+import { CompanyLogo } from '@/components/CompanyLogo'
 import InstallPWA from '@/components/InstallPWA'
 
 const CATEGORIAS_HOME = [
@@ -134,9 +135,7 @@ export default function HomePage() {
             </div>
           )}
           <div className="flex items-start gap-3">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border ${iconBg}`}>
-              <Briefcase size={16} className={iconColor} />
-            </div>
+            <CompanyLogo company={job.empresa_nome} size={40} rounded="rounded-full" className="border border-ms-border" />
             <div className="flex-1 min-w-0">
               <h3 className={`text-sm ${isDestaque ? 'font-semibold' : 'font-medium'} text-ms-dark line-clamp-2`}>{job.titulo}</h3>
               <p className="text-xs text-ms-gray">{job.empresa_nome} {job.localizacao ? `• ${job.localizacao}` : ''}</p>

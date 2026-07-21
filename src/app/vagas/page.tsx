@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { Search, SlidersHorizontal, Heart, Briefcase, ArrowLeft, Home as HomeIcon, User, Star, MapPin, Globe, Building2 } from 'lucide-react'
+import { CompanyLogo } from '@/components/CompanyLogo'
 
 const EXT_PAGE_SIZE = 20
 
@@ -165,9 +166,7 @@ export default function VagasPage() {
             </div>
           )}
           <div className="flex items-start gap-3">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border ${iconBg}`}>
-              <Briefcase size={16} className={iconColor} />
-            </div>
+            <CompanyLogo company={v.empresa_nome} size={40} rounded="rounded-full" className="border border-ms-border" />
             <div className="flex-1 min-w-0 pr-16">
               <h3 className={`text-sm ${isDestaque ? 'font-semibold' : 'font-medium'} text-ms-dark line-clamp-2`}>{v.titulo}</h3>
               <p className="text-xs text-ms-gray">{v.empresa_nome}</p>
@@ -207,9 +206,7 @@ export default function VagasPage() {
             </div>
           )}
           <div className="flex items-start gap-3">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${isRecent ? 'bg-green-50' : 'bg-ms-blue/5'}`}>
-              <Building2 size={16} className={isRecent ? 'text-green-600' : 'text-ms-blue'} />
-            </div>
+            <CompanyLogo company={j.company} size={40} rounded="rounded-lg" className="border border-ms-border" />
             <div className="flex-1 min-w-0">
               <h3 className="text-base font-bold text-ms-dark leading-snug mb-1 line-clamp-2">{j.title}</h3>
               {j.company && <p className="text-xs text-ms-gray mb-1">{j.company}</p>}
