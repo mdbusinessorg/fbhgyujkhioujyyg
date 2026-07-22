@@ -4,8 +4,10 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
+import { startOrRequestConversation } from '@/lib/messaging'
 import Logo from '@/components/Logo'
-import { ArrowLeft, MapPin, Briefcase, MessageSquare, Share2, Bookmark, Users } from 'lucide-react'
+import ShareMenu from '@/components/ShareMenu'
+import { ArrowLeft, MapPin, Briefcase, MessageSquare, Bookmark, Users } from 'lucide-react'
 
 interface PersonProfile {
   id: string
@@ -73,34 +75,12 @@ function PerfilContent() {
     init()
   }, [id])
 
-  const startConversation = async () => {
-    if (!currentUser || !person) return
-    const { data: existing } = await supabase
-      .from('conversations')
-      .select('id')
-      .or(`and(participant_1_id.eq.${currentUser.id},participant_2_id.eq.${person.id}),and(participant_1_id.eq.${person.id},participant_2_id.eq.${currentUser.id})`)
-      .maybeSingle()
-
-    if (existing) { router.push(`/mensagens/?conv=${existing.id}`); return }
-
-    const { data: conv, error } = await supabase.from('conversations').insert({
-      participant_1_id: currentUser.id,
-      participant_2_id: person.id,
-    }).select('id').single()
-
-    if (error) { alert('Erro ao criar conversa: ' + error.message); return }
-    router.push(`/mensagens/?conv=${conv.id}`)
+  const handleMessage = async () => {
+    if (!currentUser || !person) { router.push('/auth/login/'); return }
+    await startOrRequestConversation(currentUser.id, person.id, router)
   }
 
-  const shareProfile = async () => {
-    if (!person) return
-    const url = typeof window !== 'undefined' ? window.location.href : ''
-    if (navigator.share) {
-      try { await navigator.share({ title: person.nome, text: `Veja o perfil de ${person.nome} no MÔ SALO`, url }) } catch {}
-    } else if (navigator.clipboard) {
-      try { await navigator.clipboard.writeText(url); alert('Link copiado') } catch {}
-    }
-  }
+  const profileUrl = typeof window !== 'undefined' && person ? `${window.location.origin}/pessoas/perfil/?id=${person.id}` : ''
 
   if (loading) {
     return (
@@ -135,9 +115,7 @@ function PerfilContent() {
           <Link href="/" className="flex items-center">
             <Logo variant="full" className="h-8 w-auto" />
           </Link>
-          <button onClick={shareProfile} className="p-1 text-ms-dark hover:text-ms-blue">
-            <Share2 size={22} />
-          </button>
+          {person && <ShareMenu url={profileUrl} title={person.nome} text={`Perfil de ${person.nome} no MÔ SALO`} size={22} className="p-1 text-ms-dark hover:text-ms-blue" />}
         </div>
       </header>
 
@@ -160,9 +138,11 @@ function PerfilContent() {
           </div>
 
           <div className="flex items-center justify-center gap-3">
-            <button onClick={startConversation} className="flex-1 flex items-center justify-center gap-2 bg-ms-blue text-white text-sm font-medium py-2.5 rounded-xl hover:bg-blue-700 transition-colors">
-              <MessageSquare size={16} /> Mensagem
-            </button>
+            {currentUser && person && currentUser.id !== person.id && (
+              <button onClick={handleMessage} className="flex-1 flex items-center justify-center gap-2 bg-ms-blue text-white text-sm font-medium py-2.5 rounded-xl hover:bg-blue-700 transition-colors">
+                <MessageSquare size={16} /> Mensagem
+              </button>
+            )}
             <button onClick={() => setSaved(v => !v)} className={`w-11 h-11 flex items-center justify-center rounded-xl border transition-colors ${saved ? 'bg-ms-blue text-white border-ms-blue' : 'bg-white text-ms-gray border-ms-border hover:bg-ms-surface'}`}>
               <Bookmark size={18} className={saved ? 'fill-white' : ''} />
             </button>

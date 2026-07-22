@@ -4,15 +4,24 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { ArrowLeft, Send, MessageSquare, User, Search } from 'lucide-react'
+import { ArrowLeft, Send, MessageSquare, User, Search, Check, X, Users } from 'lucide-react'
 
 interface Conversation {
   id: string
   participant_1_id: string
   participant_2_id: string
   last_message_at: string
-  otherUser?: { id: string; nome: string; email: string }
+  otherUser?: { id: string; nome: string; email: string; avatar_url?: string | null }
   lastMessage?: string
+}
+
+interface MessageRequest {
+  id: string
+  requester_id: string
+  recipient_id: string
+  status: string
+  created_at: string
+  requester?: { id: string; nome: string; email: string; avatar_url?: string | null }
 }
 
 interface Message {
@@ -34,6 +43,8 @@ export default function MensagensPage() {
 
 function MensagensContent() {
   const [conversations, setConversations] = useState<Conversation[]>([])
+  const [requests, setRequests] = useState<MessageRequest[]>([])
+  const [activeView, setActiveView] = useState<'conversas' | 'pedidos'>('conversas')
   const [activeConv, setActiveConv] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
@@ -53,10 +64,10 @@ function MensagensContent() {
       if (!user) return
       setCurrentUserId(user.id)
 
-      await loadConversations(user.id)
+      await Promise.all([loadConversations(user.id), loadRequests(user.id)])
 
       const convParam = searchParams.get('conv')
-      if (convParam) setActiveConv(convParam)
+      if (convParam) { setActiveConv(convParam); setActiveView('conversas') }
 
       setLoading(false)
     }
@@ -73,11 +84,10 @@ function MensagensContent() {
     if (!convs || convs.length === 0) { setConversations([]); return }
 
     const otherIds = convs.map(c => c.participant_1_id === userId ? c.participant_2_id : c.participant_1_id)
-    const { data: users } = await supabase.from('users').select('id, nome, email').in('id', otherIds)
+    const { data: users } = await supabase.from('users').select('id, nome, email, avatar_url').in('id', otherIds)
     const usersMap: Record<string, any> = {}
     ;(users || []).forEach(u => { usersMap[u.id] = u })
 
-    // Get last message for each conversation
     const convIds = convs.map(c => c.id)
     const { data: lastMsgs } = await supabase
       .from('messages')
@@ -102,6 +112,61 @@ function MensagensContent() {
     setConversations(enriched)
   }
 
+  const loadRequests = async (userId: string) => {
+    const { data: reqs } = await supabase
+      .from('message_requests')
+      .select('*')
+      .eq('recipient_id', userId)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+
+    if (!reqs || reqs.length === 0) { setRequests([]); return }
+
+    const requesterIds = reqs.map(r => r.requester_id)
+    const { data: users } = await supabase.from('users').select('id, nome, email, avatar_url').in('id', requesterIds)
+    const usersMap: Record<string, any> = {}
+    ;(users || []).forEach(u => { usersMap[u.id] = u })
+
+    const enriched: MessageRequest[] = reqs.map(r => ({
+      ...r,
+      requester: usersMap[r.requester_id] || { id: r.requester_id, nome: 'Utilizador', email: '' },
+    }))
+
+    setRequests(enriched)
+  }
+
+  const acceptRequest = async (req: MessageRequest) => {
+    // Verificar se já existe conversa
+    const { data: existing } = await supabase
+      .from('conversations')
+      .select('id')
+      .or(`and(participant_1_id.eq.${req.requester_id},participant_2_id.eq.${currentUserId}),and(participant_1_id.eq.${currentUserId},participant_2_id.eq.${req.requester_id})`)
+      .maybeSingle()
+
+    let convId = existing?.id
+    if (!convId) {
+      const { data: conv } = await supabase
+        .from('conversations')
+        .insert({ participant_1_id: req.requester_id, participant_2_id: currentUserId })
+        .select('id')
+        .single()
+      if (conv) convId = conv.id
+    }
+
+    if (convId) {
+      await supabase.from('message_requests').update({ status: 'accepted' }).eq('id', req.id)
+      setRequests(prev => prev.filter(r => r.id !== req.id))
+      await loadConversations(currentUserId)
+      setActiveConv(convId)
+      setActiveView('conversas')
+    }
+  }
+
+  const rejectRequest = async (reqId: string) => {
+    await supabase.from('message_requests').update({ status: 'rejected' }).eq('id', reqId)
+    setRequests(prev => prev.filter(r => r.id !== reqId))
+  }
+
   useEffect(() => {
     if (!activeConv || !currentUserId) return
 
@@ -113,7 +178,6 @@ function MensagensContent() {
         .order('created_at', { ascending: true })
       setMessages(data || [])
 
-      // Mark unread messages as read
       await supabase
         .from('messages')
         .update({ read_at: new Date().toISOString() })
@@ -123,7 +187,6 @@ function MensagensContent() {
     }
     loadMessages()
 
-    // Real-time subscription
     const channel = supabase
       .channel(`messages-${activeConv}`)
       .on('postgres_changes', {
@@ -134,7 +197,6 @@ function MensagensContent() {
       }, (payload) => {
         const newMsg = payload.new as Message
         setMessages(prev => [...prev, newMsg])
-        // Mark as read if not sender
         if (newMsg.sender_id !== currentUserId) {
           supabase.from('messages').update({ read_at: new Date().toISOString() }).eq('id', newMsg.id)
         }
@@ -159,7 +221,6 @@ function MensagensContent() {
       content,
     })
 
-    // Update last_message_at
     await supabase.from('conversations').update({
       last_message_at: new Date().toISOString(),
     }).eq('id', activeConv)
@@ -202,14 +263,13 @@ function MensagensContent() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col lg:flex-row">
-      {/* Conversations List */}
       <div className={`${activeConv ? 'hidden lg:flex' : 'flex'} flex-col w-full lg:w-80 lg:border-r border-gray-100 h-screen`}>
         <header className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 z-10">
           <div className="flex items-center gap-3 mb-3">
             <Link href="/" className="p-1"><ArrowLeft size={20} className="text-gray-700" /></Link>
             <h1 className="font-semibold text-gray-900">Mensagens</h1>
           </div>
-          <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
+          <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 mb-3">
             <Search size={14} className="text-gray-400" />
             <input
               type="text"
@@ -219,48 +279,90 @@ function MensagensContent() {
               className="flex-1 bg-transparent outline-none text-sm text-gray-900 placeholder:text-gray-400"
             />
           </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveView('conversas')}
+              className={`flex-1 py-2 rounded-lg text-xs font-medium ${activeView === 'conversas' ? 'bg-[#1A56FF] text-white' : 'bg-gray-100 text-gray-700'}`}
+            >
+              Conversas
+            </button>
+            <button
+              onClick={() => setActiveView('pedidos')}
+              className={`flex-1 py-2 rounded-lg text-xs font-medium ${activeView === 'pedidos' ? 'bg-[#1A56FF] text-white' : 'bg-gray-100 text-gray-700'}`}
+            >
+              Pedidos {requests.length > 0 && <span className="ml-1 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{requests.length}</span>}
+            </button>
+          </div>
         </header>
 
         <div className="flex-1 overflow-y-auto">
-          {filteredConvs.length === 0 ? (
-            <div className="text-center py-12 px-4">
-              <MessageSquare size={40} className="text-gray-200 mx-auto mb-3" />
-              <p className="text-sm text-gray-500">Sem conversas</p>
-              <p className="text-xs text-gray-400 mt-1">Vai a Pessoas para iniciar uma conversa</p>
-              <Link href="/pessoas/" className="inline-block mt-3 text-xs text-[#1A56FF] font-medium">Encontrar Pessoas</Link>
-            </div>
-          ) : (
-            filteredConvs.map(conv => (
-              <button
-                key={conv.id}
-                onClick={() => setActiveConv(conv.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 text-left ${activeConv === conv.id ? 'bg-blue-50' : ''}`}
-              >
-                <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <User size={18} className="text-gray-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-gray-900 truncate">{conv.otherUser?.nome || 'Utilizador'}</p>
-                    <span className="text-[10px] text-gray-400 flex-shrink-0">{formatDate(conv.last_message_at)}</span>
+          {activeView === 'conversas' ? (
+            filteredConvs.length === 0 ? (
+              <div className="text-center py-12 px-4">
+                <MessageSquare size={40} className="text-gray-200 mx-auto mb-3" />
+                <p className="text-sm text-gray-500">Sem conversas</p>
+                <p className="text-xs text-gray-400 mt-1">Vai a Pessoas para iniciar uma conversa</p>
+                <Link href="/pessoas/" className="inline-block mt-3 text-xs text-[#1A56FF] font-medium">Encontrar Pessoas</Link>
+              </div>
+            ) : (
+              filteredConvs.map(conv => (
+                <button
+                  key={conv.id}
+                  onClick={() => setActiveConv(conv.id)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 text-left ${activeConv === conv.id ? 'bg-blue-50' : ''}`}
+                >
+                  <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {conv.otherUser?.avatar_url ? <img src={conv.otherUser.avatar_url} alt="" className="w-full h-full object-cover" /> : <User size={18} className="text-gray-400" />}
                   </div>
-                  <p className="text-xs text-gray-500 truncate">{conv.lastMessage || 'Nova conversa'}</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium text-gray-900 truncate">{conv.otherUser?.nome || 'Utilizador'}</p>
+                      <span className="text-[10px] text-gray-400 flex-shrink-0">{formatDate(conv.last_message_at)}</span>
+                    </div>
+                    <p className="text-xs text-gray-500 truncate">{conv.lastMessage || 'Nova conversa'}</p>
+                  </div>
+                </button>
+              ))
+            )
+          ) : (
+            requests.length === 0 ? (
+              <div className="text-center py-12 px-4">
+                <Users size={40} className="text-gray-200 mx-auto mb-3" />
+                <p className="text-sm text-gray-500">Sem pedidos pendentes</p>
+              </div>
+            ) : (
+              requests.map(req => (
+                <div key={req.id} className="flex items-center gap-3 px-4 py-3 border-b border-gray-50">
+                  <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {req.requester?.avatar_url ? <img src={req.requester.avatar_url} alt="" className="w-full h-full object-cover" /> : <User size={18} className="text-gray-400" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{req.requester?.nome || 'Utilizador'}</p>
+                    <p className="text-xs text-gray-500">Quer enviar-te uma mensagem</p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => acceptRequest(req)} className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100">
+                      <Check size={16} />
+                    </button>
+                    <button onClick={() => rejectRequest(req.id)} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100">
+                      <X size={16} />
+                    </button>
+                  </div>
                 </div>
-              </button>
-            ))
+              ))
+            )
           )}
         </div>
       </div>
 
-      {/* Chat Area */}
       {activeConv ? (
         <div className="flex-1 flex flex-col h-screen">
           <header className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 z-10 flex items-center gap-3">
             <button onClick={() => setActiveConv(null)} className="lg:hidden p-1">
               <ArrowLeft size={20} className="text-gray-700" />
             </button>
-            <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-              <User size={16} className="text-gray-400" />
+            <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
+              {activeConvData?.otherUser?.avatar_url ? <img src={activeConvData.otherUser.avatar_url} alt="" className="w-full h-full object-cover" /> : <User size={16} className="text-gray-400" />}
             </div>
             <p className="font-medium text-sm text-gray-900">{activeConvData?.otherUser?.nome || 'Utilizador'}</p>
           </header>
@@ -309,7 +411,7 @@ function MensagensContent() {
         <div className="hidden lg:flex flex-1 items-center justify-center bg-gray-50">
           <div className="text-center">
             <MessageSquare size={48} className="text-gray-200 mx-auto mb-3" />
-            <p className="text-sm text-gray-500">Selecciona uma conversa</p>
+            <p className="text-sm text-gray-500">Selecciona uma conversa ou pedido</p>
           </div>
         </div>
       )}
