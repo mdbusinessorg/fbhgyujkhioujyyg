@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { Home, Search, Heart, User, Briefcase, BarChart3, LogOut, Settings, UserCheck, CreditCard } from 'lucide-react'
+import Logo from '@/components/Logo'
 
 interface SidebarProps {
   active: string
@@ -41,10 +42,7 @@ export default function Sidebar({ active, userRole, userName }: SidebarProps) {
     <aside className="hidden lg:flex lg:flex-col w-60 h-screen fixed left-0 top-0 bg-white border-r border-ms-border z-40">
       <div className="p-6 border-b border-ms-border">
         <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-ms-blue rounded-lg flex items-center justify-center">
-            <Briefcase size={16} className="text-white" />
-          </div>
-          <span className="font-bold text-lg text-ms-blue">MÔ SALO</span>
+          <Logo iconClassName="h-8 w-8" textClassName="text-ms-blue" />
         </Link>
       </div>
 

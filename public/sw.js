@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mosalo-v4';
+const CACHE_NAME = 'mosalo-v5';
 const STATIC_ASSETS = [
   '/',
   '/offline.html',

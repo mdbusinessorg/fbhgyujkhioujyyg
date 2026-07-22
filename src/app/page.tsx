@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Search, SlidersHorizontal, Heart, Bell, Menu, X, Briefcase, Home as HomeIcon, User, LogOut, Settings, FileText, Star, MapPin, Monitor, Banknote, Stethoscope, Megaphone, Scale, GraduationCap, HardHat, Wrench, Linkedin, ExternalLink, MessageSquare, Zap, Users } from 'lucide-react'
 import InstallPWA from '@/components/InstallPWA'
+import Logo from '@/components/Logo'
 
 const CATEGORIAS_HOME = [
   { key: 'TI', label: 'Tecnologia', icon: Monitor, match: 'Tecnologia' },
@@ -164,12 +165,7 @@ export default function HomePage() {
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowMenu(false)} />
           <div className="absolute left-0 top-0 h-full w-72 bg-white shadow-xl p-6">
             <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-ms-blue rounded-lg flex items-center justify-center">
-                  <Briefcase size={16} className="text-white" />
-                </div>
-                <span className="font-bold text-lg text-ms-blue">MÔ SALO</span>
-              </div>
+              <Logo iconClassName="h-8 w-8" textClassName="text-ms-blue" />
               <button onClick={() => setShowMenu(false)}>
                 <X size={22} className="text-ms-dark" />
               </button>
@@ -233,10 +229,7 @@ export default function HomePage() {
               <Menu size={22} className="text-ms-dark" />
             </button>
             <Link href="/" className="flex items-center gap-2">
-              <div className="w-9 h-9 bg-gradient-to-br from-ms-blue to-ms-purple rounded-xl flex items-center justify-center">
-                <span className="text-white font-black text-sm">MS</span>
-              </div>
-              <span className="font-bold text-lg text-ms-dark hidden sm:block">MÔ SALO</span>
+              <Logo iconClassName="h-9 w-9" textClassName="text-ms-dark hidden sm:block" />
             </Link>
           </div>
 
@@ -574,10 +567,7 @@ export default function HomePage() {
       <aside className="hidden lg:flex lg:flex-col w-60 h-screen fixed left-0 top-0 bg-white border-r border-ms-border z-40">
         <div className="p-6 border-b border-ms-border">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-ms-blue rounded-lg flex items-center justify-center">
-              <Briefcase size={16} className="text-white" />
-            </div>
-            <span className="font-bold text-lg text-ms-blue">MÔ SALO</span>
+            <Logo iconClassName="h-8 w-8" textClassName="text-ms-blue" />
           </Link>
         </div>
 
