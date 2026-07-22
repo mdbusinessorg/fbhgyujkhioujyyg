@@ -404,7 +404,7 @@ export default function HomePage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="flex-1 bg-transparent outline-none text-sm text-ms-dark placeholder:text-ms-gray"
           />
-          <Link href="/vagas/" className="w-9 h-9 bg-ms-blue rounded-xl flex items-center justify-center flex-shrink-0">
+          <Link href="/vagas/?showFilters=1" className="w-9 h-9 bg-ms-blue rounded-xl flex items-center justify-center flex-shrink-0">
             <SlidersHorizontal size={16} className="text-white" />
           </Link>
         </div>
@@ -458,21 +458,19 @@ export default function HomePage() {
             <Link href="/vagas/" className="text-xs text-ms-blue font-medium">Ver todas</Link>
           </div>
           <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-            {CATEGORIAS_HOME.map((cat, idx) => {
+            {CATEGORIAS_HOME.map((cat) => {
               const Icon = cat.icon
               return (
-                <button
+                <Link
                   key={cat.key}
-                  onClick={() => setActiveFilter(activeFilter === cat.label ? 'Todas' : cat.label)}
-                  className={`flex-shrink-0 flex flex-col items-center gap-2 p-3 rounded-2xl min-w-[76px] transition-colors ${
-                    activeFilter === cat.label ? 'bg-ms-blue text-white shadow-sm' : 'bg-white text-ms-dark border border-ms-border hover:bg-ms-surface'
-                  }`}
+                  href={`/vagas/?area=${encodeURIComponent(cat.label)}`}
+                  className="flex-shrink-0 flex flex-col items-center gap-2 p-3 rounded-2xl min-w-[76px] bg-white text-ms-dark border border-ms-border hover:bg-ms-surface hover:border-ms-blue/30 transition-colors"
                 >
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${activeFilter === cat.label ? 'bg-white/20' : 'bg-ms-purple-light'}`}>
-                    <Icon size={20} className={activeFilter === cat.label ? 'text-white' : 'text-ms-blue'} />
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center bg-ms-purple-light">
+                    <Icon size={20} className="text-ms-blue" />
                   </div>
                   <span className="text-[10px] font-medium whitespace-nowrap">{cat.label}</span>
-                </button>
+                </Link>
               )
             })}
           </div>

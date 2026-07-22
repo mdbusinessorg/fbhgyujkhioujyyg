@@ -29,6 +29,7 @@ const CATEGORIAS = [
 
 const CONTRATOS = ['Todos', 'Efetivo', 'Temporário', 'Estágio', 'Trainee', 'Freelancer']
 const MODALIDADES = ['Todas', 'Presencial', 'Remoto', 'Híbrido']
+const DEFAULT_LOCATIONS = ['Luanda', 'Benguela', 'Lubango', 'Cabinda', 'Huambo', 'Malanje', 'Namibe', 'Lobito', 'Uíge', 'Kuito', 'Sumbe', 'Angola', 'Remoto']
 
 export default function VagasPage() {
   const [vagas, setVagas] = useState<any[]>([])
@@ -107,7 +108,18 @@ export default function VagasPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  useEffect(() => { setExtPage(1) }, [searchQuery, activeFilter, activeContract, activeModality, activeLocation])
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const area = params.get('area')
+    const q = params.get('q')
+    const openFilters = params.get('showFilters')
+    if (area && CATEGORIAS.some(c => c.key === area || c.label === area)) {
+      setActiveFilter(area)
+    }
+    if (q) setSearchQuery(q)
+    if (openFilters === '1') setShowFilters(true)
+  }, [])
 
   const detectContractType = (text: string) => {
     const t = (text || '').toLowerCase()
@@ -154,7 +166,7 @@ export default function VagasPage() {
   })
 
   const uniqueLocations = useMemo(() => {
-    const locs = new Set<string>()
+    const locs = new Set<string>(DEFAULT_LOCATIONS)
     vagas.forEach(v => { if (v.localizacao) locs.add(v.localizacao) })
     allExternal.forEach(j => { if (j.location) locs.add(j.location) })
     return Array.from(locs).sort()
