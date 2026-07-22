@@ -54,9 +54,47 @@ ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE vagas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE candidaturas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payment_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE quick_jobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cupoes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE grupos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE mensagens ENABLE ROW LEVEL SECURITY;
+
+-- Criar tabelas auxiliares se ainda não existirem (úteis para ambientes novos)
+CREATE TABLE IF NOT EXISTS payment_requests (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  plan text DEFAULT 'premium',
+  amount integer DEFAULT 0,
+  phone_used text,
+  proof_file_url text,
+  transaction_reference text,
+  status text DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  payment_method text DEFAULT 'manual',
+  reviewed_at timestamptz,
+  premium_expires_at timestamptz,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS quick_jobs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  publicado_por uuid REFERENCES users(id) ON DELETE CASCADE,
+  titulo text NOT NULL,
+  descricao text,
+  categoria text DEFAULT 'outro',
+  localizacao text,
+  tipo_pagamento text DEFAULT 'diário',
+  valor_kz integer DEFAULT 0,
+  duracao_estimada text,
+  contacto_telefone text,
+  contacto_whatsapp text,
+  status text DEFAULT 'aberto' CHECK (status IN ('aberto', 'encerrado')),
+  created_at timestamptz DEFAULT now()
+);
+
+-- Adicionar plano 'trabalho_rapido' às subscriptions (idempotente)
+ALTER TABLE subscriptions DROP CONSTRAINT IF EXISTS subscriptions_plano_check;
+ALTER TABLE subscriptions ADD CONSTRAINT subscriptions_plano_check CHECK (plano IN ('trial', 'premium', 'recrutador', 'trabalho_rapido'));
 
 -- Função auxiliar: devolve o id da tabela public.users correspondente ao
 -- utilizador autenticado, baseado no email do JWT. Assim as políticas RLS
@@ -133,6 +171,32 @@ CREATE POLICY "Admin vê todas subscriptions" ON subscriptions FOR SELECT USING 
 );
 CREATE POLICY "Subscriptions inseríveis" ON subscriptions FOR INSERT WITH CHECK (user_id = public.get_auth_user_id());
 CREATE POLICY "Admin pode editar subscriptions" ON subscriptions FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM users WHERE id = public.get_auth_user_id() AND role = 'admin')
+);
+
+-- ===================== PAYMENT_REQUESTS =====================
+DROP POLICY IF EXISTS "Payment requests visíveis para o próprio" ON payment_requests;
+DROP POLICY IF EXISTS "Payment requests inseríveis pelo próprio" ON payment_requests;
+DROP POLICY IF EXISTS "Admin vê todas payment requests" ON payment_requests;
+DROP POLICY IF EXISTS "Admin edita payment requests" ON payment_requests;
+CREATE POLICY "Payment requests visíveis para o próprio" ON payment_requests FOR SELECT USING (user_id = public.get_auth_user_id());
+CREATE POLICY "Payment requests inseríveis pelo próprio" ON payment_requests FOR INSERT WITH CHECK (user_id = public.get_auth_user_id());
+CREATE POLICY "Admin vê todas payment requests" ON payment_requests FOR SELECT USING (
+  EXISTS (SELECT 1 FROM users WHERE id = public.get_auth_user_id() AND role = 'admin')
+);
+CREATE POLICY "Admin edita payment requests" ON payment_requests FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM users WHERE id = public.get_auth_user_id() AND role = 'admin')
+);
+
+-- ===================== QUICK_JOBS =====================
+DROP POLICY IF EXISTS "Quick jobs visíveis publicamente" ON quick_jobs;
+DROP POLICY IF EXISTS "Users podem publicar quick jobs" ON quick_jobs;
+DROP POLICY IF EXISTS "Próprio edita quick jobs" ON quick_jobs;
+DROP POLICY IF EXISTS "Admin gere quick jobs" ON quick_jobs;
+CREATE POLICY "Quick jobs visíveis publicamente" ON quick_jobs FOR SELECT USING (true);
+CREATE POLICY "Users podem publicar quick jobs" ON quick_jobs FOR INSERT WITH CHECK (publicado_por = public.get_auth_user_id());
+CREATE POLICY "Próprio edita quick jobs" ON quick_jobs FOR UPDATE USING (publicado_por = public.get_auth_user_id());
+CREATE POLICY "Admin gere quick jobs" ON quick_jobs FOR ALL USING (
   EXISTS (SELECT 1 FROM users WHERE id = public.get_auth_user_id() AND role = 'admin')
 );
 

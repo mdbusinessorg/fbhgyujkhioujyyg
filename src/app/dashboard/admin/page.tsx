@@ -103,15 +103,29 @@ export default function AdminDashboard() {
     alert(`Lembrete de pagamento enviado para ${email}:\n\nMulticaixa Express: 926 115 429\nIBAN: 0005.0000.0626.9321.1011.5\nValor: 1.000 Kz/mês`)
   }
 
-  const approvePayment = async (reqId: string, userId: string) => {
-    const expiresAt = new Date()
-    expiresAt.setDate(expiresAt.getDate() + 3)
+  const approvePayment = async (req: any) => {
+    const reviewedAt = new Date().toISOString()
     await supabase.from('payment_requests').update({
       status: 'approved',
-      reviewed_at: new Date().toISOString(),
-      premium_expires_at: expiresAt.toISOString(),
-    }).eq('id', reqId)
-    await supabase.from('users').update({ premium: true }).eq('id', userId)
+      reviewed_at: reviewedAt,
+    }).eq('id', req.id)
+
+    if (req.plan === 'trabalho_rapido') {
+      const expiresAt = new Date()
+      expiresAt.setDate(expiresAt.getDate() + 30)
+      await supabase.from('subscriptions').insert({
+        user_id: req.user_id,
+        plano: 'trabalho_rapido',
+        valor: req.amount || 1000,
+        status: 'ativa',
+        data_fim: expiresAt.toISOString(),
+      })
+    } else {
+      const expiresAt = new Date()
+      expiresAt.setDate(expiresAt.getDate() + 3)
+      await supabase.from('payment_requests').update({ premium_expires_at: expiresAt.toISOString() }).eq('id', req.id)
+      await supabase.from('users').update({ premium: true }).eq('id', req.user_id)
+    }
     loadData()
   }
 
@@ -616,7 +630,7 @@ export default function AdminDashboard() {
                     )}
                     {req.status === 'pending' && (
                       <div className="flex gap-2 mt-2">
-                        <button onClick={() => approvePayment(req.id, req.user_id)} className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700"><CheckCircle size={12} /> Aprovar</button>
+                        <button onClick={() => approvePayment(req)} className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700"><CheckCircle size={12} /> Aprovar</button>
                         <button onClick={() => rejectPayment(req.id)} className="flex items-center gap-1 px-3 py-1.5 bg-red-500 text-white text-xs rounded-lg hover:bg-red-600"><XCircle size={12} /> Rejeitar</button>
                       </div>
                     )}
