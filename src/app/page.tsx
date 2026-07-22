@@ -362,8 +362,8 @@ export default function HomePage() {
       <header className="sticky top-0 bg-white z-50 px-4 py-3 shadow-sm lg:hidden">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <button className="p-1 -ml-2" onClick={() => setShowMenu(true)}><Menu size={22} className="text-ms-dark" /></button>
-          <Link href="/" className="flex items-center gap-2">
-            <Logo iconClassName="h-9 w-9" textClassName="text-ms-dark hidden sm:block" />
+          <Link href="/" className="flex items-center">
+            <Logo variant="full" className="h-8 w-auto" />
           </Link>
           <div className="relative">
             <button onClick={() => setShowNotif(!showNotif)} className="p-1 relative">

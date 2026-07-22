@@ -8,18 +8,10 @@ export default function SplashScreen() {
   const [fadeOut, setFadeOut] = useState(false)
 
   useEffect(() => {
-    const shown = sessionStorage.getItem('splash-shown')
-    if (shown) {
-      setShow(false)
-      return
-    }
     const timer = setTimeout(() => {
       setFadeOut(true)
-      setTimeout(() => {
-        setShow(false)
-        sessionStorage.setItem('splash-shown', '1')
-      }, 500)
-    }, 1800)
+      setTimeout(() => setShow(false), 500)
+    }, 2500)
     return () => clearTimeout(timer)
   }, [])
 
