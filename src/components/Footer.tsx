@@ -1,18 +1,14 @@
 import Link from 'next/link'
-import { Briefcase, Mail, Phone, MapPin } from 'lucide-react'
+import { Mail, Phone, MapPin } from 'lucide-react'
+import Logo from '@/components/Logo'
 
 export default function Footer() {
   return (
-    <footer className="bg-k10-primary text-white">
+    <footer className="bg-ms-dark text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           <div>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center">
-                <Briefcase size={18} className="text-white" />
-              </div>
-              <span className="font-heading font-bold text-lg">MÔ SALO</span>
-            </div>
+            <Logo className="mb-4" iconClassName="h-9 w-9" textClassName="text-white" />
             <p className="text-gray-400 text-sm leading-relaxed">
               Plataforma de recrutamento angolana. Conectamos talentos às melhores oportunidades.
             </p>

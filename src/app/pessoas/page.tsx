@@ -28,6 +28,7 @@ export default function PessoasPage() {
   const [query, setQuery] = useState('')
   const [filtro, setFiltro] = useState('Todos')
   const [catFiltro, setCatFiltro] = useState('Todas')
+  const [showAllAreas, setShowAllAreas] = useState(false)
   const [results, setResults] = useState<PersonResult[]>([])
   const [loading, setLoading] = useState(false)
   const [currentUserId, setCurrentUserId] = useState('')
@@ -134,6 +135,10 @@ export default function PessoasPage() {
     results.filter(p => p.role === 'candidato' && p.profile?.area).map(p => p.profile!.area as string)
   )).sort()
 
+  const areaCounts = categorias
+    .map(area => ({ area, count: results.filter(p => p.role === 'candidato' && p.profile?.area === area).length }))
+    .sort((a, b) => b.count - a.count)
+
   const filtered = results.filter(p => {
     if (filtro === 'Talentos' && p.role !== 'candidato') return false
     if (filtro === 'Recrutadores' && p.role !== 'recrutador') return false
@@ -180,19 +185,40 @@ export default function PessoasPage() {
           ))}
         </div>
 
-        {/* Category filter (candidates) */}
-        {filtro !== 'Recrutadores' && categorias.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
-            {['Todas', ...categorias].map(c => (
+        {/* Popular Areas */}
+        {filtro !== 'Recrutadores' && areaCounts.length > 0 && (
+          <section className="mb-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-900">Áreas Populares</h2>
               <button
-                key={c}
-                onClick={() => setCatFiltro(c)}
-                className={`px-3 py-1.5 rounded-full text-[11px] font-medium whitespace-nowrap transition-colors ${catFiltro === c ? 'bg-[#6C47FF] text-white' : 'bg-white text-gray-500 border border-gray-100'}`}
+                onClick={() => setShowAllAreas(v => !v)}
+                className="text-xs text-[#1A56FF] font-medium"
               >
-                {c}
+                {showAllAreas ? 'Ver menos' : 'Ver todas'}
               </button>
-            ))}
-          </div>
+            </div>
+            <div className={`grid gap-3 ${showAllAreas ? 'grid-cols-4' : 'grid-cols-4'}`}>
+              {(showAllAreas ? areaCounts : areaCounts.slice(0, 4)).map(({ area, count }) => {
+                const active = catFiltro === area
+                return (
+                  <button
+                    key={area}
+                    onClick={() => setCatFiltro(active ? 'Todas' : area)}
+                    className="flex flex-col items-center gap-1.5"
+                  >
+                    <div
+                      className={`w-16 h-16 rounded-full flex items-center justify-center text-white font-semibold text-lg transition-transform ${active ? 'ring-2 ring-[#1A56FF] ring-offset-2' : 'hover:scale-105'}`}
+                      style={{ background: 'linear-gradient(135deg, #1A56FF 0%, #6C47FF 100%)' }}
+                    >
+                      {(area || 'T').charAt(0).toUpperCase()}
+                    </div>
+                    <span className="text-xs font-medium text-gray-900 text-center leading-tight">{area}</span>
+                    <span className="text-[10px] text-gray-500">{count} talentos</span>
+                  </button>
+                )
+              })}
+            </div>
+          </section>
         )}
 
         {/* Results */}

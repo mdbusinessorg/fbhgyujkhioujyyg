@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
+import Logo from '@/components/Logo'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
@@ -250,7 +251,7 @@ function CandidatoDashboard() {
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowMenu(false)} />
           <div className="absolute left-0 top-0 h-full w-72 bg-white shadow-xl p-6">
             <div className="flex items-center justify-between mb-8">
-              <span className="font-bold text-lg text-ms-blue">MÔ SALO</span>
+              <Logo variant="full" className="h-8 w-auto" />
               <button onClick={() => setShowMenu(false)}><X size={22} className="text-ms-dark" /></button>
             </div>
             <div className="mb-6 pb-4 border-b border-ms-border">
@@ -291,10 +292,7 @@ function CandidatoDashboard() {
       <aside className="hidden lg:flex lg:flex-col w-60 h-screen fixed left-0 top-0 bg-white border-r border-ms-border z-40">
         <div className="p-6 border-b border-ms-border">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-ms-blue rounded-lg flex items-center justify-center">
-              <Briefcase size={16} className="text-white" />
-            </div>
-            <span className="font-bold text-lg text-ms-blue">MÔ SALO</span>
+            <Logo iconClassName="h-8 w-8" textClassName="text-ms-blue" />
           </Link>
         </div>
         <div className="px-6 py-4 border-b border-ms-border">

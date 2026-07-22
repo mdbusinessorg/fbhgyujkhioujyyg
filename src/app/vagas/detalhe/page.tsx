@@ -6,6 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
 import { ArrowLeft, Heart, MapPin, Send, Upload, MessageSquare } from 'lucide-react'
 import { CompanyLogo } from '@/components/CompanyLogo'
+import Logo from '@/components/Logo'
 
 function VagaDetalheContent() {
   const searchParams = useSearchParams()
@@ -132,7 +133,7 @@ function VagaDetalheContent() {
           <button onClick={() => router.back()}>
             <ArrowLeft size={20} className="text-ms-dark" />
           </button>
-          <span className="font-bold text-lg text-ms-blue">MÔ SALO</span>
+          <Logo variant="full" className="h-8 w-auto" />
           <button>
             <Heart size={20} className="text-ms-gray" />
           </button>

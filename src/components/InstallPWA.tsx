@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Logo from '@/components/Logo'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -69,9 +70,7 @@ export default function InstallPWA() {
       {/* Install Banner */}
       <div className="fixed bottom-20 left-4 right-4 md:left-auto md:right-6 md:bottom-6 md:w-80 z-50 animate-slide-up">
         <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#1A56FF] to-[#6C47FF] flex items-center justify-center flex-shrink-0">
-            <span className="text-white font-bold text-lg">MS</span>
-          </div>
+          <Logo variant="icon" className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#1A56FF] to-[#6C47FF] p-2.5 flex-shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-gray-900 text-sm">Instalar MÔ SALO</p>
             <p className="text-xs text-gray-500">Acesso rápido no ecrã inicial</p>

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import InstallPWA from '@/components/InstallPWA'
+import Logo from '@/components/Logo'
 
 const CATEGORIAS_HOME = [
   { key: 'TI', label: 'Tecnologia', icon: Monitor, match: 'Tecnologia' },
@@ -323,13 +324,10 @@ export default function HomePage() {
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowMenu(false)} />
           <div className="absolute left-0 top-0 h-full w-72 bg-white shadow-xl p-6">
             <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-2">
-                <div className="w-10 h-10 bg-gradient-to-br from-ms-blue to-ms-purple rounded-xl flex items-center justify-center">
-                  <Briefcase size={20} className="text-white" />
-                </div>
-                <span className="font-bold text-lg text-ms-dark">MÔ SALO</span>
-              </div>
-              <button onClick={() => setShowMenu(false)}><X size={22} className="text-ms-dark" /></button>
+              <Logo iconClassName="h-8 w-8" textClassName="text-ms-blue" />
+              <button onClick={() => setShowMenu(false)}>
+                <X size={22} className="text-ms-dark" />
+              </button>
             </div>
             {isLoggedIn && (
               <div className="mb-6 pb-4 border-b border-ms-border">
@@ -365,10 +363,7 @@ export default function HomePage() {
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <button className="p-1 -ml-2" onClick={() => setShowMenu(true)}><Menu size={22} className="text-ms-dark" /></button>
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-9 h-9 bg-gradient-to-br from-ms-blue to-ms-purple rounded-xl flex items-center justify-center">
-              <Briefcase size={18} className="text-white" />
-            </div>
-            <span className="font-bold text-lg text-ms-dark">MÔ SALO</span>
+            <Logo iconClassName="h-9 w-9" textClassName="text-ms-dark hidden sm:block" />
           </Link>
           <div className="relative">
             <button onClick={() => setShowNotif(!showNotif)} className="p-1 relative">
@@ -603,10 +598,7 @@ export default function HomePage() {
       <aside className="hidden lg:flex lg:flex-col w-60 h-screen fixed left-0 top-0 bg-white border-r border-ms-border z-40">
         <div className="p-6 border-b border-ms-border">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-ms-blue to-ms-purple rounded-xl flex items-center justify-center">
-              <Briefcase size={20} className="text-white" />
-            </div>
-            <span className="font-bold text-lg text-ms-dark">MÔ SALO</span>
+            <Logo iconClassName="h-8 w-8" textClassName="text-ms-blue" />
           </Link>
         </div>
         {isLoggedIn && (

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Menu, X, User, LogIn, Briefcase, Search, BookOpen, LogOut, LayoutDashboard } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import Logo from '@/components/Logo'
 
 interface UserData {
   role: string
@@ -76,12 +77,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-9 h-9 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center">
-              <Briefcase size={18} className="text-white" />
-            </div>
-            <span className="font-heading font-bold text-lg text-k10-primary hidden sm:block">
-              MÔ <span className="text-k10-accent">SALO</span>
-            </span>
+            <Logo iconClassName="h-9 w-9" textClassName="text-ms-dark hidden sm:block" />
           </Link>
 
           <div className="hidden md:flex items-center gap-6">

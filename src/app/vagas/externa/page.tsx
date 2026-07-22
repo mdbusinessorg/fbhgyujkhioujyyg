@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Heart, MapPin, Clock, Linkedin, Send } from 'lucide-react'
 import { CompanyLogo } from '@/components/CompanyLogo'
+import Logo from '@/components/Logo'
 
 function ExternaContent() {
   const searchParams = useSearchParams()
@@ -66,7 +67,7 @@ function ExternaContent() {
           <button onClick={() => router.back()}>
             <ArrowLeft size={20} className="text-ms-dark" />
           </button>
-          <span className="font-bold text-lg text-ms-blue">MÔ SALO</span>
+          <Logo variant="full" className="h-8 w-auto" />
           <button>
             <Heart size={20} className="text-ms-gray" />
           </button>

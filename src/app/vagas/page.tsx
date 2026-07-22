@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { Search, SlidersHorizontal, Heart, Briefcase, ArrowLeft, Home as HomeIcon, User, Star, MapPin, Globe, Building2, X, Filter, ChevronDown } from 'lucide-react'
 import { CompanyLogo } from '@/components/CompanyLogo'
+import Logo from '@/components/Logo'
 
 const EXT_PAGE_SIZE = 20
 
@@ -298,7 +299,7 @@ export default function VagasPage() {
           <Link href="/" className="flex items-center gap-2">
             <ArrowLeft size={20} className="text-ms-dark" />
           </Link>
-          <span className="font-bold text-lg text-ms-blue">MÔ SALO</span>
+          <Logo variant="full" className="h-8 w-auto" />
           <button>
             <Heart size={20} className="text-ms-gray" />
           </button>
