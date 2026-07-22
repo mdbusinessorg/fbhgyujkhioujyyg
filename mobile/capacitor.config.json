@@ -1,0 +1,11 @@
+{
+  "appId": "cc.eu.mosalo.app",
+  "appName": "MÔ SALO",
+  "webDir": "www",
+  "server": {
+    "url": "https://mosalo.eu.cc",
+    "allowNavigation": ["mosalo.eu.cc", "*.mosalo.eu.cc", "*.supabase.co"]
+  },
+  "ios": { "contentInset": "automatic" },
+  "android": { "allowMixedContent": false }
+}
