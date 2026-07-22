@@ -1,21 +1,32 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import Logo from '@/components/Logo'
 
 export default function SplashScreen() {
+  const pathname = usePathname()
+  const [mounted, setMounted] = useState(false)
   const [show, setShow] = useState(true)
   const [fadeOut, setFadeOut] = useState(false)
 
+  useEffect(() => { setMounted(true) }, [])
+
   useEffect(() => {
+    if (!mounted) return
+    if (pathname && pathname !== '/') {
+      setShow(false)
+      return
+    }
+    if (pathname !== '/') return
     const timer = setTimeout(() => {
       setFadeOut(true)
       setTimeout(() => setShow(false), 500)
     }, 2500)
     return () => clearTimeout(timer)
-  }, [])
+  }, [mounted, pathname])
 
-  if (!show) return null
+  if (!mounted || !show) return null
 
   return (
     <div
