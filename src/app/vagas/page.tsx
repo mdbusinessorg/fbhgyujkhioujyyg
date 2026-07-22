@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { Search, SlidersHorizontal, Heart, Briefcase, ArrowLeft, Home as HomeIcon, User, Star, MapPin, Globe, Building2 } from 'lucide-react'
+import { Search, SlidersHorizontal, Heart, Briefcase, ArrowLeft, Home as HomeIcon, User, Star, MapPin, Globe, Building2, X, Filter, ChevronDown } from 'lucide-react'
 import { CompanyLogo } from '@/components/CompanyLogo'
 
 const EXT_PAGE_SIZE = 20
@@ -27,10 +27,17 @@ const CATEGORIAS = [
   { key: 'Design', label: 'Design', match: 'Design' },
 ]
 
+const CONTRATOS = ['Todos', 'Efetivo', 'Temporário', 'Estágio', 'Trainee', 'Freelancer']
+const MODALIDADES = ['Todas', 'Presencial', 'Remoto', 'Híbrido']
+
 export default function VagasPage() {
   const [vagas, setVagas] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [activeFilter, setActiveFilter] = useState('Todas')
+  const [activeContract, setActiveContract] = useState('Todos')
+  const [activeModality, setActiveModality] = useState('Todas')
+  const [activeLocation, setActiveLocation] = useState('Todas')
+  const [showFilters, setShowFilters] = useState(false)
   const [source, setSource] = useState<'mosalo' | 'externas'>('mosalo')
   const [allExternal, setAllExternal] = useState<any[]>([])
   const [extLoaded, setExtLoaded] = useState(false)
@@ -100,25 +107,58 @@ export default function VagasPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  useEffect(() => { setExtPage(1) }, [searchQuery, activeFilter])
+  useEffect(() => { setExtPage(1) }, [searchQuery, activeFilter, activeContract, activeModality, activeLocation])
+
+  const detectContractType = (text: string) => {
+    const t = (text || '').toLowerCase()
+    if (t.includes('estágio') || t.includes('estagiario') || t.includes('estagiári')) return 'Estágio'
+    if (t.includes('trainee')) return 'Trainee'
+    if (t.includes('freelancer') || t.includes('freelance') || t.includes('consultor')) return 'Freelancer'
+    if (t.includes('temporário') || t.includes('temporaria') || t.includes('tempo determinado') || t.includes('termo certo')) return 'Temporário'
+    if (t.includes('efetivo') || t.includes('efectivo') || t.includes('efetiva') || t.includes('indefinido') || t.includes('tempo indeterminado')) return 'Efetivo'
+    return null
+  }
+
+  const detectModality = (text: string) => {
+    const t = (text || '').toLowerCase()
+    if (t.includes('híbrido') || t.includes('hibrido') || t.includes('misto')) return 'Híbrido'
+    if (t.includes('remoto') || t.includes('teletrabalho') || t.includes('home office') || t.includes('home-office')) return 'Remoto'
+    if (t.includes('presencial') || t.includes('no local') || t.includes('no escritório')) return 'Presencial'
+    return null
+  }
 
   const filteredExternal = allExternal.filter((j) => {
     const kw = searchQuery.trim().toLowerCase()
-    const matchSearch = !kw || j.title?.toLowerCase().includes(kw) || j.company?.toLowerCase().includes(kw)
+    const matchSearch = !kw || j.title?.toLowerCase().includes(kw) || j.company?.toLowerCase().includes(kw) || j.excerpt?.toLowerCase().includes(kw)
     const matchCat = activeFilter === 'Todas' || j.category === (activeFilter === 'TI' ? 'Tecnologia' : activeFilter)
-    return matchSearch && matchCat
+    const text = `${j.title || ''} ${j.excerpt || ''}`
+    const matchContract = activeContract === 'Todos' || detectContractType(text) === activeContract
+    const matchModality = activeModality === 'Todas' || detectModality(text) === activeModality
+    const matchLocation = activeLocation === 'Todas' || j.location === activeLocation
+    return matchSearch && matchCat && matchContract && matchModality && matchLocation
   })
   const stripHtml = (html: string) => (html || '').replace(/<[^>]*>/g, '').trim()
 
   const filteredVagas = vagas.filter(v => {
-    const matchSearch = !searchQuery || v.titulo?.toLowerCase().includes(searchQuery.toLowerCase()) || v.empresa_nome?.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchSearch = !searchQuery || v.titulo?.toLowerCase().includes(searchQuery.toLowerCase()) || v.empresa_nome?.toLowerCase().includes(searchQuery.toLowerCase()) || stripHtml(v.descricao || '').toLowerCase().includes(searchQuery.toLowerCase())
     let matchFilter = activeFilter === 'Todas'
     if (!matchFilter) {
       const cat = CATEGORIAS.find(c => c.key === activeFilter)
       matchFilter = cat?.match ? v.area?.includes(cat.match) : false
     }
-    return matchSearch && matchFilter
+    const text = `${v.titulo || ''} ${stripHtml(v.descricao || '')} ${v.salario || ''}`
+    const matchContract = activeContract === 'Todos' || detectContractType(text) === activeContract
+    const matchModality = activeModality === 'Todas' || detectModality(text) === activeModality
+    const matchLocation = activeLocation === 'Todas' || v.localizacao === activeLocation
+    return matchSearch && matchFilter && matchContract && matchModality && matchLocation
   })
+
+  const uniqueLocations = useMemo(() => {
+    const locs = new Set<string>()
+    vagas.forEach(v => { if (v.localizacao) locs.add(v.localizacao) })
+    allExternal.forEach(j => { if (j.location) locs.add(j.location) })
+    return Array.from(locs).sort()
+  }, [vagas, allExternal])
 
   const getTimeAgo = (date: string) => {
     const diff = Date.now() - new Date(date).getTime()
@@ -255,7 +295,10 @@ export default function VagasPage() {
             onKeyDown={(e) => { if (e.key === 'Enter' && source === 'externas') setExtPage(1) }}
             className="flex-1 bg-transparent outline-none text-sm text-ms-dark placeholder:text-ms-gray"
           />
-          <button className="w-8 h-8 bg-ms-blue rounded-lg flex items-center justify-center flex-shrink-0">
+          <button
+            onClick={() => setShowFilters(s => !s)}
+            className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${showFilters ? 'bg-ms-blue' : 'bg-ms-blue'}`}
+          >
             <SlidersHorizontal size={14} className="text-white" />
           </button>
         </div>
@@ -275,6 +318,51 @@ export default function VagasPage() {
             <Globe size={14} /> Vagas Externas
           </button>
         </div>
+
+        {/* Filters */}
+        {showFilters && (
+          <div className="bg-ms-surface rounded-xl p-3 mb-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-ms-dark flex items-center gap-1"><Filter size={14} /> Filtros</span>
+              <button
+                onClick={() => { setActiveContract('Todos'); setActiveModality('Todas'); setActiveLocation('Todas'); setSearchQuery(''); setActiveFilter('Todas') }}
+                className="text-[10px] text-ms-blue font-medium flex items-center gap-0.5"
+              >
+                <X size={10} /> Limpar
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="text-[10px] text-ms-gray mb-1 block">Tipo de contrato</label>
+                <div className="relative">
+                  <select value={activeContract} onChange={(e) => setActiveContract(e.target.value)} className="w-full appearance-none bg-white border border-ms-border rounded-lg px-3 py-2 text-xs text-ms-dark outline-none focus:border-ms-blue">
+                    {CONTRATOS.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                  <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-ms-gray pointer-events-none" />
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] text-ms-gray mb-1 block">Modalidade</label>
+                <div className="relative">
+                  <select value={activeModality} onChange={(e) => setActiveModality(e.target.value)} className="w-full appearance-none bg-white border border-ms-border rounded-lg px-3 py-2 text-xs text-ms-dark outline-none focus:border-ms-blue">
+                    {MODALIDADES.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                  <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-ms-gray pointer-events-none" />
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] text-ms-gray mb-1 block">Localização</label>
+                <div className="relative">
+                  <select value={activeLocation} onChange={(e) => setActiveLocation(e.target.value)} className="w-full appearance-none bg-white border border-ms-border rounded-lg px-3 py-2 text-xs text-ms-dark outline-none focus:border-ms-blue">
+                    <option value="Todas">Todas</option>
+                    {uniqueLocations.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+                  </select>
+                  <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-ms-gray pointer-events-none" />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Category chips */}
         <div className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-hide">
