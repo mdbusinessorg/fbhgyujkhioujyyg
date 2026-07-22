@@ -6,6 +6,12 @@
 [functions]
   node_bundler = "esbuild"
 
+[[headers]]
+  for = "/external-jobs.json"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Cache-Control = "public, max-age=300"
+
 # API functions take priority over the SPA catch-all
 [[redirects]]
   from = "/api/careerjet"
