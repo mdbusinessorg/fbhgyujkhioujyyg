@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
 import { startOrRequestConversation } from '@/lib/messaging'
@@ -90,12 +90,17 @@ const Avatar = ({ url, name, size = 40, className = '' }: { url?: string | null;
   )
 }
 
-function PessoasContent() {
+export default function PessoasPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const postHighlightId = searchParams.get('post')
+  const [highlightPostId, setHighlightPostId] = useState<string | null>(null)
 
-  const [activeTab, setActiveTab] = useState<'feed' | 'pessoas'>(postHighlightId ? 'feed' : 'feed')
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const id = new URLSearchParams(window.location.search).get('post')
+    if (id) setHighlightPostId(id)
+  }, [])
+
+  const [activeTab, setActiveTab] = useState<'feed' | 'pessoas'>('feed')
   const [query, setQuery] = useState('')
   const [showSearch, setShowSearch] = useState(false)
   const [filtro, setFiltro] = useState('Todos')
@@ -237,15 +242,15 @@ function PessoasContent() {
   }, [router, loadPeople, loadPosts, checkPostedToday])
 
   useEffect(() => {
-    if (postHighlightId && posts.length > 0) {
-      const el = document.getElementById(`post-${postHighlightId}`)
+    if (highlightPostId && posts.length > 0) {
+      const el = document.getElementById(`post-${highlightPostId}`)
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' })
         el.classList.add('ring-2', 'ring-ms-blue')
         setTimeout(() => el.classList.remove('ring-2', 'ring-ms-blue'), 2000)
       }
     }
-  }, [postHighlightId, posts])
+  }, [highlightPostId, posts])
 
   const handleSearch = (val: string) => {
     setQuery(val)
@@ -722,13 +727,5 @@ function PessoasContent() {
         </div>
       </nav>
     </div>
-  )
-}
-
-export default function PessoasPage() {
-  return (
-    <Suspense fallback={<div className="min-h-screen bg-ms-surface flex items-center justify-center"><div className="w-8 h-8 border-2 border-ms-blue border-t-transparent rounded-full animate-spin" /></div>}>
-      <PessoasContent />
-    </Suspense>
   )
 }
