@@ -423,27 +423,6 @@ export default function HomePage() {
           </Link>
         </div>
 
-        {/* Mobile greeting */}
-        <div className="lg:hidden mb-4">
-          <h1 className="text-xl font-bold text-ms-dark">Olá{userName ? `, ${userName.split(' ')[0]}` : ''}! <span className="inline-block animate-bounce">👋</span></h1>
-          <p className="text-xs text-ms-gray">Encontra o emprego ideal em Angola.</p>
-        </div>
-
-        {/* Quick filter chips */}
-        <div className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-hide">
-          {QUICK_FILTERS.map(f => (
-            <button
-              key={f.key}
-              onClick={() => setActiveFilter(f.key)}
-              className={`flex-shrink-0 text-xs px-4 py-2 rounded-full font-medium transition-colors whitespace-nowrap ${
-                activeFilter === f.key ? 'bg-ms-blue text-white shadow-sm' : 'bg-white text-ms-gray border border-ms-border hover:bg-ms-surface'
-              }`}
-            >
-              {f.label === 'Favoritos' ? <span className="flex items-center gap-1"><Heart size={12} /> Favoritos</span> : f.label}
-            </button>
-          ))}
-        </div>
-
         {/* Promotional banner */}
         <section className="mb-6">
           <div className="bg-gradient-to-r from-ms-blue to-ms-purple rounded-3xl p-5 text-white relative overflow-hidden">
@@ -464,6 +443,21 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+
+        {/* Quick filter chips */}
+        <div className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-hide">
+          {QUICK_FILTERS.map(f => (
+            <button
+              key={f.key}
+              onClick={() => setActiveFilter(f.key)}
+              className={`flex-shrink-0 text-xs px-4 py-2 rounded-full font-medium transition-colors whitespace-nowrap ${
+                activeFilter === f.key ? 'bg-ms-blue text-white shadow-sm' : 'bg-white text-ms-gray border border-ms-border hover:bg-ms-surface'
+              }`}
+            >
+              {f.label === 'Favoritos' ? <span className="flex items-center gap-1"><Heart size={12} /> Favoritos</span> : f.label}
+            </button>
+          ))}
+        </div>
 
         {/* Categories */}
         <section className="mb-6">
