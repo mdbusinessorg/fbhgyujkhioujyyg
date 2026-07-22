@@ -15,7 +15,10 @@ function startOfDay(date) {
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' }
 
-  const store = getStore('posts')
+  const store = getStore('posts', {
+    siteID: process.env.NETLIFY_BLOBS_SITE_ID,
+    token: process.env.NETLIFY_BLOBS_TOKEN,
+  })
 
   if (event.httpMethod === 'GET') {
     const data = (await store.get('all')) || '[]'

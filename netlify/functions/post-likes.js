@@ -9,7 +9,10 @@ const headers = {
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' }
 
-  const store = getStore('post-likes')
+  const store = getStore('post-likes', {
+    siteID: process.env.NETLIFY_BLOBS_SITE_ID,
+    token: process.env.NETLIFY_BLOBS_TOKEN,
+  })
 
   if (event.httpMethod === 'GET') {
     const postId = event.queryStringParameters?.post_id
