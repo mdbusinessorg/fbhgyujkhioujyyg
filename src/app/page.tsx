@@ -408,21 +408,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Search */}
-        <div className="bg-white rounded-full px-4 py-3 shadow-sm flex items-center gap-3 mb-4">
-          <Search size={20} className="text-ms-gray flex-shrink-0" />
-          <input
-            type="text"
-            placeholder="Título da vaga, empresa ou área"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 bg-transparent outline-none text-sm text-ms-dark placeholder:text-ms-gray"
-          />
-          <Link href="/vagas/?showFilters=1" className="w-9 h-9 bg-ms-blue rounded-xl flex items-center justify-center flex-shrink-0">
-            <SlidersHorizontal size={16} className="text-white" />
-          </Link>
-        </div>
-
         {/* Promotional banner */}
         <section className="mb-6">
           <div className="bg-gradient-to-r from-ms-blue to-ms-purple rounded-3xl p-5 text-white relative overflow-hidden">
@@ -443,6 +428,21 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+
+        {/* Search */}
+        <div className="bg-white rounded-full px-4 py-3 shadow-sm flex items-center gap-3 mb-4">
+          <Search size={20} className="text-ms-gray flex-shrink-0" />
+          <input
+            type="text"
+            placeholder="Título da vaga, empresa ou área"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="flex-1 bg-transparent outline-none text-sm text-ms-dark placeholder:text-ms-gray"
+          />
+          <Link href="/vagas/?showFilters=1" className="w-9 h-9 bg-ms-blue rounded-xl flex items-center justify-center flex-shrink-0">
+            <SlidersHorizontal size={16} className="text-white" />
+          </Link>
+        </div>
 
         {/* Quick filter chips */}
         <div className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-hide">
