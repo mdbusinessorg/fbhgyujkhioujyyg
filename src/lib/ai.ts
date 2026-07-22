@@ -73,6 +73,19 @@ export async function matchCandidate(vaga: Vaga, candidato: Record<string, unkno
   }
 }
 
+export async function askSupport(message: string, context?: Record<string, unknown>, history?: { role: 'user' | 'assistant'; content: string }[]): Promise<{ answer: string; error?: string }> {
+  try {
+    const res = await fetch('/api/ai-support', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message, context, history }),
+    })
+    return await res.json()
+  } catch (err) {
+    return { answer: '', error: String(err) }
+  }
+}
+
 export async function fetchCareerJet(keywords: string, location = 'Luanda, Angola', page = 1): Promise<CareerJetResponse> {
   try {
     const params = new URLSearchParams({

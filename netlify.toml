@@ -39,6 +39,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/ai-support"
+  to = "/.netlify/functions/ai-support"
+  status = 200
+
+[[redirects]]
   from = "/api/posts"
   to = "/.netlify/functions/posts"
   status = 200

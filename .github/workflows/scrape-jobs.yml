@@ -49,6 +49,7 @@ jobs:
         env:
           MAX_PAGES: ${{ github.event.inputs.max_pages || '30' }}
           CONCURRENCY: '4'
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
           node scripts/ingest-angolaemprego.mjs --json
 
