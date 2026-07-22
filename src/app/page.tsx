@@ -61,7 +61,6 @@ export default function HomePage() {
   const [userName, setUserName] = useState('')
   const [userId, setUserId] = useState('')
   const [showMenu, setShowMenu] = useState(false)
-  const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [showNotif, setShowNotif] = useState(false)
   const [vagas, setVagas] = useState<any[]>([])
   const [allExternal, setAllExternal] = useState<any[]>([])
@@ -171,7 +170,6 @@ export default function HomePage() {
     setUserName('')
     setUserId('')
     setShowMenu(false)
-    setShowProfileMenu(false)
     router.push('/')
   }
 
@@ -437,6 +435,11 @@ export default function HomePage() {
             placeholder="Título da vaga, empresa ou área"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && searchQuery.trim()) {
+                router.push(`/vagas/?q=${encodeURIComponent(searchQuery.trim())}`)
+              }
+            }}
             className="flex-1 bg-transparent outline-none text-sm text-ms-dark placeholder:text-ms-gray"
           />
           <Link href="/vagas/?showFilters=1" className="w-9 h-9 bg-ms-blue rounded-xl flex items-center justify-center flex-shrink-0">

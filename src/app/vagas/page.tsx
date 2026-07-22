@@ -9,23 +9,31 @@ import { CompanyLogo } from '@/components/CompanyLogo'
 const EXT_PAGE_SIZE = 20
 
 const CATEGORIAS = [
-  { key: 'Todas', label: 'Todas' },
-  { key: 'TI', label: 'TI', match: 'Tecnologia' },
-  { key: 'Finanças', label: 'Finanças', match: 'Finanças' },
-  { key: 'Engenharia', label: 'Engenharia', match: 'Engenharia' },
-  { key: 'Saúde', label: 'Saúde', match: 'Saúde' },
-  { key: 'Marketing', label: 'Marketing', match: 'Marketing' },
-  { key: 'Direito', label: 'Direito', match: 'Direito' },
-  { key: 'Petróleo', label: 'Petróleo', match: 'Petróleo' },
-  { key: 'Educação', label: 'Educação', match: 'Educação' },
-  { key: 'Administração', label: 'Administração', match: 'Administração' },
-  { key: 'Contabilidade', label: 'Contabilidade', match: 'Contabilidade' },
-  { key: 'Logística', label: 'Logística', match: 'Logística' },
-  { key: 'Hotelaria', label: 'Hotelaria', match: 'Hotelaria' },
-  { key: 'Construção', label: 'Construção', match: 'Construção' },
-  { key: 'RH', label: 'RH', match: 'Recursos Humanos' },
-  { key: 'Design', label: 'Design', match: 'Design' },
+  { key: 'Todas', label: 'Todas', match: '', external: '' },
+  { key: 'TI', label: 'Tecnologia', match: 'Tecnologia', external: 'Tecnologia' },
+  { key: 'Financas', label: 'Finanças', match: 'Finanças', external: 'Finanças' },
+  { key: 'Engenharia', label: 'Engenharia', match: 'Engenharia', external: 'Engenharia' },
+  { key: 'Saude', label: 'Saúde', match: 'Saúde', external: 'Saúde' },
+  { key: 'Marketing', label: 'Marketing', match: 'Marketing', external: 'Marketing' },
+  { key: 'Direito', label: 'Direito', match: 'Direito', external: 'Direito' },
+  { key: 'Petroleo', label: 'Petróleo', match: 'Petróleo', external: 'Petróleo' },
+  { key: 'Educacao', label: 'Educação', match: 'Educação', external: 'Educação' },
+  { key: 'Administracao', label: 'Administração', match: 'Administração', external: 'Administração' },
+  { key: 'Contabilidade', label: 'Contabilidade', match: 'Contabilidade', external: 'Contabilidade' },
+  { key: 'Logistica', label: 'Logística', match: 'Logística', external: 'Logística' },
+  { key: 'Hotelaria', label: 'Hotelaria', match: 'Hotelaria', external: 'Hotelaria' },
+  { key: 'Construcao', label: 'Construção', match: 'Construção', external: 'Construção' },
+  { key: 'RH', label: 'RH', match: 'Recursos Humanos', external: 'RH' },
+  { key: 'Design', label: 'Design', match: 'Design', external: 'Design' },
 ]
+
+function getCategoryByKeyOrLabel(area: string) {
+  return CATEGORIAS.find(c => c.key === area || c.label === area || c.external === area)
+}
+
+function getCategoryByKey(key: string) {
+  return CATEGORIAS.find(c => c.key === key)
+}
 
 const CONTRATOS = ['Todos', 'Efetivo', 'Temporário', 'Estágio', 'Trainee', 'Freelancer']
 const MODALIDADES = ['Todas', 'Presencial', 'Remoto', 'Híbrido']
@@ -114,8 +122,9 @@ export default function VagasPage() {
     const area = params.get('area')
     const q = params.get('q')
     const openFilters = params.get('showFilters')
-    if (area && CATEGORIAS.some(c => c.key === area || c.label === area)) {
-      setActiveFilter(area)
+    const cat = area ? getCategoryByKeyOrLabel(area) : null
+    if (cat) {
+      setActiveFilter(cat.key)
     }
     if (q) setSearchQuery(q)
     if (openFilters === '1') setShowFilters(true)
@@ -142,7 +151,8 @@ export default function VagasPage() {
   const filteredExternal = allExternal.filter((j) => {
     const kw = searchQuery.trim().toLowerCase()
     const matchSearch = !kw || j.title?.toLowerCase().includes(kw) || j.company?.toLowerCase().includes(kw) || j.excerpt?.toLowerCase().includes(kw)
-    const matchCat = activeFilter === 'Todas' || j.category === (activeFilter === 'TI' ? 'Tecnologia' : activeFilter)
+    const cat = activeFilter === 'Todas' ? null : getCategoryByKey(activeFilter)
+    const matchCat = activeFilter === 'Todas' || (!!cat && (j.category === cat.external || j.category?.includes(cat.external) || cat.external?.includes(j.category)))
     const text = `${j.title || ''} ${j.excerpt || ''}`
     const matchContract = activeContract === 'Todos' || detectContractType(text) === activeContract
     const matchModality = activeModality === 'Todas' || detectModality(text) === activeModality
@@ -155,8 +165,8 @@ export default function VagasPage() {
     const matchSearch = !searchQuery || v.titulo?.toLowerCase().includes(searchQuery.toLowerCase()) || v.empresa_nome?.toLowerCase().includes(searchQuery.toLowerCase()) || stripHtml(v.descricao || '').toLowerCase().includes(searchQuery.toLowerCase())
     let matchFilter = activeFilter === 'Todas'
     if (!matchFilter) {
-      const cat = CATEGORIAS.find(c => c.key === activeFilter)
-      matchFilter = cat?.match ? v.area?.includes(cat.match) : false
+      const cat = getCategoryByKey(activeFilter)
+      matchFilter = !!cat && !!cat.match && (v.area?.includes(cat.match) || v.titulo?.toLowerCase().includes(cat.match.toLowerCase()) || stripHtml(v.descricao || '').toLowerCase().includes(cat.match.toLowerCase()))
     }
     const text = `${v.titulo || ''} ${stripHtml(v.descricao || '')} ${v.salario || ''}`
     const matchContract = activeContract === 'Todos' || detectContractType(text) === activeContract
