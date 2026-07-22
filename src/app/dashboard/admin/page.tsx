@@ -104,26 +104,30 @@ export default function AdminDashboard() {
   }
 
   const approvePayment = async (req: any) => {
+    const planName = (req.plan || req.plano || '').toString().toLowerCase()
+    const isQuickJob = planName === 'trabalho_rapido' || planName.includes('trabalho') || planName.includes('rapido')
     const reviewedAt = new Date().toISOString()
+    const expiresAt = new Date()
+    expiresAt.setDate(expiresAt.getDate() + (isQuickJob ? 30 : 3))
+    const expiresIso = expiresAt.toISOString()
+
     await supabase.from('payment_requests').update({
       status: 'approved',
       reviewed_at: reviewedAt,
+      premium_expires_at: expiresIso,
     }).eq('id', req.id)
 
-    if (req.plan === 'trabalho_rapido') {
-      const expiresAt = new Date()
-      expiresAt.setDate(expiresAt.getDate() + 30)
-      await supabase.from('subscriptions').insert({
+    if (isQuickJob) {
+      // Cria subscrição mensal (fallback: premium_expires_at fica no payment_request)
+      const { error: subError } = await supabase.from('subscriptions').insert({
         user_id: req.user_id,
         plano: 'trabalho_rapido',
         valor: req.amount || 1000,
         status: 'ativa',
-        data_fim: expiresAt.toISOString(),
+        data_fim: expiresIso,
       })
+      if (subError) console.error('Erro ao criar subscrição trabalho_rapido:', subError)
     } else {
-      const expiresAt = new Date()
-      expiresAt.setDate(expiresAt.getDate() + 3)
-      await supabase.from('payment_requests').update({ premium_expires_at: expiresAt.toISOString() }).eq('id', req.id)
       await supabase.from('users').update({ premium: true }).eq('id', req.user_id)
     }
     loadData()

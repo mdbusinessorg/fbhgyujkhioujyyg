@@ -87,6 +87,8 @@ export default function TrabalhoRapidoPage() {
   const checkAccess = async (userId: string) => {
     setCheckingAccess(true)
     const now = new Date().toISOString()
+
+    // 1. Procurar subscrição ativa de trabalho_rapido
     const { data: sub } = await supabase
       .from('subscriptions')
       .select('*')
@@ -103,12 +105,32 @@ export default function TrabalhoRapidoPage() {
       setCheckingAccess(false)
       return
     }
+
+    // 2. Fallback: pedido de pagamento aprovado pelo admin (premium_expires_at no futuro)
+    const { data: approvedReq } = await supabase
+      .from('payment_requests')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('status', 'approved')
+      .eq('plan', 'trabalho_rapido')
+      .gt('premium_expires_at', now)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (approvedReq) {
+      setHasAccess(true)
+      setAccessPending(false)
+      setCheckingAccess(false)
+      return
+    }
+
+    // 3. Pedido pendente
     const { data: req } = await supabase
       .from('payment_requests')
       .select('*')
       .eq('user_id', userId)
-      .eq('plan', 'trabalho_rapido')
       .eq('status', 'pending')
+      .eq('plan', 'trabalho_rapido')
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
