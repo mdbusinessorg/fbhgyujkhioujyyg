@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
 import { startOrRequestConversation } from '@/lib/messaging'
+import { social } from '@/lib/social'
 import Logo from '@/components/Logo'
 import ShareMenu from '@/components/ShareMenu'
 import {
@@ -153,40 +154,26 @@ export default function PessoasPage() {
   const loadPosts = useCallback(async (currentUserId?: string) => {
     setLoadingPosts(true)
     try {
-      const { data: postsData, error } = await supabase
-        .from('posts')
-        .select('id, user_id, content, created_at')
-        .order('created_at', { ascending: false })
-        .limit(50)
-
-      if (error || !postsData) {
-        setPosts([])
-        setLoadingPosts(false)
-        return
-      }
-
-      const userIds = Array.from(new Set(postsData.map(p => p.user_id)))
-      const postIds = postsData.map(p => p.id)
-
-      const [{ data: authors }, { data: likes }] = await Promise.all([
-        supabase.from('users').select('id, nome, avatar_url, role').in('id', userIds),
-        supabase.from('post_likes').select('post_id, user_id').in('post_id', postIds),
-      ])
-
-      const authorsMap: Record<string, PostAuthor> = {}
-      ;(authors || []).forEach((u: any) => {
-        authorsMap[u.id] = { id: u.id, nome: u.nome, avatar_url: u.avatar_url, role: u.role }
-      })
+      const postsData = await social.getPosts()
 
       const likesByPost: Record<string, string[]> = {}
-      ;(likes || []).forEach((l: any) => {
-        if (!likesByPost[l.post_id]) likesByPost[l.post_id] = []
-        likesByPost[l.post_id].push(l.user_id)
-      })
+      await Promise.all(postsData.map(async p => {
+        try {
+          const { likes } = await social.getLikes(p.id)
+          likesByPost[p.id] = likes
+        } catch { likesByPost[p.id] = [] }
+      }))
+
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      let hasPostedToday = false
 
       const enriched: Post[] = postsData.map(p => {
-        const author = authorsMap[p.user_id] || { id: p.user_id, nome: 'Utilizador', role: 'candidato' }
+        const author = p.author || { id: p.user_id, nome: 'Utilizador', role: 'candidato' }
         const likesUsers = likesByPost[p.id] || []
+        if (currentUserId && p.user_id === currentUserId && new Date(p.created_at) >= today) {
+          hasPostedToday = true
+        }
         return {
           ...p,
           author,
@@ -196,6 +183,7 @@ export default function PessoasPage() {
       })
 
       setPosts(enriched)
+      if (currentUserId) setPostedToday(hasPostedToday)
     } catch {
       setPosts([])
     }
@@ -204,18 +192,13 @@ export default function PessoasPage() {
 
   const checkPostedToday = useCallback(async (userId?: string) => {
     if (!userId) return
-    const start = new Date()
-    start.setHours(0, 0, 0, 0)
-    const end = new Date()
-    end.setHours(23, 59, 59, 999)
-    const { data, error } = await supabase
-      .from('posts')
-      .select('id')
-      .eq('user_id', userId)
-      .gte('created_at', start.toISOString())
-      .lte('created_at', end.toISOString())
-      .limit(1)
-    if (!error && data && data.length > 0) setPostedToday(true)
+    try {
+      const posts = await social.getPosts()
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const found = posts.some(p => p.user_id === userId && new Date(p.created_at) >= today)
+      if (found) setPostedToday(true)
+    } catch {}
   }, [])
 
   useEffect(() => {
@@ -261,13 +244,17 @@ export default function PessoasPage() {
     if (!currentUser || !postContent.trim()) return
     if (postedToday) { alert('Só podes publicar uma vez por dia.'); return }
     setPosting(true)
-    const { error } = await supabase.from('posts').insert({ user_id: currentUser.id, content: postContent.trim() })
-    if (error) {
-      alert('Erro ao publicar: ' + error.message)
-    } else {
+    try {
+      await social.createPost({
+        user_id: currentUser.id,
+        content: postContent.trim(),
+        author: { id: currentUser.id, nome: currentUser.nome, avatar_url: currentUser.avatar_url, role: currentUser.role },
+      })
       setPostContent('')
       setPostedToday(true)
       loadPosts(currentUser.id)
+    } catch (err: any) {
+      alert('Erro ao publicar: ' + (err.message || 'tenta de novo'))
     }
     setPosting(false)
   }
@@ -275,29 +262,32 @@ export default function PessoasPage() {
   const toggleLike = async (post: Post) => {
     if (!currentUser) { router.push('/auth/login/'); return }
     const newLiked = !post.liked_by_me
-    setPosts(prev => prev.map(p => p.id === post.id ? { ...p, liked_by_me: newLiked, likes_count: newLiked ? p.likes_count + 1 : p.likes_count - 1 } : p))
-    if (newLiked) {
-      await supabase.from('post_likes').insert({ post_id: post.id, user_id: currentUser.id })
-    } else {
-      await supabase.from('post_likes').delete().eq('post_id', post.id).eq('user_id', currentUser.id)
-    }
+    try {
+      const { likes } = newLiked
+        ? await social.likePost(post.id, currentUser.id)
+        : await social.unlikePost(post.id, currentUser.id)
+      setPosts(prev => prev.map(p => p.id === post.id ? { ...p, liked_by_me: likes.includes(currentUser.id), likes_count: likes.length } : p))
+    } catch {}
   }
 
   const deletePost = async (postId: string) => {
     if (!currentUser) return
     if (!confirm('Apagar publicação?')) return
-    await supabase.from('posts').delete().eq('id', postId)
-    setPosts(prev => prev.filter(p => p.id !== postId))
+    try {
+      await social.deletePost(postId, currentUser.id)
+      setPosts(prev => prev.filter(p => p.id !== postId))
+    } catch {}
   }
 
   const openLikers = async (postId: string) => {
-    const { data } = await supabase.from('post_likes').select('user_id').eq('post_id', postId)
-    const userIds = (data || []).map((l: any) => l.user_id)
-    const { data: users } = await supabase.from('users').select('id, nome').in('id', userIds)
-    const usersMap: Record<string, string> = {}
-    ;(users || []).forEach((u: any) => { usersMap[u.id] = u.nome })
-    const likers: Liker[] = userIds.map(id => ({ id, nome: usersMap[id] || 'Utilizador' }))
-    setLikersModal({ open: true, postId, likers })
+    try {
+      const { likes } = await social.getLikes(postId)
+      const { data: users } = await supabase.from('users').select('id, nome').in('id', likes)
+      const usersMap: Record<string, string> = {}
+      ;(users || []).forEach((u: any) => { usersMap[u.id] = u.nome })
+      const likers: Liker[] = likes.map(id => ({ id, nome: usersMap[id] || 'Utilizador' }))
+      setLikersModal({ open: true, postId, likers })
+    } catch { setLikersModal({ open: true, postId: '', likers: [] }) }
   }
 
   const recordView = async (viewedId: string) => {

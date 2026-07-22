@@ -1,5 +1,24 @@
 import { supabase } from '@/lib/supabase'
+import { social } from '@/lib/social'
 import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime'
+
+async function findOrCreateConversation(userId1: string, userId2: string) {
+  const { data: existing } = await supabase
+    .from('conversations')
+    .select('id')
+    .or(`and(participant_1_id.eq.${userId1},participant_2_id.eq.${userId2}),and(participant_1_id.eq.${userId2},participant_2_id.eq.${userId1})`)
+    .maybeSingle()
+
+  if (existing) return existing
+
+  const { data: conv } = await supabase
+    .from('conversations')
+    .insert({ participant_1_id: userId1, participant_2_id: userId2 })
+    .select('id')
+    .single()
+
+  return conv
+}
 
 export async function startOrRequestConversation(
   currentUserId: string,
@@ -7,71 +26,56 @@ export async function startOrRequestConversation(
   router: AppRouterInstance,
 ) {
   // 1. Conversa já existe?
-  const { data: existing } = await supabase
-    .from('conversations')
-    .select('id')
-    .or(`and(participant_1_id.eq.${currentUserId},participant_2_id.eq.${otherId}),and(participant_1_id.eq.${otherId},participant_2_id.eq.${currentUserId})`)
-    .maybeSingle()
-
-  if (existing) {
-    router.push(`/mensagens/?conv=${existing.id}`)
+  const existingConv = await findOrCreateConversation(currentUserId, otherId)
+  if (existingConv) {
+    router.push(`/mensagens/?conv=${existingConv.id}`)
     return
   }
 
-  // 2. Pedidos em ambas as direcções
-  const { data: outgoing } = await supabase
-    .from('message_requests')
-    .select('id, status')
-    .eq('requester_id', currentUserId)
-    .eq('recipient_id', otherId)
-    .maybeSingle()
+  // 2. Ver pedidos em ambas as direcções
+  const request = await social.getRequestBetween(currentUserId, otherId)
 
-  if (outgoing) {
-    if (outgoing.status === 'pending') {
-      alert('Já enviaste um pedido. Aguarda aceitação.')
+  if (request) {
+    if (request.status === 'pending') {
+      if (request.requester_id === currentUserId) {
+        alert('Já enviaste um pedido. Aguarda aceitação.')
+        return
+      }
+      // Pedido entrante pendente: aceitar e criar conversa
+      try {
+        await social.updateRequest(request.id, 'accepted')
+      } catch {}
+      const conv = await findOrCreateConversation(currentUserId, otherId)
+      if (conv) router.push(`/mensagens/?conv=${conv.id}`)
       return
     }
-    // accepted: criar conversa
-    const { data: conv } = await supabase
-      .from('conversations')
-      .insert({ participant_1_id: currentUserId, participant_2_id: otherId })
-      .select('id')
-      .single()
-    if (conv) router.push(`/mensagens/?conv=${conv.id}`)
-    return
-  }
 
-  const { data: incoming } = await supabase
-    .from('message_requests')
-    .select('id, status')
-    .eq('requester_id', otherId)
-    .eq('recipient_id', currentUserId)
-    .maybeSingle()
-
-  if (incoming) {
-    if (incoming.status === 'rejected') {
+    if (request.status === 'rejected') {
       alert('O utilizador recusou o contacto anteriormente.')
       return
     }
-    // Aceitar automaticamente pedido entrante
-    await supabase.from('message_requests').update({ status: 'accepted' }).eq('id', incoming.id)
-    const { data: conv } = await supabase
-      .from('conversations')
-      .insert({ participant_1_id: currentUserId, participant_2_id: otherId })
-      .select('id')
-      .single()
+
+    // accepted
+    const conv = await findOrCreateConversation(currentUserId, otherId)
     if (conv) router.push(`/mensagens/?conv=${conv.id}`)
     return
   }
 
   // 3. Criar novo pedido
-  const { error } = await supabase
-    .from('message_requests')
-    .insert({ requester_id: currentUserId, recipient_id: otherId, status: 'pending' })
+  try {
+    const { data: u } = await supabase
+      .from('users')
+      .select('id, nome, avatar_url, role')
+      .eq('id', currentUserId)
+      .single()
 
-  if (error) {
-    alert('Erro ao pedir contacto: ' + error.message)
-  } else {
+    await social.createRequest({
+      requester_id: currentUserId,
+      recipient_id: otherId,
+      requester: u || { id: currentUserId, nome: 'Utilizador', role: 'candidato' },
+    })
     alert('Pedido de mensagem enviado. Quando for aceite, poderás conversar.')
+  } catch (err: any) {
+    alert('Erro ao pedir contacto: ' + (err.message || 'tenta de novo'))
   }
 }

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { social, MessageRequest as ApiMessageRequest } from '@/lib/social'
 import { ArrowLeft, Send, MessageSquare, User, Search, Check, X, Users } from 'lucide-react'
 
 interface Conversation {
@@ -113,26 +114,22 @@ function MensagensContent() {
   }
 
   const loadRequests = async (userId: string) => {
-    const { data: reqs } = await supabase
-      .from('message_requests')
-      .select('*')
-      .eq('recipient_id', userId)
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false })
+    try {
+      const reqs: ApiMessageRequest[] = await social.getRequestsByRecipient(userId)
+      const requesterIds = reqs.map(r => r.requester_id)
+      const { data: users } = await supabase.from('users').select('id, nome, email, avatar_url').in('id', requesterIds)
+      const usersMap: Record<string, any> = {}
+      ;(users || []).forEach(u => { usersMap[u.id] = u })
 
-    if (!reqs || reqs.length === 0) { setRequests([]); return }
+      const enriched: MessageRequest[] = reqs.map(r => ({
+        ...r,
+        requester: usersMap[r.requester_id] || (r.requester ? { ...r.requester, email: '' } : { id: r.requester_id, nome: 'Utilizador', email: '' }),
+      }))
 
-    const requesterIds = reqs.map(r => r.requester_id)
-    const { data: users } = await supabase.from('users').select('id, nome, email, avatar_url').in('id', requesterIds)
-    const usersMap: Record<string, any> = {}
-    ;(users || []).forEach(u => { usersMap[u.id] = u })
-
-    const enriched: MessageRequest[] = reqs.map(r => ({
-      ...r,
-      requester: usersMap[r.requester_id] || { id: r.requester_id, nome: 'Utilizador', email: '' },
-    }))
-
-    setRequests(enriched)
+      setRequests(enriched)
+    } catch {
+      setRequests([])
+    }
   }
 
   const acceptRequest = async (req: MessageRequest) => {
@@ -154,7 +151,7 @@ function MensagensContent() {
     }
 
     if (convId) {
-      await supabase.from('message_requests').update({ status: 'accepted' }).eq('id', req.id)
+      try { await social.updateRequest(req.id, 'accepted') } catch {}
       setRequests(prev => prev.filter(r => r.id !== req.id))
       await loadConversations(currentUserId)
       setActiveConv(convId)
@@ -163,7 +160,7 @@ function MensagensContent() {
   }
 
   const rejectRequest = async (reqId: string) => {
-    await supabase.from('message_requests').update({ status: 'rejected' }).eq('id', reqId)
+    try { await social.updateRequest(reqId, 'rejected') } catch {}
     setRequests(prev => prev.filter(r => r.id !== reqId))
   }
 
