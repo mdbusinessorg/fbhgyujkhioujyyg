@@ -318,17 +318,10 @@ export default function HomePage() {
         {/* Quick Actions */}
         <section className="mb-6">
           <div className="grid grid-cols-3 gap-3">
-            {isLoggedIn ? (
-              <Link href={`/dashboard/${userRole}/`} className="bg-ms-surface rounded-xl p-4 text-center hover:shadow-sm transition-shadow">
-                <User size={24} className="text-ms-blue mx-auto mb-2" />
-                <p className="text-xs font-medium text-ms-dark">Meu Perfil</p>
-              </Link>
-            ) : (
-              <Link href="/auth/login/" className="bg-ms-surface rounded-xl p-4 text-center hover:shadow-sm transition-shadow">
-                <User size={24} className="text-ms-blue mx-auto mb-2" />
-                <p className="text-xs font-medium text-ms-dark">Entrar</p>
-              </Link>
-            )}
+            <Link href="/" className="bg-ms-surface rounded-xl p-4 text-center hover:shadow-sm transition-shadow">
+              <HomeIcon size={24} className="text-ms-blue mx-auto mb-2" />
+              <p className="text-xs font-medium text-ms-dark">Início</p>
+            </Link>
             <Link href="/vagas/" className="bg-ms-surface rounded-xl p-4 text-center hover:shadow-sm transition-shadow">
               <Briefcase size={24} className="text-ms-blue mx-auto mb-2" />
               <p className="text-xs font-medium text-ms-dark">Ver Vagas</p>
@@ -529,8 +522,11 @@ export default function HomePage() {
             <div className="bg-ms-surface rounded-2xl p-5">
               <h3 className="text-sm font-bold text-ms-dark mb-3">Acesso rápido</h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <Link href={`/dashboard/${userRole}/`} className="flex flex-col items-center gap-1.5 bg-white rounded-xl p-3 border border-ms-border hover:border-ms-blue/30 transition-colors">
-                  <User size={20} className="text-ms-blue" /><span className="text-[11px] font-medium text-ms-dark">Meu Perfil</span>
+                <Link href="/" className="flex flex-col items-center gap-1.5 bg-white rounded-xl p-3 border border-ms-border hover:border-ms-blue/30 transition-colors">
+                  <HomeIcon size={20} className="text-ms-blue" /><span className="text-[11px] font-medium text-ms-dark">Início</span>
+                </Link>
+                <Link href="/vagas/" className="flex flex-col items-center gap-1.5 bg-white rounded-xl p-3 border border-ms-border hover:border-ms-blue/30 transition-colors">
+                  <Briefcase size={20} className="text-ms-blue" /><span className="text-[11px] font-medium text-ms-dark">Ver Vagas</span>
                 </Link>
                 <Link href="/mensagens/" className="flex flex-col items-center gap-1.5 bg-white rounded-xl p-3 border border-ms-border hover:border-ms-blue/30 transition-colors">
                   <MessageSquare size={20} className="text-ms-blue" /><span className="text-[11px] font-medium text-ms-dark">Mensagens</span>

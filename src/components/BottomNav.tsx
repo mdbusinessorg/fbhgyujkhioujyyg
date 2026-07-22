@@ -11,7 +11,7 @@ interface BottomNavProps {
 
 export default function BottomNav({ active, userRole, onTabChange }: BottomNavProps) {
   const candidatoItems: { key: string; icon: typeof Home; label: string; href?: string }[] = [
-    { key: 'home', icon: Home, label: 'Início' },
+    { key: 'home', icon: Home, label: 'Início', href: '/' },
     { key: 'search', icon: Search, label: 'Vagas', href: '/vagas/' },
     { key: 'subscricao', icon: CreditCard, label: 'Pagamento' },
     { key: 'perfil', icon: User, label: 'Perfil' },

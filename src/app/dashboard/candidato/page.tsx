@@ -7,7 +7,7 @@ import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import SubscriptionBanner from '@/components/SubscriptionBanner'
 import SubscriptionModal from '@/components/SubscriptionModal'
-import { Search, Bell, Briefcase, FileText, User, Upload, ArrowRight, Clock, CheckCircle, XCircle, Plus, Eye, Sparkles, Lightbulb, Target, Award, AlertCircle, ChevronRight, Zap, LogOut, Menu, X, CreditCard, Wallet } from 'lucide-react'
+import { Search, Bell, Briefcase, FileText, User, Upload, ArrowRight, Clock, CheckCircle, XCircle, Plus, Eye, Sparkles, Lightbulb, Target, Award, AlertCircle, ChevronRight, Zap, LogOut, Menu, X, CreditCard, Wallet, Home as HomeIcon } from 'lucide-react'
 import { improveCV, getTips } from '@/lib/ai'
 
 export default function CandidatoDashboardPage() {
@@ -46,6 +46,7 @@ function CandidatoDashboard() {
   const [aiVagaContext, setAiVagaContext] = useState('')
   const [aiError, setAiError] = useState('')
   const [showMenu, setShowMenu] = useState(false)
+  const [showNotifs, setShowNotifs] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -218,6 +219,11 @@ function CandidatoDashboard() {
     setAiImproveLoading(false)
   }
 
+  const notifications = candidaturas.filter(c => c.status === 'aprovada').map(c => ({
+    text: `A tua candidatura a "${c.vagas?.titulo || 'vaga'}" foi aprovada`,
+    vaga: c.vagas?.titulo || '',
+  }))
+
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push('/')
@@ -252,8 +258,11 @@ function CandidatoDashboard() {
               <p className="text-xs text-ms-gray">Candidato</p>
             </div>
             <nav className="space-y-1">
+              <Link href="/" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-ms-dark bg-ms-surface" onClick={() => setShowMenu(false)}>
+                <HomeIcon size={18} /> Início
+              </Link>
               {[
-                { key: 'home', icon: Briefcase, label: 'Início' },
+                { key: 'home', icon: Briefcase, label: 'Painel' },
                 { key: 'ia', icon: Sparkles, label: 'IA & Dicas CV' },
                 { key: 'candidaturas', icon: FileText, label: 'Candidaturas' },
                 { key: 'documentos', icon: Upload, label: 'Documentos' },
@@ -293,8 +302,11 @@ function CandidatoDashboard() {
           <p className="text-xs text-ms-gray">Candidato</p>
         </div>
         <nav className="flex-1 py-4 px-3">
+          <Link href="/" className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium mb-1 text-ms-dark bg-ms-surface">
+            <HomeIcon size={18} /> Início
+          </Link>
           {[
-            { key: 'home', icon: Briefcase, label: 'Início' },
+            { key: 'home', icon: Briefcase, label: 'Painel' },
             { key: 'ia', icon: Sparkles, label: 'IA & Dicas CV' },
             { key: 'candidaturas', icon: FileText, label: 'Candidaturas' },
             { key: 'documentos', icon: Upload, label: 'Documentos' },
@@ -333,14 +345,34 @@ function CandidatoDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button className="w-9 h-9 bg-ms-surface rounded-full flex items-center justify-center relative">
+            <button onClick={() => setShowNotifs(!showNotifs)} className="w-9 h-9 bg-ms-surface rounded-full flex items-center justify-center relative">
               <Bell size={16} className="text-ms-gray" />
-              {candidaturas.filter(c => c.status === 'aprovada').length > 0 && (
-                <span className="absolute top-1 right-1 w-4 h-4 bg-ms-green text-white text-[9px] font-bold rounded-full flex items-center justify-center">{candidaturas.filter(c => c.status === 'aprovada').length}</span>
+              {notifications.length > 0 && (
+                <span className="absolute top-1 right-1 w-4 h-4 bg-ms-green text-white text-[9px] font-bold rounded-full flex items-center justify-center">{notifications.length}</span>
               )}
             </button>
           </div>
         </div>
+
+        {showNotifs && (
+          <div className="fixed inset-0 z-[60]" onClick={() => setShowNotifs(false)}>
+            <div className="absolute right-4 top-20 w-80 max-w-[90vw] bg-white rounded-2xl shadow-xl border border-ms-border p-4" onClick={e => e.stopPropagation()}>
+              <h3 className="text-sm font-bold text-ms-dark mb-3">Notificações</h3>
+              {notifications.length === 0 ? (
+                <p className="text-xs text-ms-gray text-center py-4">Sem notificações novas</p>
+              ) : (
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {notifications.map((n, i) => (
+                    <button key={i} onClick={() => { setActiveTab('candidaturas'); setShowNotifs(false) }} className="w-full text-left bg-ms-surface rounded-xl p-3 hover:bg-ms-purple-light/30 transition-colors">
+                      <p className="text-xs text-ms-dark">{n.text}</p>
+                      <p className="text-[10px] text-ms-gray mt-1">Ver candidaturas</p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {activeTab === 'home' && (
           <>

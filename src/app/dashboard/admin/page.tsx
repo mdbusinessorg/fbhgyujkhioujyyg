@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Search, Bell, Briefcase, Users, UserCheck, Shield, Settings, CreditCard, CheckCircle, XCircle, Eye, TrendingUp, Plus, AlertTriangle, LogOut, Menu, X, Download, Linkedin, ExternalLink, Trash2, Edit2, Wallet, Zap } from 'lucide-react'
+import { Search, Bell, Briefcase, Users, UserCheck, Shield, Settings, CreditCard, CheckCircle, XCircle, Eye, TrendingUp, Plus, AlertTriangle, LogOut, Menu, X, Download, Linkedin, ExternalLink, Trash2, Edit2, Wallet, Zap, Home as HomeIcon } from 'lucide-react'
 
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
@@ -159,8 +159,9 @@ export default function AdminDashboard() {
   }
 
   const notifications = [
-    ...pendentes.map(u => ({ type: 'recrutador', text: `${u.nome || u.email} quer ser recrutador`, time: 'Pendente' })),
-    ...vagasPendentes.map(v => ({ type: 'vaga', text: `Vaga "${v.titulo}" aguarda aprovação`, time: 'Pendente' })),
+    ...pendentes.map(u => ({ type: 'recrutador', tab: 'recrutadores', text: `${u.nome || u.email} quer ser recrutador`, time: 'Pendente' })),
+    ...vagasPendentes.map(v => ({ type: 'vaga', tab: 'vagas', text: `Vaga "${v.titulo}" aguarda aprovação`, time: 'Pendente' })),
+    ...paymentRequests.filter(p => p.status === 'pending').map(p => ({ type: 'pagamento', tab: 'pagamentos', text: `Pagamento ${p.plano || 'Premium'} pendente`, time: 'Pendente' })),
   ]
 
   const filteredUsers = allUsers.filter(u =>
@@ -192,8 +193,11 @@ export default function AdminDashboard() {
               <p className="text-xs text-ms-gray">Super Admin</p>
             </div>
             <nav className="space-y-1">
+              <Link href="/" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-ms-dark bg-ms-surface" onClick={() => setShowMenu(false)}>
+                <HomeIcon size={18} /> Início
+              </Link>
               {[
-                { key: 'home', icon: Shield, label: 'Início' },
+                { key: 'home', icon: Shield, label: 'Painel' },
                 { key: 'recrutadores', icon: UserCheck, label: 'Aprovar Recrutadores' },
                 { key: 'vagas', icon: Briefcase, label: 'Aprovar Vagas' },
                 { key: 'pagamentos', icon: Wallet, label: 'Pagamentos' },
@@ -230,10 +234,10 @@ export default function AdminDashboard() {
             ) : (
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {notifications.map((n, i) => (
-                  <div key={i} className="bg-ms-surface rounded-xl p-3">
+                  <button key={i} onClick={() => { setActiveTab(n.tab); setShowNotifs(false) }} className="w-full text-left bg-ms-surface rounded-xl p-3 hover:bg-ms-purple-light/30 transition-colors">
                     <p className="text-xs text-ms-dark">{n.text}</p>
                     <p className="text-[10px] text-ms-gray mt-1">{n.time}</p>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
@@ -256,8 +260,11 @@ export default function AdminDashboard() {
           <p className="text-xs text-ms-gray">Super Admin</p>
         </div>
         <nav className="flex-1 py-4 px-3">
+          <Link href="/" className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium mb-1 text-ms-dark bg-ms-surface">
+            <HomeIcon size={18} /> Início
+          </Link>
           {[
-            { key: 'home', icon: Shield, label: 'Início' },
+            { key: 'home', icon: Shield, label: 'Painel' },
             { key: 'recrutadores', icon: UserCheck, label: 'Aprovar Recrutadores', badge: pendentes.length },
             { key: 'vagas', icon: Briefcase, label: 'Aprovar Vagas', badge: vagasPendentes.length },
             { key: 'pagamentos', icon: Wallet, label: 'Pagamentos', badge: paymentRequests.filter(p => p.status === 'pending').length },
@@ -683,8 +690,11 @@ export default function AdminDashboard() {
       {/* Mobile Bottom Nav */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-ms-border z-50 lg:hidden">
         <div className="flex items-center justify-around py-2 px-4 max-w-md mx-auto">
+          <Link href="/" className="flex flex-col items-center gap-0.5 py-1">
+            <HomeIcon size={22} className="text-gray-400" />
+            <span className="text-[10px] text-gray-400">Início</span>
+          </Link>
           {[
-            { key: 'home', icon: Shield, label: 'Início' },
             { key: 'recrutadores', icon: UserCheck, label: 'Aprovar' },
             { key: 'vagas', icon: Briefcase, label: 'Vagas' },
             { key: 'pagamentos', icon: Wallet, label: 'Pagam.' },

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Search, Bell, Briefcase, Users, Plus, Eye, TrendingUp, Download, FileText, CheckCircle, XCircle, Clock, LogOut, Menu, X, Star, Filter, ChevronDown, Zap, Award, MessageSquare, HelpCircle, Trash2 } from 'lucide-react'
+import { Search, Bell, Briefcase, Users, Plus, Eye, TrendingUp, Download, FileText, CheckCircle, XCircle, Clock, LogOut, Menu, X, Star, Filter, ChevronDown, Zap, Award, MessageSquare, HelpCircle, Trash2, Home as HomeIcon } from 'lucide-react'
 import { AREAS, PROVINCIAS_ANGOLA } from '@/lib/types'
 
 export default function RecrutadorDashboard() {
@@ -229,8 +229,11 @@ export default function RecrutadorDashboard() {
               <p className="text-xs text-ms-gray">Recrutador</p>
             </div>
             <nav className="space-y-1">
+              <Link href="/" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-ms-dark bg-ms-surface" onClick={() => setShowMenu(false)}>
+                <HomeIcon size={18} /> Início
+              </Link>
               {[
-                { key: 'home', icon: Briefcase, label: 'Início' },
+                { key: 'home', icon: Briefcase, label: 'Painel' },
                 { key: 'vagas', icon: Eye, label: 'Minhas Vagas' },
                 { key: 'candidatos', icon: Users, label: 'Candidatos' },
                 { key: 'selecao', icon: Zap, label: 'Selecção Inteligente' },
@@ -264,10 +267,10 @@ export default function RecrutadorDashboard() {
             ) : (
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {notifications.map((n, i) => (
-                  <div key={i} className="bg-ms-surface rounded-xl p-3">
+                  <button key={i} onClick={() => { setActiveTab('candidatos'); setFilterStatus('enviada'); setShowNotifs(false) }} className="w-full text-left bg-ms-surface rounded-xl p-3 hover:bg-ms-purple-light/30 transition-colors">
                     <p className="text-xs text-ms-dark">{n.text}</p>
                     <p className="text-[10px] text-ms-gray mt-1">{n.time}</p>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
@@ -290,8 +293,11 @@ export default function RecrutadorDashboard() {
           <p className="text-xs text-ms-gray">Recrutador</p>
         </div>
         <nav className="flex-1 py-4 px-3">
+          <Link href="/" className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium mb-1 text-ms-dark bg-ms-surface">
+            <HomeIcon size={18} /> Início
+          </Link>
           {[
-            { key: 'home', icon: Briefcase, label: 'Início' },
+            { key: 'home', icon: Briefcase, label: 'Painel' },
             { key: 'vagas', icon: Eye, label: 'Minhas Vagas' },
             { key: 'candidatos', icon: Users, label: 'Candidatos', badge: notifications.length },
             { key: 'selecao', icon: Zap, label: 'Selecção Inteligente' },
@@ -745,8 +751,11 @@ export default function RecrutadorDashboard() {
       {/* Mobile Bottom Nav */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-ms-border z-50 lg:hidden">
         <div className="flex items-center justify-around py-2 px-4 max-w-md mx-auto">
+          <Link href="/" className="flex flex-col items-center gap-0.5 py-1">
+            <HomeIcon size={22} className="text-gray-400" />
+            <span className="text-[10px] text-gray-400">Início</span>
+          </Link>
           {[
-            { key: 'home', icon: Briefcase, label: 'Início' },
             { key: 'candidatos', icon: Users, label: 'Candidatos' },
             { key: 'selecao', icon: Zap, label: 'Selecção' },
             { key: 'nova_vaga', icon: Plus, label: 'Publicar' },
