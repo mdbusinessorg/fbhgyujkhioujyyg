@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { ArrowLeft, Briefcase } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
+import Logo from '@/components/Logo'
 
 export default function GuiaPage() {
   return (
@@ -7,7 +8,7 @@ export default function GuiaPage() {
       <header className="sticky top-0 bg-white border-b border-ms-border z-50 px-4 py-3">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <Link href="/"><ArrowLeft size={20} className="text-ms-dark" /></Link>
-          <span className="font-bold text-lg text-ms-blue">MÔ SALO</span>
+          <Logo variant="full" className="h-8 w-auto" />
           <div className="w-5" />
         </div>
       </header>

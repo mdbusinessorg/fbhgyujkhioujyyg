@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Logo from '@/components/Logo'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Search, Bell, Briefcase, Users, UserCheck, Shield, Settings, CreditCard, CheckCircle, XCircle, Eye, TrendingUp, Plus, AlertTriangle, LogOut, Menu, X, Download, Linkedin, ExternalLink, Trash2, Edit2, Wallet, Zap } from 'lucide-react'
+import { Search, Bell, Briefcase, Users, UserCheck, Shield, Settings, CreditCard, CheckCircle, XCircle, Eye, TrendingUp, Plus, AlertTriangle, LogOut, Menu, X, Download, Linkedin, ExternalLink, Trash2, Edit2, Wallet, Zap, Home as HomeIcon, Globe } from 'lucide-react'
 
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
@@ -23,6 +24,9 @@ export default function AdminDashboard() {
   const [linkedinFilterCat, setLinkedinFilterCat] = useState('all')
   const [paymentRequests, setPaymentRequests] = useState<any[]>([])
   const [quickJobs, setQuickJobs] = useState<any[]>([])
+  const [externalJobs, setExternalJobs] = useState<any[]>([])
+  const [externalFilter, setExternalFilter] = useState('all')
+  const [externalSearch, setExternalSearch] = useState('')
   const router = useRouter()
 
   const LINKEDIN_CATEGORIAS = ['Tecnologia', 'Finanças', 'Engenharia', 'Saúde', 'Marketing', 'Direito', 'Petróleo & Gás', 'Educação', 'Administração', 'Logística', 'Hotelaria', 'Construção', 'RH', 'Design', 'Outro']
@@ -43,6 +47,15 @@ export default function AdminDashboard() {
     const { data: ljobs } = await supabase.from('linkedin_jobs').select('*').order('created_at', { ascending: false })
     const { data: payReqs } = await supabase.from('payment_requests').select('*').order('created_at', { ascending: false })
     const { data: qjobs } = await supabase.from('quick_jobs').select('*').order('created_at', { ascending: false })
+
+    // External scraped jobs
+    try {
+      const extRes = await fetch('/external-jobs.json')
+      const extData = extRes.ok ? await extRes.json() : { jobs: [] }
+      setExternalJobs(extData.jobs || [])
+    } catch {
+      setExternalJobs([])
+    }
 
     // Enrich payment requests
     const enrichedPayReqs = (payReqs || []).map((p: any) => {
@@ -103,15 +116,33 @@ export default function AdminDashboard() {
     alert(`Lembrete de pagamento enviado para ${email}:\n\nMulticaixa Express: 926 115 429\nIBAN: 0005.0000.0626.9321.1011.5\nValor: 1.000 Kz/mês`)
   }
 
-  const approvePayment = async (reqId: string, userId: string) => {
+  const approvePayment = async (req: any) => {
+    const planName = (req.plan || req.plano || '').toString().toLowerCase()
+    const isQuickJob = planName === 'trabalho_rapido' || planName.includes('trabalho') || planName.includes('rapido')
+    const reviewedAt = new Date().toISOString()
     const expiresAt = new Date()
-    expiresAt.setDate(expiresAt.getDate() + 3)
+    expiresAt.setDate(expiresAt.getDate() + (isQuickJob ? 30 : 3))
+    const expiresIso = expiresAt.toISOString()
+
     await supabase.from('payment_requests').update({
       status: 'approved',
-      reviewed_at: new Date().toISOString(),
-      premium_expires_at: expiresAt.toISOString(),
-    }).eq('id', reqId)
-    await supabase.from('users').update({ premium: true }).eq('id', userId)
+      reviewed_at: reviewedAt,
+      premium_expires_at: expiresIso,
+    }).eq('id', req.id)
+
+    if (isQuickJob) {
+      // Cria subscrição mensal (fallback: premium_expires_at fica no payment_request)
+      const { error: subError } = await supabase.from('subscriptions').insert({
+        user_id: req.user_id,
+        plano: 'trabalho_rapido',
+        valor: req.amount || 1000,
+        status: 'ativa',
+        data_fim: expiresIso,
+      })
+      if (subError) console.error('Erro ao criar subscrição trabalho_rapido:', subError)
+    } else {
+      await supabase.from('users').update({ premium: true }).eq('id', req.user_id)
+    }
     loadData()
   }
 
@@ -159,8 +190,9 @@ export default function AdminDashboard() {
   }
 
   const notifications = [
-    ...pendentes.map(u => ({ type: 'recrutador', text: `${u.nome || u.email} quer ser recrutador`, time: 'Pendente' })),
-    ...vagasPendentes.map(v => ({ type: 'vaga', text: `Vaga "${v.titulo}" aguarda aprovação`, time: 'Pendente' })),
+    ...pendentes.map(u => ({ type: 'recrutador', tab: 'recrutadores', text: `${u.nome || u.email} quer ser recrutador`, time: 'Pendente' })),
+    ...vagasPendentes.map(v => ({ type: 'vaga', tab: 'vagas', text: `Vaga "${v.titulo}" aguarda aprovação`, time: 'Pendente' })),
+    ...paymentRequests.filter(p => p.status === 'pending').map(p => ({ type: 'pagamento', tab: 'pagamentos', text: `Pagamento ${p.plano || 'Premium'} pendente`, time: 'Pendente' })),
   ]
 
   const filteredUsers = allUsers.filter(u =>
@@ -184,7 +216,7 @@ export default function AdminDashboard() {
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowMenu(false)} />
           <div className="absolute left-0 top-0 h-full w-72 bg-white shadow-xl p-6">
             <div className="flex items-center justify-between mb-8">
-              <span className="font-bold text-lg text-ms-blue">MÔ SALO</span>
+              <Logo variant="full" className="h-8 w-auto" />
               <button onClick={() => setShowMenu(false)}><X size={22} className="text-ms-dark" /></button>
             </div>
             <div className="mb-6 pb-4 border-b border-ms-border">
@@ -192,12 +224,16 @@ export default function AdminDashboard() {
               <p className="text-xs text-ms-gray">Super Admin</p>
             </div>
             <nav className="space-y-1">
+              <Link href="/" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-ms-dark bg-ms-surface" onClick={() => setShowMenu(false)}>
+                <HomeIcon size={18} /> Início
+              </Link>
               {[
-                { key: 'home', icon: Shield, label: 'Início' },
+                { key: 'home', icon: Shield, label: 'Painel' },
                 { key: 'recrutadores', icon: UserCheck, label: 'Aprovar Recrutadores' },
                 { key: 'vagas', icon: Briefcase, label: 'Aprovar Vagas' },
                 { key: 'pagamentos', icon: Wallet, label: 'Pagamentos' },
                 { key: 'linkedin', icon: Linkedin, label: 'LinkedIn Jobs' },
+                { key: 'externas', icon: Globe, label: 'Vagas Externas' },
                 { key: 'trabalho_rapido', icon: Zap, label: 'Trabalho Rápido' },
                 { key: 'utilizadores', icon: Users, label: 'Utilizadores' },
                 { key: 'subscricoes', icon: CreditCard, label: 'Subscrições' },
@@ -230,10 +266,10 @@ export default function AdminDashboard() {
             ) : (
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {notifications.map((n, i) => (
-                  <div key={i} className="bg-ms-surface rounded-xl p-3">
+                  <button key={i} onClick={() => { setActiveTab(n.tab); setShowNotifs(false) }} className="w-full text-left bg-ms-surface rounded-xl p-3 hover:bg-ms-purple-light/30 transition-colors">
                     <p className="text-xs text-ms-dark">{n.text}</p>
                     <p className="text-[10px] text-ms-gray mt-1">{n.time}</p>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
@@ -245,10 +281,7 @@ export default function AdminDashboard() {
       <aside className="hidden lg:flex lg:flex-col w-60 h-screen fixed left-0 top-0 bg-white border-r border-ms-border z-40">
         <div className="p-6 border-b border-ms-border">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-ms-blue rounded-lg flex items-center justify-center">
-              <Briefcase size={16} className="text-white" />
-            </div>
-            <span className="font-bold text-lg text-ms-blue">MÔ SALO</span>
+            <Logo iconClassName="h-8 w-8" textClassName="text-ms-blue" />
           </Link>
         </div>
         <div className="px-6 py-4 border-b border-ms-border">
@@ -256,12 +289,16 @@ export default function AdminDashboard() {
           <p className="text-xs text-ms-gray">Super Admin</p>
         </div>
         <nav className="flex-1 py-4 px-3">
+          <Link href="/" className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium mb-1 text-ms-dark bg-ms-surface">
+            <HomeIcon size={18} /> Início
+          </Link>
           {[
-            { key: 'home', icon: Shield, label: 'Início' },
+            { key: 'home', icon: Shield, label: 'Painel' },
             { key: 'recrutadores', icon: UserCheck, label: 'Aprovar Recrutadores', badge: pendentes.length },
             { key: 'vagas', icon: Briefcase, label: 'Aprovar Vagas', badge: vagasPendentes.length },
             { key: 'pagamentos', icon: Wallet, label: 'Pagamentos', badge: paymentRequests.filter(p => p.status === 'pending').length },
             { key: 'linkedin', icon: Linkedin, label: 'LinkedIn Jobs', badge: linkedinJobs.length },
+            { key: 'externas', icon: Globe, label: 'Vagas Externas', badge: externalJobs.length },
             { key: 'trabalho_rapido', icon: Zap, label: 'Trabalho Rápido', badge: 0 },
             { key: 'utilizadores', icon: Users, label: 'Utilizadores' },
             { key: 'subscricoes', icon: CreditCard, label: 'Subscrições' },
@@ -367,6 +404,11 @@ export default function AdminDashboard() {
                 <CreditCard size={20} className="text-ms-gray mb-2" />
                 <p className="text-sm font-medium text-ms-dark">Subscrições</p>
                 <p className="text-[11px] text-ms-gray">Pagamentos</p>
+              </button>
+              <button onClick={() => setActiveTab('externas')} className="flex-shrink-0 bg-white border border-ms-border rounded-xl px-5 py-4 min-w-[150px]">
+                <Globe size={20} className="text-ms-purple mb-2" />
+                <p className="text-sm font-medium text-ms-dark">Vagas Externas</p>
+                <p className="text-[11px] text-ms-gray">{externalJobs.length} vagas</p>
               </button>
             </div>
 
@@ -609,7 +651,7 @@ export default function AdminDashboard() {
                     )}
                     {req.status === 'pending' && (
                       <div className="flex gap-2 mt-2">
-                        <button onClick={() => approvePayment(req.id, req.user_id)} className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700"><CheckCircle size={12} /> Aprovar</button>
+                        <button onClick={() => approvePayment(req)} className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700"><CheckCircle size={12} /> Aprovar</button>
                         <button onClick={() => rejectPayment(req.id)} className="flex items-center gap-1 px-3 py-1.5 bg-red-500 text-white text-xs rounded-lg hover:bg-red-600"><XCircle size={12} /> Rejeitar</button>
                       </div>
                     )}
@@ -678,13 +720,81 @@ export default function AdminDashboard() {
             )}
           </div>
         )}
+
+        {activeTab === 'externas' && (
+          <div>
+            <h2 className="text-lg font-bold text-ms-dark mb-4">Vagas Externas</h2>
+            <p className="text-xs text-ms-gray mb-4">{externalJobs.length} vagas scrappadas (AngolaEmprego e outras fontes).</p>
+
+            <div className="flex flex-col md:flex-row gap-3 mb-4">
+              <div className="flex-1 flex items-center gap-2 bg-ms-surface rounded-xl px-4 py-2.5">
+                <Search size={16} className="text-ms-gray" />
+                <input
+                  type="text"
+                  placeholder="Pesquisar título, empresa ou local..."
+                  value={externalSearch}
+                  onChange={(e) => setExternalSearch(e.target.value)}
+                  className="flex-1 bg-transparent outline-none text-sm text-ms-dark placeholder:text-ms-gray"
+                />
+              </div>
+              <select value={externalFilter} onChange={(e) => setExternalFilter(e.target.value)} className="bg-ms-surface rounded-xl px-4 py-2.5 text-sm outline-none">
+                <option value="all">Todas as categorias</option>
+                {Array.from(new Set(externalJobs.map(j => j.category).filter(Boolean))).sort().map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+
+            {externalJobs.filter(j => {
+              const matchesSearch = (j.title + ' ' + j.company + ' ' + j.location).toLowerCase().includes(externalSearch.toLowerCase())
+              const matchesFilter = externalFilter === 'all' || j.category === externalFilter
+              return matchesSearch && matchesFilter
+            }).length === 0 ? (
+              <div className="bg-ms-surface rounded-xl p-8 text-center">
+                <Globe size={32} className="text-ms-purple mx-auto mb-3" />
+                <p className="text-sm text-ms-gray">Nenhuma vaga externa encontrada</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {externalJobs.filter(j => {
+                  const matchesSearch = (j.title + ' ' + j.company + ' ' + j.location).toLowerCase().includes(externalSearch.toLowerCase())
+                  const matchesFilter = externalFilter === 'all' || j.category === externalFilter
+                  return matchesSearch && matchesFilter
+                }).map(job => (
+                  <div key={job.id} className="bg-white border border-ms-border rounded-xl p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-ms-dark">{job.title}</p>
+                        <p className="text-xs text-ms-gray">{job.company} {job.location ? '• ' + job.location : ''}</p>
+                        <div className="flex flex-wrap items-center gap-2 mt-2">
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-ms-purple-light text-ms-purple font-medium">{job.category}</span>
+                          {job.salary && <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">{job.salary}</span>}
+                          {job.is_enriched && <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">IA</span>}
+                          {job.score >= 50 && <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">Destaque</span>}
+                          <span className="text-[10px] text-ms-gray">{new Date(job.first_seen_at || job.posted_at).toLocaleDateString('pt-AO')}</span>
+                        </div>
+                        {job.excerpt && <p className="text-xs text-ms-gray mt-2 line-clamp-2">{job.excerpt}</p>}
+                        {job.requisitos && <p className="text-[11px] text-ms-gray mt-1"><strong>Requisitos:</strong> {job.requisitos}</p>}
+                        {job.beneficios && <p className="text-[11px] text-ms-gray mt-1"><strong>Benefícios:</strong> {job.beneficios}</p>}
+                      </div>
+                      <a href={`/vagas/externa/?id=${job.id}`} target="_blank" rel="noopener noreferrer" className="text-xs px-3 py-1.5 bg-ms-blue text-white rounded-lg flex-shrink-0">
+                        Ver
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </main>
 
       {/* Mobile Bottom Nav */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-ms-border z-50 lg:hidden">
         <div className="flex items-center justify-around py-2 px-4 max-w-md mx-auto">
+          <Link href="/" className="flex flex-col items-center gap-0.5 py-1">
+            <HomeIcon size={22} className="text-gray-400" />
+            <span className="text-[10px] text-gray-400">Início</span>
+          </Link>
           {[
-            { key: 'home', icon: Shield, label: 'Início' },
             { key: 'recrutadores', icon: UserCheck, label: 'Aprovar' },
             { key: 'vagas', icon: Briefcase, label: 'Vagas' },
             { key: 'pagamentos', icon: Wallet, label: 'Pagam.' },

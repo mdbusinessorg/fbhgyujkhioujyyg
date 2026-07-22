@@ -4,7 +4,8 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Eye, EyeOff, Briefcase } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
+import Logo from '@/components/Logo'
 
 export default function RegisterPage() {
   const [nome, setNome] = useState('')
@@ -63,11 +64,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-[400px]">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <div className="w-10 h-10 bg-ms-blue rounded-xl flex items-center justify-center">
-              <Briefcase size={20} className="text-white" />
-            </div>
-          </div>
+          <Logo variant="full" className="h-16 w-auto mx-auto mb-3" />
           <h1 className="text-[28px] font-bold text-ms-blue">Criar conta</h1>
           <p className="text-sm text-ms-gray mt-1">Junte-se ao MÔ SALO</p>
         </div>

@@ -6,6 +6,12 @@
 [functions]
   node_bundler = "esbuild"
 
+[[headers]]
+  for = "/external-jobs.json"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Cache-Control = "public, max-age=300"
+
 # API functions take priority over the SPA catch-all
 [[redirects]]
   from = "/api/careerjet"
@@ -30,6 +36,26 @@
 [[redirects]]
   from = "/api/ai-match"
   to = "/.netlify/functions/ai-match"
+  status = 200
+
+[[redirects]]
+  from = "/api/ai-support"
+  to = "/.netlify/functions/ai-support"
+  status = 200
+
+[[redirects]]
+  from = "/api/posts"
+  to = "/.netlify/functions/posts"
+  status = 200
+
+[[redirects]]
+  from = "/api/post-likes"
+  to = "/.netlify/functions/post-likes"
+  status = 200
+
+[[redirects]]
+  from = "/api/message-requests"
+  to = "/.netlify/functions/message-requests"
   status = 200
 
 [[redirects]]

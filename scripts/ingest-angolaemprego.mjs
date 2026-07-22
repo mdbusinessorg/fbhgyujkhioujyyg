@@ -11,6 +11,8 @@ import { writeFile, mkdir, readFile, readdir, unlink } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { listPageUrls, parseJob, fetchHtml, listUrl } from './lib/angolaemprego.mjs'
+import { getCompanyLogoUrl } from './lib/company-logos.mjs'
+import { enrichJobDescription, extractJobFields } from './lib/groq.mjs'
  
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..')
@@ -129,8 +131,12 @@ function mergeWithPrevious(freshJobs, previousById) {
     return Number.isNaN(ts) || ts >= cutoff
   })
  
-  // Newest-first by when WE first saw it, not the source site's own date field.
-  kept.sort((a, b) => (b.first_seen_at || '').localeCompare(a.first_seen_at || ''))
+  // Sort by priority score (importance/payment signals), then by when we first saw it.
+  kept.sort((a, b) => {
+    const scoreDiff = (b.score || 0) - (a.score || 0)
+    if (scoreDiff !== 0) return scoreDiff
+    return (b.first_seen_at || '').localeCompare(a.first_seen_at || '')
+  })
   return kept
 }
  
@@ -150,18 +156,30 @@ async function writeJson(jobs) {
     // dir didn't exist yet — fine
   }
  
+  // Enrich every job with its company logo (if known).
+  const enriched = jobs.map((j) => ({ ...j, logo_url: getCompanyLogoUrl(j.company, j.logo_url) }))
+
   // Slim index for the listing page. first_seen_at lets the site show a
   // "novo hoje" badge and sort by when the job actually appeared on mosalo.
-  const index = jobs.map((j) => ({
+  const stripTags = (html) => (html || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+  const index = enriched.map((j) => ({
     id: j.id,
     title: j.title,
     company: j.company,
+    logo_url: j.logo_url,
     location: j.location,
     category: j.category,
-    excerpt: j.excerpt,
+    excerpt: stripTags(j.description_enriched || j.excerpt).slice(0, 240),
+    salary: j.salary || '',
+    score: j.score || 0,
     posted_at: j.posted_at,
     first_seen_at: j.first_seen_at,
     has_apply: !!j.apply_url,
+    is_enriched: !!j.description_enriched,
+    tipo_contrato: j.tipo_contrato || '',
+    modalidade: j.modalidade || '',
+    requisitos: j.requisitos || '',
+    beneficios: j.beneficios || '',
   }))
   await writeFile(
     INDEX_PATH,
@@ -169,16 +187,53 @@ async function writeJson(jobs) {
   )
  
   // Full record per job for the detail page.
-  for (const j of jobs) {
+  for (const j of enriched) {
     await writeFile(join(DATA_DIR, `${j.id}.json`), JSON.stringify(j))
   }
   console.log(`wrote public/external-jobs.json (${index.length}) + public/vagas-data/*.json`)
 }
  
+async function enrichFreshJobs(freshJobs, previousById) {
+  if (!process.env.GROQ_API_KEY) {
+    console.log('GROQ_API_KEY não configurado — a enriquecer sem IA.')
+    return freshJobs
+  }
+
+  const enriched = []
+  let processed = 0
+  for (const job of freshJobs) {
+    const existing = previousById.get(job.id)
+    if (existing && existing.description_enriched) {
+      enriched.push({ ...existing, ...job, description_enriched: existing.description_enriched, tipo_contrato: existing.tipo_contrato, modalidade: existing.modalidade, requisitos: existing.requisitos, beneficios: existing.beneficios })
+      continue
+    }
+
+    const [descriptionHtml, fields] = await Promise.all([
+      enrichJobDescription(job),
+      extractJobFields(job),
+    ])
+
+    enriched.push({
+      ...job,
+      description_enriched: descriptionHtml || job.description,
+      tipo_contrato: fields.tipo_contrato || '',
+      modalidade: fields.modalidade || '',
+      requisitos: fields.requisitos || '',
+      beneficios: fields.beneficios || '',
+    })
+
+    processed++
+    if (processed % 5 === 0) console.log(`enriched ${processed}/${freshJobs.length} new jobs`)
+  }
+  return enriched
+}
+
 async function main() {
   const previousById = JSON_MODE ? await loadPrevious() : new Map()
   const { jobs: freshJobs, errors } = await scrape()
-  const jobs = JSON_MODE ? mergeWithPrevious(freshJobs, previousById) : freshJobs
+
+  const enrichedFresh = JSON_MODE ? await enrichFreshJobs(freshJobs, previousById) : freshJobs
+  const jobs = JSON_MODE ? mergeWithPrevious(enrichedFresh, previousById) : enrichedFresh
  
   const newCount = jobs.filter((j) => !previousById.has(j.id)).length
   console.log(`\nscraped=${freshJobs.length} new=${newCount} total=${jobs.length} errors=${errors}`)
@@ -186,7 +241,7 @@ async function main() {
   if (DRY_RUN) {
     console.log(
       JSON.stringify(
-        freshJobs.slice(0, 3).map((s) => ({ ...s, description: (s.description || '').slice(0, 160) + '…' })),
+        enrichedFresh.slice(0, 3).map((s) => ({ ...s, description: (s.description || '').slice(0, 160) + '…' })),
         null,
         2
       )

@@ -3,7 +3,9 @@
 import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Heart, Building2, MapPin, Clock, Linkedin, Send } from 'lucide-react'
+import { ArrowLeft, Heart, MapPin, Clock, Linkedin, Send } from 'lucide-react'
+import { CompanyLogo } from '@/components/CompanyLogo'
+import Logo from '@/components/Logo'
 
 function ExternaContent() {
   const searchParams = useSearchParams()
@@ -65,7 +67,7 @@ function ExternaContent() {
           <button onClick={() => router.back()}>
             <ArrowLeft size={20} className="text-ms-dark" />
           </button>
-          <span className="font-bold text-lg text-ms-blue">MÔ SALO</span>
+          <Logo variant="full" className="h-8 w-auto" />
           <button>
             <Heart size={20} className="text-ms-gray" />
           </button>
@@ -74,8 +76,8 @@ function ExternaContent() {
 
       <main className="max-w-3xl mx-auto px-4 pt-6">
         <div className="text-center mb-6">
-          <div className="w-14 h-14 bg-ms-surface rounded-full flex items-center justify-center mx-auto mb-3 border border-ms-border">
-            <Building2 size={24} className="text-ms-blue" />
+          <div className="w-14 h-14 mx-auto mb-3">
+            <CompanyLogo company={job.company} logoUrl={job.logo_url} size={56} rounded="rounded-2xl" className="border border-ms-border" />
           </div>
           <h1 className="text-xl font-bold text-ms-dark mb-1">{job.title}</h1>
           {job.company && <p className="text-sm text-ms-gray">{job.company}</p>}

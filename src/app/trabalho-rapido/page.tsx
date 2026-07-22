@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
-import { ArrowLeft, Plus, MapPin, Clock, Phone, DollarSign, Zap, X, Filter, MessageSquare, Search } from 'lucide-react'
+import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
+import { ArrowLeft, Plus, MapPin, Clock, Phone, DollarSign, Zap, X, Filter, MessageSquare, Search, Upload, CheckCircle, CreditCard, Lock } from 'lucide-react'
 
 const CATEGORIAS = [
   { key: 'all', label: 'Todos' },
@@ -52,6 +52,15 @@ export default function TrabalhoRapidoPage() {
     valor_kz: '', duracao_estimada: '1 dia',
     contacto_telefone: '', contacto_whatsapp: '',
   })
+  const [hasAccess, setHasAccess] = useState(false)
+  const [accessPending, setAccessPending] = useState(false)
+  const [checkingAccess, setCheckingAccess] = useState(true)
+  const [showUnlock, setShowUnlock] = useState(false)
+  const [unlockReference, setUnlockReference] = useState('')
+  const [unlockProofUrl, setUnlockProofUrl] = useState('')
+  const [unlockUploading, setUnlockUploading] = useState(false)
+  const [unlockSubmitted, setUnlockSubmitted] = useState(false)
+  const [unlockError, setUnlockError] = useState('')
   const router = useRouter()
 
   useEffect(() => {
@@ -63,12 +72,77 @@ export default function TrabalhoRapidoPage() {
         if (u) {
           setCurrentUserId(u.id)
           if (u.telefone) setForm(f => ({ ...f, contacto_telefone: u.telefone }))
+          await checkAccess(u.id)
+        } else {
+          setCheckingAccess(false)
         }
+      } else {
+        setCheckingAccess(false)
       }
       loadJobs()
     }
     init()
   }, [])
+
+  const checkAccess = async (userId: string) => {
+    setCheckingAccess(true)
+    const now = new Date().toISOString()
+
+    // 1. Procurar subscrição ativa de trabalho_rapido
+    const { data: sub } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('plano', 'trabalho_rapido')
+      .eq('status', 'ativa')
+      .gt('data_fim', now)
+      .order('data_fim', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (sub) {
+      setHasAccess(true)
+      setAccessPending(false)
+      setCheckingAccess(false)
+      return
+    }
+
+    // 2. Fallback: pedido de pagamento aprovado pelo admin (premium_expires_at no futuro)
+    const { data: approvedReq } = await supabase
+      .from('payment_requests')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('status', 'approved')
+      .eq('plan', 'trabalho_rapido')
+      .gt('premium_expires_at', now)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (approvedReq) {
+      setHasAccess(true)
+      setAccessPending(false)
+      setCheckingAccess(false)
+      return
+    }
+
+    // 3. Pedido pendente
+    const { data: req } = await supabase
+      .from('payment_requests')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('status', 'pending')
+      .eq('plan', 'trabalho_rapido')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (req) {
+      setHasAccess(false)
+      setAccessPending(true)
+    } else {
+      setHasAccess(false)
+      setAccessPending(false)
+    }
+    setCheckingAccess(false)
+  }
 
   const loadJobs = async () => {
     setLoading(true)
@@ -118,6 +192,43 @@ export default function TrabalhoRapidoPage() {
     setShowForm(false)
     setForm({ titulo: '', descricao: '', categoria: 'outro', localizacao: '', tipo_pagamento: 'diário', valor_kz: '', duracao_estimada: '1 dia', contacto_telefone: form.contacto_telefone, contacto_whatsapp: '' })
     loadJobs()
+  }
+
+  const handleUnlockUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!currentUserId) { alert('Faz login primeiro'); router.push('/auth/login/'); return }
+    setUnlockUploading(true)
+    setUnlockError('')
+    const ext = file.name.split('.').pop()
+    const path = `payment-proofs/${currentUserId}/${Date.now()}.${ext}`
+    const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(path, file)
+    if (error) {
+      setUnlockError('Erro ao carregar comprovativo: ' + error.message)
+      setUnlockUploading(false)
+      return
+    }
+    setUnlockProofUrl(`${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`)
+    setUnlockUploading(false)
+  }
+
+  const handleUnlockSubmit = async () => {
+    if (!isLoggedIn || !currentUserId) { router.push('/auth/login/'); return }
+    if (!unlockProofUrl) { setUnlockError('Envia o comprovativo primeiro'); return }
+    setUnlockError('')
+    const { error } = await supabase.from('payment_requests').insert({
+      user_id: currentUserId,
+      plan: 'trabalho_rapido',
+      amount: 1000,
+      phone_used: '926115429',
+      proof_file_url: unlockProofUrl,
+      transaction_reference: unlockReference || null,
+      status: 'pending',
+      payment_method: 'manual',
+    })
+    if (error) { setUnlockError('Erro: ' + error.message); return }
+    setAccessPending(true)
+    setUnlockSubmitted(true)
   }
 
   const getTimeAgo = (date: string) => {
@@ -181,6 +292,24 @@ export default function TrabalhoRapidoPage() {
           ))}
         </div>
 
+        {/* Access banner */}
+        {!checkingAccess && !hasAccess && (
+          <div className="bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl p-4 mb-4 text-white flex items-start gap-3">
+            <Lock size={20} className="flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold">Acesso limitado ao Trabalho Rápido</p>
+              <p className="text-xs text-white/80 mt-0.5">Vês apenas título, valor, tipo de pagamento e data de publicação. Desbloqueia o acesso mensal para ver descrição e contactar.</p>
+            </div>
+            {accessPending ? (
+              <span className="text-[10px] bg-white/20 px-2 py-1 rounded-lg font-medium flex-shrink-0">Pendente</span>
+            ) : (
+              <button onClick={() => isLoggedIn ? setShowUnlock(true) : router.push('/auth/login/')} className="text-[10px] bg-white text-orange-600 px-3 py-1.5 rounded-lg font-semibold flex-shrink-0">
+                Desbloquear
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Jobs List */}
         {loading ? (
           <div className="flex justify-center py-12">
@@ -205,7 +334,12 @@ export default function TrabalhoRapidoPage() {
                       <span className="text-[10px] text-gray-400">{getTimeAgo(job.created_at)}</span>
                     </div>
                     <h3 className="text-sm font-semibold text-gray-900">{job.titulo}</h3>
-                    {job.descricao && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{job.descricao}</p>}
+                    {hasAccess && job.descricao && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{job.descricao}</p>}
+                    {!hasAccess && (
+                      <div className="mt-1 h-8 bg-gray-100 rounded animate-pulse flex items-center px-2">
+                        <span className="text-[10px] text-gray-400">Descrição bloqueada</span>
+                      </div>
+                    )}
                   </div>
                   <div className="text-right flex-shrink-0 ml-3">
                     <p className="text-sm font-bold text-orange-600">{job.valor_kz?.toLocaleString()} Kz</p>
@@ -213,30 +347,34 @@ export default function TrabalhoRapidoPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 mt-3 text-[11px] text-gray-500">
-                  {job.localizacao && <span className="flex items-center gap-0.5"><MapPin size={10} /> {job.localizacao}</span>}
-                  <span className="flex items-center gap-0.5"><Clock size={10} /> {job.duracao_estimada}</span>
-                  {job.publisher_name && <span className="text-gray-400">por {job.publisher_name}</span>}
-                </div>
-
-                <div className="flex gap-2 mt-3">
-                  <a
-                    href={`tel:${job.contacto_telefone}`}
-                    className="flex items-center gap-1 px-3 py-1.5 bg-orange-500 text-white text-xs font-medium rounded-lg hover:bg-orange-600 transition-colors"
-                  >
-                    <Phone size={12} /> Ligar
-                  </a>
-                  {job.contacto_whatsapp && (
-                    <a
-                      href={`https://wa.me/244${job.contacto_whatsapp.replace(/\D/g, '')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 px-3 py-1.5 bg-green-500 text-white text-xs font-medium rounded-lg hover:bg-green-600 transition-colors"
-                    >
-                      <MessageSquare size={12} /> WhatsApp
-                    </a>
-                  )}
-                </div>
+                {hasAccess ? (
+                  <>
+                    <div className="flex items-center gap-3 mt-3 text-[11px] text-gray-500">
+                      {job.localizacao && <span className="flex items-center gap-0.5"><MapPin size={10} /> {job.localizacao}</span>}
+                      <span className="flex items-center gap-0.5"><Clock size={10} /> {job.duracao_estimada}</span>
+                      {job.publisher_name && <span className="text-gray-400">por {job.publisher_name}</span>}
+                    </div>
+                    <div className="flex gap-2 mt-3">
+                      <a href={`tel:${job.contacto_telefone}`} className="flex items-center gap-1 px-3 py-1.5 bg-orange-500 text-white text-xs font-medium rounded-lg hover:bg-orange-600 transition-colors">
+                        <Phone size={12} /> Ligar
+                      </a>
+                      {job.contacto_whatsapp && (
+                        <a href={`https://wa.me/244${job.contacto_whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 bg-green-500 text-white text-xs font-medium rounded-lg hover:bg-green-600 transition-colors">
+                          <MessageSquare size={12} /> WhatsApp
+                        </a>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="mt-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-[11px] text-gray-400">
+                      <MapPin size={10} /> <span className="blur-[3px]">Localização bloqueada</span>
+                    </div>
+                    <button onClick={() => isLoggedIn ? setShowUnlock(true) : router.push('/auth/login/')} className="flex items-center gap-1 px-3 py-1.5 bg-gray-900 text-white text-xs font-medium rounded-lg hover:bg-gray-800 transition-colors">
+                      <Lock size={12} /> Desbloquear detalhes
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -305,6 +443,59 @@ export default function TrabalhoRapidoPage() {
                 Publicar Trabalho
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Unlock Modal */}
+      {showUnlock && (
+        <div className="fixed inset-0 z-[100] flex items-end lg:items-center justify-center bg-black/60" onClick={() => !unlockSubmitted && setShowUnlock(false)}>
+          <div className="bg-white rounded-t-3xl lg:rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+            {unlockSubmitted ? (
+              <div className="text-center py-6">
+                <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle size={28} className="text-green-600" />
+                </div>
+                <h2 className="text-lg font-bold text-gray-900 mb-2">Pedido enviado!</h2>
+                <p className="text-sm text-gray-600 mb-6">O teu comprovativo foi recebido. O acesso será activado em até 24h após confirmação do pagamento.</p>
+                <button onClick={() => setShowUnlock(false)} className="w-full bg-orange-500 text-white py-3 rounded-xl font-medium text-sm">Entendi</button>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="font-bold text-gray-900">Desbloquear Trabalho Rápido</h2>
+                  <button onClick={() => setShowUnlock(false)}><X size={20} className="text-gray-400" /></button>
+                </div>
+
+                <div className="bg-orange-50 rounded-xl p-4 mb-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CreditCard size={18} className="text-orange-600" />
+                    <p className="text-sm font-semibold text-orange-900">Taxa mensal: 1.000 Kz</p>
+                  </div>
+                  <p className="text-xs text-orange-800">Paga via Multicaixa Express para o número <strong>926 115 429</strong> (Mô Salo) e envia o comprovativo.</p>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-gray-500 mb-1 block">Referência / Nº do comprovativo</label>
+                    <input type="text" value={unlockReference} onChange={e => setUnlockReference(e.target.value)} placeholder="Ex: TRX123456" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-orange-400" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 mb-1 block">Comprovativo (imagem/PDF)</label>
+                    <label className="flex items-center justify-center gap-2 w-full border-2 border-dashed border-gray-200 rounded-xl px-3 py-4 text-sm text-gray-500 hover:border-orange-400 hover:bg-orange-50 transition-colors cursor-pointer">
+                      <Upload size={18} />
+                      {unlockProofUrl ? 'Comprovativo carregado' : unlockUploading ? 'A carregar...' : 'Carregar comprovativo'}
+                      <input type="file" className="hidden" accept="image/*,.pdf" onChange={handleUnlockUpload} disabled={unlockUploading} />
+                    </label>
+                    {unlockProofUrl && <p className="text-[10px] text-green-600 mt-1">✓ Carregado</p>}
+                  </div>
+                  {unlockError && <p className="text-xs text-red-500">{unlockError}</p>}
+                  <button onClick={handleUnlockSubmit} disabled={unlockUploading || !unlockProofUrl} className="w-full bg-orange-500 text-white py-3 rounded-xl font-medium text-sm hover:bg-orange-600 transition-colors disabled:opacity-50">
+                    Enviar pedido de acesso
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

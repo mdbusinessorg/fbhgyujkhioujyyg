@@ -4,7 +4,9 @@ import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
-import { ArrowLeft, Heart, Briefcase, MapPin, Building2, Send, Upload, MessageSquare } from 'lucide-react'
+import { ArrowLeft, Heart, MapPin, Send, Upload, MessageSquare } from 'lucide-react'
+import { CompanyLogo } from '@/components/CompanyLogo'
+import Logo from '@/components/Logo'
 
 function VagaDetalheContent() {
   const searchParams = useSearchParams()
@@ -74,11 +76,11 @@ function VagaDetalheContent() {
         if (!uploadError) {
           const url = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`
           // Save to profile
-          const { data: prof } = await supabase.from('profiles').select('documentos').eq('user_id', session.user.id).single()
+          const { data: prof } = await supabase.from('profiles').select('documentos').eq('user_id', userId).single()
           const existingDocs = prof?.documentos || []
           if (existingDocs.length < 2) {
             await supabase.from('profiles').upsert({
-              user_id: session.user.id,
+              user_id: userId,
               documentos: [...existingDocs, url],
             }, { onConflict: 'user_id' })
           }
@@ -131,7 +133,7 @@ function VagaDetalheContent() {
           <button onClick={() => router.back()}>
             <ArrowLeft size={20} className="text-ms-dark" />
           </button>
-          <span className="font-bold text-lg text-ms-blue">MÔ SALO</span>
+          <Logo variant="full" className="h-8 w-auto" />
           <button>
             <Heart size={20} className="text-ms-gray" />
           </button>
@@ -141,8 +143,8 @@ function VagaDetalheContent() {
       <main className="max-w-3xl mx-auto px-4 pt-6">
         {/* Company & Title */}
         <div className="text-center mb-6">
-          <div className="w-14 h-14 bg-ms-surface rounded-full flex items-center justify-center mx-auto mb-3 border border-ms-border">
-            <Briefcase size={24} className="text-ms-blue" />
+          <div className="w-14 h-14 mx-auto mb-3">
+            <CompanyLogo company={vaga.empresa_nome} size={56} rounded="rounded-2xl" className="border border-ms-border" />
           </div>
           <h1 className="text-xl font-bold text-ms-dark mb-1">{vaga.titulo}</h1>
           <div className="flex items-center justify-center gap-2 text-sm text-ms-gray">

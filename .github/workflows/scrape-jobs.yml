@@ -1,32 +1,63 @@
 name: Atualizar vagas de Angola
+
 on:
   schedule:
-    - cron: '0 5 * * *' # diariamente às 05:00 UTC
-  workflow_dispatch: {}
+    - cron: '0 */6 * * *' # a cada 6h (00h, 06h, 12h, 18h UTC)
+    - cron: '0 5 * * *'  # também às 05h UTC (mantém compatibilidade)
+  workflow_dispatch:
+    inputs:
+      max_pages:
+        description: 'Número máximo de páginas a raspar (padrão 30)'
+        required: false
+        default: '30'
+      force:
+        description: 'Forçar atualização mesmo sem novas vagas?'
+        required: false
+        default: 'false'
+      trigger_deploy:
+        description: 'Disparar deploy Netlify manualmente? (true/false)'
+        required: false
+        default: 'false'
+
 permissions:
   contents: write
+
 concurrency:
   group: scrape-jobs
   cancel-in-progress: false
+
 jobs:
   scrape:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           ref: main
-      - uses: actions/setup-node@v4
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
       - name: Recolher vagas (angolaemprego.com)
         env:
-          MAX_PAGES: '30'
+          MAX_PAGES: ${{ github.event.inputs.max_pages || '30' }}
           CONCURRENCY: '4'
-        run: node scripts/ingest-angolaemprego.mjs --json
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          node scripts/ingest-angolaemprego.mjs --json
+
       - name: Commit se houver alterações
         run: |
           git config user.name "mosalo-bot"
           git config user.email "bot@mosalo.eu.cc"
+          git pull --rebase --autostash origin main
           git add public/external-jobs.json public/vagas-data
           if git diff --staged --quiet; then
             echo "Sem alterações nas vagas."
@@ -34,3 +65,24 @@ jobs:
             git commit -m "chore(vagas): atualização automática de vagas [skip ci]"
             git push
           fi
+
+      - name: Disparar deploy na Netlify
+        if: ${{ success() && (github.event.inputs.trigger_deploy == 'true' || secrets.NETLIFY_BUILD_HOOK != '') }}
+        env:
+          NETLIFY_BUILD_HOOK: ${{ secrets.NETLIFY_BUILD_HOOK }}
+        run: |
+          if [ -n "$NETLIFY_BUILD_HOOK" ]; then
+            echo "A notificar Netlify para novo build..."
+            curl -X POST -s --fail "$NETLIFY_BUILD_HOOK" || echo "Aviso: não foi possível notificar Netlify"
+          else
+            echo "NETLIFY_BUILD_HOOK não configurado — a site será actualizado no próximo deploy manual/ automático do Git."
+          fi
+
+      - name: Upload artifact para depuração
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: scrape-debug
+          path: |
+            public/external-jobs.json
+            public/vagas-data
