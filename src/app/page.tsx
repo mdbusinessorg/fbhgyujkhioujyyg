@@ -37,7 +37,9 @@ const QUICK_FILTERS = [
 ]
 
 const HOURS_60 = 60 * 60 * 60 * 1000
+const DAYS_7 = 7 * 24 * 60 * 60 * 1000
 const isRecent = (date?: string) => !!date && (Date.now() - new Date(date).getTime()) <= HOURS_60
+const isThisWeek = (date?: string) => !!date && (Date.now() - new Date(date).getTime()) <= DAYS_7
 const getTimeAgo = (date?: string) => {
   if (!date) return ''
   const diff = Date.now() - new Date(date).getTime()
@@ -185,7 +187,7 @@ export default function HomePage() {
     return list
   }, [vagas, allExternal])
 
-  const filteredJobs = useMemo(() => {
+  const baseFiltered = useMemo(() => {
     const kw = searchQuery.trim().toLowerCase()
     return allJobs.filter((job: any) => {
       const title = (job.titulo || job.title || '').toLowerCase()
@@ -213,6 +215,18 @@ export default function HomePage() {
       return matchSearch && matchFilter
     })
   }, [allJobs, searchQuery, activeFilter, favorites])
+
+  const weeklyJobIds = useMemo(() => {
+    const list = baseFiltered.filter((job: any) => {
+      const isDestaque = job.is_prioritaria === true || (job.score || 0) >= 20
+      const isWeek = isThisWeek(job.created_at || job.first_seen_at || job.posted_at)
+      return isWeek && !isDestaque
+    })
+    return new Set(list.map((j: any) => j.favId))
+  }, [baseFiltered])
+
+  const weeklyJobs = baseFiltered.filter((job: any) => weeklyJobIds.has(job.favId))
+  const mainJobs = baseFiltered.filter((job: any) => !weeklyJobIds.has(job.favId))
 
   const toggleFavorite = (e: React.MouseEvent, job: any) => {
     e.preventDefault()
@@ -476,6 +490,57 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* Info cards: Trabalho Rápido + Perfil */}
+        <section className="mb-6">
+          <div className="grid grid-cols-2 gap-3">
+            <Link href="/trabalho-rapido/" className="bg-gradient-to-br from-orange-400 to-orange-500 rounded-2xl p-4 text-white relative overflow-hidden hover:shadow-md transition-shadow">
+              <div className="absolute -bottom-4 -right-4 w-20 h-20 bg-white/10 rounded-full" />
+              <Zap size={24} className="mb-3" />
+              <h3 className="text-sm font-bold mb-1">Trabalho Rápido</h3>
+              <p className="text-[10px] text-white/80 mb-3">Empregos diretos. Paga uma taxa mensal e acede aos contactos.</p>
+              <span className="inline-flex items-center text-[10px] font-bold bg-white/20 px-2 py-1 rounded-lg">Saber mais</span>
+            </Link>
+            <Link href={isLoggedIn ? `/dashboard/${userRole}/?tab=perfil` : '/auth/registar/'} className="bg-gradient-to-br from-ms-blue to-ms-purple rounded-2xl p-4 text-white relative overflow-hidden hover:shadow-md transition-shadow">
+              <div className="absolute -bottom-4 -right-4 w-20 h-20 bg-white/10 rounded-full" />
+              <User size={24} className="mb-3" />
+              <h3 className="text-sm font-bold mb-1">Perfil de Candidato</h3>
+              <p className="text-[10px] text-white/80 mb-3">Completa o teu perfil e deixa as empresas encontrarem-te.</p>
+              <span className="inline-flex items-center text-[10px] font-bold bg-white/20 px-2 py-1 rounded-lg">Criar perfil</span>
+            </Link>
+          </div>
+        </section>
+
+        {/* Vagas da Semana */}
+        {weeklyJobs.length > 0 && (
+          <section className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-bold text-ms-dark">Vagas da Semana</h2>
+              <Link href="/vagas/" className="text-xs text-ms-blue font-medium">Ver todas</Link>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+              {weeklyJobs.slice(0, 8).map((job: any) => (
+                <div key={job.favId} className="flex-shrink-0 w-72">
+                  <JobCard job={job} />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Ad placeholder */}
+        <section className="mb-6">
+          <div className="bg-gradient-to-r from-gray-100 to-gray-200 rounded-2xl p-5 border border-dashed border-gray-300 flex items-center justify-between">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Publicidade</span>
+              <p className="text-sm font-bold text-gray-700 mt-1">Espaço para anúncio</p>
+              <p className="text-[10px] text-gray-500">Promove a tua empresa ou formação aqui.</p>
+            </div>
+            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center flex-shrink-0">
+              <Megaphone size={24} className="text-gray-400" />
+            </div>
+          </div>
+        </section>
+
         {/* Job listings */}
         <section className="mb-6">
           <div className="flex items-center justify-between mb-3">
@@ -484,7 +549,7 @@ export default function HomePage() {
             </h2>
             <Link href="/vagas/" className="text-xs text-ms-blue font-medium">Ver todas</Link>
           </div>
-          {filteredJobs.length === 0 ? (
+          {mainJobs.length === 0 ? (
             <div className="bg-white rounded-2xl p-8 text-center border border-ms-border">
               <Briefcase size={32} className="text-ms-gray mx-auto mb-3" />
               <p className="text-sm text-ms-gray">Nenhuma vaga encontrada</p>
@@ -493,7 +558,7 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {filteredJobs.slice(0, 10).map((job: any) => <JobCard key={job.favId} job={job} featured={job.is_prioritaria || (job.score || 0) >= 20} />)}
+              {mainJobs.slice(0, 10).map((job: any) => <JobCard key={job.favId} job={job} featured={job.is_prioritaria || (job.score || 0) >= 20} />)}
             </div>
           )}
         </section>
