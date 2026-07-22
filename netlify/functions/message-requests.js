@@ -80,5 +80,14 @@ exports.handler = async (event) => {
     return { statusCode: 200, headers, body: JSON.stringify(requests[index]) }
   }
 
+  if (event.httpMethod === 'DELETE') {
+    const id = event.queryStringParameters?.id
+    if (!id) return { statusCode: 400, headers, body: JSON.stringify({ error: 'id obrigatório' }) }
+    let requests = await all()
+    requests = requests.filter(r => r.id !== id)
+    await save(requests)
+    return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) }
+  }
+
   return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) }
 }
