@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Logo from '@/components/Logo'
+import BottomNav from '@/components/BottomNav'
+import { DashboardOverview, type RecrutadorData } from '@/components/dashboard'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Search, Bell, Briefcase, Users, Plus, Eye, TrendingUp, Download, FileText, CheckCircle, XCircle, Clock, LogOut, Menu, X, Star, Filter, ChevronDown, Zap, Award, MessageSquare, HelpCircle, Trash2, Home as HomeIcon } from 'lucide-react'
@@ -215,7 +217,7 @@ export default function RecrutadorDashboard() {
   const vagasActivas = vagas.filter(v => v.status === 'aberta').length
 
   return (
-    <div className="min-h-screen bg-white pb-20 lg:pb-0 lg:pl-60">
+    <div className="min-h-screen bg-[#F0F6FF] pb-20 lg:pb-0 lg:pl-60">
       {/* Mobile Menu */}
       {showMenu && (
         <div className="fixed inset-0 z-[60] lg:hidden">
@@ -345,82 +347,18 @@ export default function RecrutadorDashboard() {
         </div>
 
         {activeTab === 'home' && (
-          <>
-            {/* Stats Card */}
-            <div className="bg-gradient-to-br from-[#6C47FF] to-[#9B7BFF] rounded-2xl p-5 mb-6 text-white relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-8 translate-x-8" />
-              <p className="text-xs text-white/70 mb-1">Vagas Publicadas</p>
-              <p className="text-3xl font-bold mb-3">{vagasActivas}</p>
-              <div className="flex items-center justify-between">
-                <span className="text-xs bg-white/20 px-3 py-1 rounded-full">
-                  {candidatos.filter(c => c.status === 'enviada').length} candidaturas pendentes
-                </span>
-                <button onClick={() => setActiveTab('nova_vaga')} className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                  <Plus size={16} className="text-ms-purple" />
-                </button>
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="flex gap-3 overflow-x-auto pb-2 mb-6">
-              <button onClick={() => setActiveTab('nova_vaga')} className="flex-shrink-0 bg-ms-purple text-white rounded-xl px-5 py-4 min-w-[150px]">
-                <Plus size={20} className="mb-2" />
-                <p className="text-sm font-medium">Publicar Vaga</p>
-                <p className="text-[11px] text-white/70">Nova oportunidade</p>
-              </button>
-              <button onClick={() => setActiveTab('candidatos')} className="flex-shrink-0 bg-white border border-ms-purple/20 rounded-xl px-5 py-4 min-w-[150px]">
-                <Users size={20} className="text-ms-purple mb-2" />
-                <p className="text-sm font-medium text-ms-dark">Ver Candidatos</p>
-                <p className="text-[11px] text-ms-gray">{candidatos.length} total</p>
-              </button>
-              <button onClick={() => setActiveTab('selecao')} className="flex-shrink-0 bg-gradient-to-br from-amber-400 to-orange-500 text-white rounded-xl px-5 py-4 min-w-[150px]">
-                <Zap size={20} className="mb-2" />
-                <p className="text-sm font-medium">Selecção IA</p>
-                <p className="text-[11px] text-white/80">Ranking automático</p>
-              </button>
-            </div>
-
-            {/* Recent Candidatos */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-ms-dark">Candidatos Recentes</h3>
-                <button onClick={() => setActiveTab('candidatos')} className="text-xs text-ms-blue font-medium">Ver todos</button>
-              </div>
-              {candidatos.length === 0 ? (
-                <div className="bg-ms-surface rounded-xl p-6 text-center">
-                  <p className="text-sm text-ms-gray">Nenhum candidato ainda</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {candidatos.slice(0, 5).map((c) => (
-                    <div key={c.id} className="bg-ms-surface rounded-xl p-3 flex items-center gap-3">
-                      <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-ms-border flex-shrink-0">
-                        <Users size={16} className="text-ms-purple" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-ms-dark truncate">{c.users?.nome || 'Candidato'}</p>
-                        <p className="text-xs text-ms-gray truncate">{c.vagas?.titulo}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                          calcScore(c) >= 70 ? 'bg-green-100 text-green-700' :
-                          calcScore(c) >= 40 ? 'bg-amber-100 text-amber-700' :
-                          'bg-gray-100 text-gray-500'
-                        }`}>{calcScore(c)}%</span>
-                        <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
-                          c.status === 'aprovada' ? 'bg-green-100 text-green-700' :
-                          c.status === 'rejeitada' ? 'bg-red-100 text-red-700' :
-                          'bg-amber-100 text-amber-700'
-                        }`}>
-                          {c.status === 'aprovada' ? 'Aceite' : c.status === 'rejeitada' ? 'Rejeitado' : 'Pendente'}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </>
+          <DashboardOverview
+            role="recrutador"
+            data={{
+              vagas,
+              candidatos,
+              userName,
+              aprovado,
+              daysRemaining,
+              subPlano,
+            } as RecrutadorData}
+            onTabChange={setActiveTab}
+          />
         )}
 
         {activeTab === 'vagas' && (
@@ -746,28 +684,7 @@ export default function RecrutadorDashboard() {
         )}
       </main>
 
-      {/* Mobile Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-ms-border z-50 lg:hidden">
-        <div className="flex items-center justify-around py-2 px-4 max-w-md mx-auto">
-          <Link href="/" className="flex flex-col items-center gap-0.5 py-1">
-            <HomeIcon size={22} className="text-gray-400" />
-            <span className="text-[10px] text-gray-400">Início</span>
-          </Link>
-          {[
-            { key: 'candidatos', icon: Users, label: 'Candidatos' },
-            { key: 'selecao', icon: Zap, label: 'Selecção' },
-            { key: 'nova_vaga', icon: Plus, label: 'Publicar' },
-          ].map(item => {
-            const Icon = item.icon
-            return (
-              <button key={item.key} onClick={() => setActiveTab(item.key)} className="flex flex-col items-center gap-0.5 py-1">
-                <Icon size={22} className={activeTab === item.key ? 'text-ms-purple' : 'text-gray-400'} />
-                <span className={`text-[10px] ${activeTab === item.key ? 'text-ms-purple font-medium' : 'text-gray-400'}`}>{item.label}</span>
-              </button>
-            )
-          })}
-        </div>
-      </nav>
+      <BottomNav active={activeTab} userRole="recrutador" onTabChange={setActiveTab} />
     </div>
   )
 }

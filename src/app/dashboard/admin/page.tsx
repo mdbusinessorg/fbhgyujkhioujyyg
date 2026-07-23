@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Logo from '@/components/Logo'
+import BottomNav from '@/components/BottomNav'
+import { DashboardOverview, type AdminData } from '@/components/dashboard'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Search, Bell, Briefcase, Users, UserCheck, Shield, Settings, CreditCard, CheckCircle, XCircle, Eye, TrendingUp, Plus, AlertTriangle, LogOut, Menu, X, Download, Linkedin, ExternalLink, Trash2, Edit2, Wallet, Zap, Home as HomeIcon, Globe } from 'lucide-react'
@@ -14,6 +16,8 @@ export default function AdminDashboard() {
   const [pendentes, setPendentes] = useState<any[]>([])
   const [vagasPendentes, setVagasPendentes] = useState<any[]>([])
   const [allUsers, setAllUsers] = useState<any[]>([])
+  const [allVagas, setAllVagas] = useState<any[]>([])
+  const [allCandidaturas, setAllCandidaturas] = useState<any[]>([])
   const [subscriptions, setSubscriptions] = useState<any[]>([])
   const [showMenu, setShowMenu] = useState(false)
   const [showNotifs, setShowNotifs] = useState(false)
@@ -43,6 +47,15 @@ export default function AdminDashboard() {
     const { data: users } = await supabase.from('users').select('*')
     const { data: vagas } = await supabase.from('vagas').select('*')
     const { data: cands } = await supabase.from('candidaturas').select('*')
+
+    const vagasMap: Record<string, any> = {}
+    ;(vagas || []).forEach((v: any) => { vagasMap[v.id] = v })
+    const usersMap: Record<string, any> = {}
+    ;(users || []).forEach((u: any) => { usersMap[u.id] = u })
+
+    setAllVagas(vagas || [])
+    setAllCandidaturas((cands || []).map((c: any) => ({ ...c, vagas: vagasMap[c.vaga_id] || null, users: usersMap[c.candidato_id] || null })))
+
     const { data: subsRaw } = await supabase.from('subscriptions').select('*')
     const { data: ljobs } = await supabase.from('linkedin_jobs').select('*').order('created_at', { ascending: false })
     const { data: payReqs } = await supabase.from('payment_requests').select('*').order('created_at', { ascending: false })
@@ -209,7 +222,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-white pb-20 lg:pb-0 lg:pl-60">
+    <div className="min-h-screen bg-[#F0F6FF] pb-20 lg:pb-0 lg:pl-60">
       {/* Mobile Menu */}
       {showMenu && (
         <div className="fixed inset-0 z-[60] lg:hidden">
@@ -347,90 +360,22 @@ export default function AdminDashboard() {
         </div>
 
         {activeTab === 'home' && (
-          <>
-            {/* Stats Card */}
-            <div className="bg-gradient-to-br from-[#6C47FF] to-[#9B7BFF] rounded-2xl p-5 mb-6 text-white relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-8 translate-x-8" />
-              <p className="text-xs text-white/70 mb-1">Utilizadores Activos</p>
-              <p className="text-3xl font-bold mb-3">{stats.totalUsers}</p>
-              <div className="flex items-center gap-3 flex-wrap">
-                <span className="text-xs bg-white/20 px-3 py-1 rounded-full">{stats.totalVagas} vagas activas</span>
-                <span className="text-xs bg-white/20 px-3 py-1 rounded-full">{stats.totalCandidaturas} candidaturas</span>
-              </div>
-            </div>
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-              <div className="bg-ms-purple-light rounded-xl p-4 text-center">
-                <Users size={20} className="text-ms-purple mx-auto mb-1" />
-                <p className="text-lg font-bold text-ms-dark">{stats.totalUsers}</p>
-                <p className="text-[11px] text-ms-gray">Utilizadores</p>
-              </div>
-              <div className="bg-ms-purple-light rounded-xl p-4 text-center">
-                <Briefcase size={20} className="text-ms-purple mx-auto mb-1" />
-                <p className="text-lg font-bold text-ms-dark">{stats.totalVagas}</p>
-                <p className="text-[11px] text-ms-gray">Vagas</p>
-              </div>
-              <div className="bg-ms-purple-light rounded-xl p-4 text-center">
-                <TrendingUp size={20} className="text-ms-purple mx-auto mb-1" />
-                <p className="text-lg font-bold text-ms-dark">{stats.totalCandidaturas}</p>
-                <p className="text-[11px] text-ms-gray">Candidaturas</p>
-              </div>
-              <div className="bg-ms-purple-light rounded-xl p-4 text-center">
-                <UserCheck size={20} className="text-ms-purple mx-auto mb-1" />
-                <p className="text-lg font-bold text-ms-dark">{stats.totalRecrutadores}</p>
-                <p className="text-[11px] text-ms-gray">Recrutadores</p>
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="flex gap-3 overflow-x-auto pb-2 mb-6">
-              <button onClick={() => setActiveTab('recrutadores')} className="flex-shrink-0 bg-ms-purple text-white rounded-xl px-5 py-4 min-w-[150px]">
-                <UserCheck size={20} className="mb-2" />
-                <p className="text-sm font-medium">Aprovar Recrutadores</p>
-                <p className="text-[11px] text-white/70">{pendentes.length} pendentes</p>
-              </button>
-              <button onClick={() => setActiveTab('vagas')} className="flex-shrink-0 bg-white border border-ms-purple/20 rounded-xl px-5 py-4 min-w-[150px]">
-                <Briefcase size={20} className="text-ms-purple mb-2" />
-                <p className="text-sm font-medium text-ms-dark">Aprovar Vagas</p>
-                <p className="text-[11px] text-ms-gray">{vagasPendentes.length} pendentes</p>
-              </button>
-              <button onClick={() => setActiveTab('linkedin')} className="flex-shrink-0 bg-white border border-ms-border rounded-xl px-5 py-4 min-w-[150px]">
-                <Linkedin size={20} className="text-blue-600 mb-2" />
-                <p className="text-sm font-medium text-ms-dark">LinkedIn Jobs</p>
-                <p className="text-[11px] text-ms-gray">{linkedinJobs.length} vagas</p>
-              </button>
-              <button onClick={() => setActiveTab('subscricoes')} className="flex-shrink-0 bg-white border border-ms-border rounded-xl px-5 py-4 min-w-[150px]">
-                <CreditCard size={20} className="text-ms-gray mb-2" />
-                <p className="text-sm font-medium text-ms-dark">Subscrições</p>
-                <p className="text-[11px] text-ms-gray">Pagamentos</p>
-              </button>
-              <button onClick={() => setActiveTab('externas')} className="flex-shrink-0 bg-white border border-ms-border rounded-xl px-5 py-4 min-w-[150px]">
-                <Globe size={20} className="text-ms-purple mb-2" />
-                <p className="text-sm font-medium text-ms-dark">Vagas Externas</p>
-                <p className="text-[11px] text-ms-gray">{externalJobs.length} vagas</p>
-              </button>
-            </div>
-
-            {/* Pending approvals */}
-            {pendentes.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-sm font-semibold text-ms-dark mb-3">Recrutadores Pendentes</h3>
-                <div className="space-y-2">
-                  {pendentes.map(u => (
-                    <div key={u.id} className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center gap-3">
-                      <AlertTriangle size={16} className="text-amber-600 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-ms-dark truncate">{u.nome}</p>
-                        <p className="text-xs text-ms-gray truncate">{u.email}</p>
-                      </div>
-                      <button onClick={() => aprovarRecrutador(u.id)} className="text-xs px-3 py-1.5 rounded-lg bg-green-100 text-green-700 font-medium flex-shrink-0">Aprovar</button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
+          <DashboardOverview
+            role="admin"
+            data={{
+              users: allUsers,
+              vagas: allVagas,
+              candidaturas: allCandidaturas,
+              subscriptions,
+              paymentRequests,
+              externalJobs,
+              linkedinJobs,
+              quickJobs,
+              pendentes,
+              vagasPendentes,
+            } as AdminData}
+            onTabChange={setActiveTab}
+          />
         )}
 
         {activeTab === 'recrutadores' && (
@@ -787,29 +732,7 @@ export default function AdminDashboard() {
         )}
       </main>
 
-      {/* Mobile Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-ms-border z-50 lg:hidden">
-        <div className="flex items-center justify-around py-2 px-4 max-w-md mx-auto">
-          <Link href="/" className="flex flex-col items-center gap-0.5 py-1">
-            <HomeIcon size={22} className="text-gray-400" />
-            <span className="text-[10px] text-gray-400">Início</span>
-          </Link>
-          {[
-            { key: 'recrutadores', icon: UserCheck, label: 'Aprovar' },
-            { key: 'vagas', icon: Briefcase, label: 'Vagas' },
-            { key: 'pagamentos', icon: Wallet, label: 'Pagam.' },
-            { key: 'utilizadores', icon: Users, label: 'Users' },
-          ].map(item => {
-            const Icon = item.icon
-            return (
-              <button key={item.key} onClick={() => setActiveTab(item.key)} className="flex flex-col items-center gap-0.5 py-1">
-                <Icon size={22} className={activeTab === item.key ? 'text-ms-purple' : 'text-gray-400'} />
-                <span className={`text-[10px] ${activeTab === item.key ? 'text-ms-purple font-medium' : 'text-gray-400'}`}>{item.label}</span>
-              </button>
-            )
-          })}
-        </div>
-      </nav>
+      <BottomNav active={activeTab} userRole="admin" onTabChange={setActiveTab} />
     </div>
   )
 }

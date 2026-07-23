@@ -24,7 +24,14 @@ export default function BottomNav({ active, userRole, onTabChange }: BottomNavPr
     { key: 'nova_vaga', icon: Plus, label: 'Publicar' },
   ]
 
-  const items = userRole === 'recrutador' ? recrutadorItems : candidatoItems
+  const adminItems: { key: string; icon: typeof Home; label: string; href?: string }[] = [
+    { key: 'home', icon: Home, label: 'Início' },
+    { key: 'vagas', icon: Briefcase, label: 'Vagas' },
+    { key: 'recrutadores', icon: Users, label: 'Aprovar' },
+    { key: 'pagamentos', icon: CreditCard, label: 'Pagamentos' },
+  ]
+
+  const items = userRole === 'recrutador' ? recrutadorItems : userRole === 'admin' ? adminItems : candidatoItems
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-ms-border z-50 lg:hidden">

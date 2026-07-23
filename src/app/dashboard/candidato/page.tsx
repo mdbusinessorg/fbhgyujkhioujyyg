@@ -6,6 +6,7 @@ import Logo from '@/components/Logo'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
+import { DashboardOverview, type CandidatoData } from '@/components/dashboard'
 import SubscriptionBanner from '@/components/SubscriptionBanner'
 import SubscriptionModal from '@/components/SubscriptionModal'
 import { Search, Bell, Briefcase, FileText, User, Upload, ArrowRight, Clock, CheckCircle, XCircle, Plus, Eye, Sparkles, Lightbulb, Target, Award, AlertCircle, ChevronRight, Zap, LogOut, Menu, X, CreditCard, Wallet, Home as HomeIcon } from 'lucide-react'
@@ -239,7 +240,7 @@ function CandidatoDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-white pb-20 lg:pb-0 lg:pl-60">
+    <div className="min-h-screen bg-[#F0F6FF] pb-20 lg:pb-0 lg:pl-60">
       <SubscriptionModal show={showExpiredModal} onDismiss={() => setShowExpiredModal(false)} />
       {daysRemaining !== null && daysRemaining <= 7 && daysRemaining > 0 && (
         <SubscriptionBanner daysRemaining={daysRemaining} />
@@ -373,78 +374,17 @@ function CandidatoDashboard() {
         )}
 
         {activeTab === 'home' && (
-          <>
-            {/* Stats Card */}
-            <div className="bg-gradient-to-br from-[#6C47FF] to-[#9B7BFF] rounded-2xl p-5 mb-6 text-white relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-8 translate-x-8" />
-              <p className="text-xs text-white/70 mb-1">Candidaturas Enviadas</p>
-              <p className="text-3xl font-bold mb-3">{candidaturas.length}</p>
-              <div className="flex items-center justify-between">
-                <span className="text-xs bg-white/20 px-3 py-1 rounded-full">
-                  {subPlano === 'trial' ? 'Trial' : 'PRO'} — {daysRemaining !== null ? (
-                    <span className={daysRemaining <= 7 ? 'text-amber-200' : ''}>{daysRemaining} dias restantes</span>
-                  ) : '—'}
-                </span>
-                <Link href="/vagas/" className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                  <Plus size={16} className="text-ms-purple" />
-                </Link>
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="flex gap-3 overflow-x-auto pb-2 mb-6">
-              <Link href="/vagas/" className="flex-shrink-0 bg-ms-purple text-white rounded-xl px-5 py-4 min-w-[150px]">
-                <Eye size={20} className="mb-2" />
-                <p className="text-sm font-medium">Ver Vagas</p>
-                <p className="text-[11px] text-white/70">Explorar oportunidades</p>
-              </Link>
-              <button onClick={() => setActiveTab('ia')} className="flex-shrink-0 bg-gradient-to-br from-amber-400 to-orange-500 text-white rounded-xl px-5 py-4 min-w-[150px]">
-                <Sparkles size={20} className="mb-2" />
-                <p className="text-sm font-medium">IA & Dicas</p>
-                <p className="text-[11px] text-white/80">Melhorar o meu CV</p>
-              </button>
-              <button onClick={() => setActiveTab('documentos')} className="flex-shrink-0 bg-white border border-ms-purple/20 rounded-xl px-5 py-4 min-w-[150px]">
-                <FileText size={20} className="text-ms-purple mb-2" />
-                <p className="text-sm font-medium text-ms-dark">O meu CV</p>
-                <p className="text-[11px] text-ms-gray">Actualizar CV</p>
-              </button>
-            </div>
-
-            {/* Actividade Recente */}
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-ms-dark">Actividade Recente</h3>
-                <button onClick={() => setActiveTab('candidaturas')} className="text-xs text-ms-blue font-medium">Ver tudo</button>
-              </div>
-              {candidaturas.length === 0 ? (
-                <div className="bg-ms-surface rounded-xl p-6 text-center">
-                  <p className="text-sm text-ms-gray">Nenhuma candidatura ainda</p>
-                  <Link href="/vagas/" className="text-sm text-ms-blue font-medium mt-2 inline-block">Explorar vagas →</Link>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {candidaturas.slice(0, 5).map((c) => (
-                    <div key={c.id} className="bg-ms-surface rounded-xl p-3 flex items-center gap-3">
-                      <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-ms-border flex-shrink-0">
-                        <Briefcase size={16} className="text-ms-blue" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-ms-dark truncate">{c.vagas?.titulo || 'Vaga'}</p>
-                        <p className="text-xs text-ms-gray">{c.vagas?.empresa_nome || 'Empresa'}</p>
-                      </div>
-                      <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
-                        c.status === 'aprovada' ? 'bg-green-100 text-green-700' :
-                        c.status === 'rejeitada' ? 'bg-red-100 text-red-700' :
-                        'bg-amber-100 text-amber-700'
-                      }`}>
-                        {c.status === 'aprovada' ? 'Aceite' : c.status === 'rejeitada' ? 'Rejeitado' : 'Pendente'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </>
+          <DashboardOverview
+            role="candidato"
+            data={{
+              candidaturas,
+              userName,
+              daysRemaining,
+              subPlano,
+              cvScore,
+            } as CandidatoData}
+            onTabChange={setActiveTab}
+          />
         )}
 
         {/* IA & DICAS TAB */}
