@@ -35,7 +35,7 @@ jobs:
         run: |
           set -e
           DEPLOY_JSON=$(npx netlify-cli deploy --dir=out --site=$NETLIFY_SITE_ID --auth=$NETLIFY_AUTH_TOKEN --json --message="Deploy $(date -u +%Y%m%d-%H%M%S)")
-          DEPLOY_ID=$(node -e "let d=''; process.stdin.on('data', c => d += c); process.stdin.on('end', () => { const j = JSON.parse(d); if (!j.deploy_id) throw new Error('deploy_id missing'); console.log(j.deploy_id); }" <<< "$DEPLOY_JSON")
+          DEPLOY_ID=$(node -e "let d=''; process.stdin.on('data', c => d += c); process.stdin.on('end', () => { const j = JSON.parse(d); if (!j.deploy_id) throw new Error('deploy_id missing'); console.log(j.deploy_id); });" <<< "$DEPLOY_JSON")
           echo "Draft deploy ID: $DEPLOY_ID"
           curl -fsS -X POST -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
             "https://api.netlify.com/api/v1/sites/$NETLIFY_SITE_ID/deploys/$DEPLOY_ID/restore"
