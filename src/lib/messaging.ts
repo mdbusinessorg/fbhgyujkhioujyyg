@@ -38,7 +38,7 @@ export async function startOrRequestConversation(
   if (request) {
     if (request.status === 'pending') {
       if (request.requester_id === currentUserId) {
-        alert('Já enviaste um pedido. Aguarda aceitação.')
+        alert('Já enviaste um pedido de network. Aguarda aceitação.')
         return
       }
       // Pedido entrante pendente: aceitar e criar conversa
@@ -51,7 +51,7 @@ export async function startOrRequestConversation(
     }
 
     if (request.status === 'rejected') {
-      alert('O utilizador recusou o contacto anteriormente.')
+      alert('O utilizador recusou o teu pedido de network anteriormente.')
       return
     }
 
@@ -74,8 +74,8 @@ export async function startOrRequestConversation(
       recipient_id: otherId,
       requester: u || { id: currentUserId, nome: 'Utilizador', role: 'candidato' },
     })
-    alert('Pedido de mensagem enviado. Quando for aceite, poderás conversar.')
+    alert('Pedido de network enviado. Quando for aceite, poderás conversar.')
   } catch (err: any) {
-    alert('Erro ao pedir contacto: ' + (err.message || 'tenta de novo'))
+    alert('Erro ao enviar pedido de network: ' + (err.message || 'tenta de novo'))
   }
 }

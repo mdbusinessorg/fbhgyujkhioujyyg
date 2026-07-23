@@ -11,6 +11,8 @@ export interface Post {
   content: string
   created_at: string
   author: PostAuthor
+  likes_count?: number
+  liked_by_me?: boolean
 }
 
 export interface MessageRequest {
@@ -56,6 +58,9 @@ export const social = {
 
   getRequestsByRecipient: (recipient_id: string): Promise<MessageRequest[]> =>
     api(`/message-requests?recipient_id=${recipient_id}&status=pending`),
+
+  getUserRequests: (user_id: string): Promise<MessageRequest[]> =>
+    api(`/message-requests?user_id=${user_id}`),
 
   getRequestBetween: (requester_id: string, recipient_id: string): Promise<MessageRequest | null> =>
     api(`/message-requests?requester_id=${requester_id}&recipient_id=${recipient_id}`),

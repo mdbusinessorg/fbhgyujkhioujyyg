@@ -335,7 +335,7 @@ function MensagensContent() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">{req.requester?.nome || 'Utilizador'}</p>
-                    <p className="text-xs text-gray-500">Quer enviar-te uma mensagem</p>
+                    <p className="text-xs text-gray-500">Quer fazer parte do teu network</p>
                   </div>
                   <div className="flex items-center gap-1">
                     <button onClick={() => acceptRequest(req)} className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100">

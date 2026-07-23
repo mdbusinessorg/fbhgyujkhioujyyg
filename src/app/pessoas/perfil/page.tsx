@@ -5,9 +5,10 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
 import { startOrRequestConversation } from '@/lib/messaging'
+import { social, type MessageRequest } from '@/lib/social'
 import Logo from '@/components/Logo'
 import ShareMenu from '@/components/ShareMenu'
-import { ArrowLeft, MapPin, Briefcase, MessageSquare, Bookmark, Users } from 'lucide-react'
+import { ArrowLeft, MapPin, Briefcase, MessageSquare, Bookmark, Users, UserPlus, UserCheck, Link2, Check, X } from 'lucide-react'
 
 interface PersonProfile {
   id: string
@@ -57,27 +58,79 @@ function PerfilContent() {
   const [loading, setLoading] = useState(true)
   const [currentUser, setCurrentUser] = useState<{ id: string; role: string } | null>(null)
   const [saved, setSaved] = useState(false)
+  const [relationship, setRelationship] = useState<'none' | 'connected' | 'sent' | 'received' | 'rejected'>('none')
+  const [request, setRequest] = useState<MessageRequest | null>(null)
 
   useEffect(() => {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession()
+      let loggedUserId: string | undefined
       if (session) {
         const { data: u } = await supabase.from('users').select('id, role').eq('email', session.user.email).single()
-        if (u) setCurrentUser(u)
+        if (u) { setCurrentUser(u); loggedUserId = u.id }
       }
       if (!id) { setLoading(false); return }
       const { data: u } = await supabase.from('users').select('id, nome, email, role, telefone, avatar_url, created_at').eq('id', id).single()
       if (!u) { setLoading(false); return }
       const { data: p } = await supabase.from('profiles').select('area, localizacao, competencias, bio, nivel_academico, experiencias').eq('user_id', id).single()
       setPerson({ ...u, profile: p || undefined })
+
+      if (loggedUserId && loggedUserId !== id) {
+        try {
+          const req = await social.getRequestBetween(loggedUserId, id)
+          setRequest(req)
+          if (!req) setRelationship('none')
+          else if (req.status === 'accepted') setRelationship('connected')
+          else if (req.status === 'rejected') setRelationship('rejected')
+          else setRelationship(req.requester_id === loggedUserId ? 'sent' : 'received')
+        } catch { setRelationship('none') }
+      }
+
       setLoading(false)
     }
     init()
   }, [id])
 
-  const handleMessage = async () => {
+  const handleConnect = async () => {
     if (!currentUser || !person) { router.push('/auth/login/'); return }
     await startOrRequestConversation(currentUser.id, person.id, router)
+    try {
+      const req = await social.getRequestBetween(currentUser.id, person.id)
+      setRequest(req)
+      if (req?.status === 'accepted') setRelationship('connected')
+      else if (req?.status === 'pending') setRelationship(req.requester_id === currentUser.id ? 'sent' : 'received')
+      else if (req?.status === 'rejected') setRelationship('rejected')
+    } catch {}
+  }
+
+  const handleMessage = async () => {
+    if (!currentUser || !person) { router.push('/auth/login/'); return }
+    const { data: existing } = await supabase.from('conversations').select('id').or(`and(participant_1_id.eq.${currentUser.id},participant_2_id.eq.${person.id}),and(participant_1_id.eq.${person.id},participant_2_id.eq.${currentUser.id})`).maybeSingle()
+    if (existing) router.push(`/mensagens/?conv=${existing.id}`)
+    else await startOrRequestConversation(currentUser.id, person.id, router)
+  }
+
+  const acceptRequest = async () => {
+    if (!currentUser || !person || !request) return
+    const { data: existing } = await supabase.from('conversations').select('id').or(`and(participant_1_id.eq.${request.requester_id},participant_2_id.eq.${currentUser.id}),and(participant_1_id.eq.${currentUser.id},participant_2_id.eq.${request.requester_id})`).maybeSingle()
+    let convId = existing?.id
+    if (!convId) {
+      const { data: conv } = await supabase.from('conversations').insert({ participant_1_id: request.requester_id, participant_2_id: currentUser.id }).select('id').single()
+      if (conv) convId = conv.id
+    }
+    if (convId) {
+      try { await social.updateRequest(request.id, 'accepted') } catch {}
+      setRelationship('connected')
+      setRequest(prev => prev ? { ...prev, status: 'accepted' } : prev)
+      router.push(`/mensagens/?conv=${convId}`)
+    }
+  }
+
+  const rejectRequest = async () => {
+    if (!request) return
+    try { await social.updateRequest(request.id, 'rejected') } catch {}
+    setRelationship('rejected')
+    setRequest(prev => prev ? { ...prev, status: 'rejected' } : prev)
   }
 
   const profileUrl = typeof window !== 'undefined' && person ? `${window.location.origin}/pessoas/perfil/?id=${person.id}` : ''
@@ -138,10 +191,31 @@ function PerfilContent() {
           </div>
 
           <div className="flex items-center justify-center gap-3">
-            {currentUser && person && currentUser.id !== person.id && (
-              <button onClick={handleMessage} className="flex-1 flex items-center justify-center gap-2 bg-ms-blue text-white text-sm font-medium py-2.5 rounded-xl hover:bg-blue-700 transition-colors">
+            {currentUser && person && currentUser.id !== person.id && relationship === 'none' && (
+              <button onClick={handleConnect} className="flex-1 flex items-center justify-center gap-2 bg-ms-blue text-white text-sm font-medium py-2.5 rounded-xl hover:bg-blue-700 transition-colors">
+                <UserPlus size={16} /> Conectar
+              </button>
+            )}
+            {currentUser && person && currentUser.id !== person.id && relationship === 'sent' && (
+              <span className="flex-1 text-center text-sm py-2.5 bg-ms-surface text-ms-gray rounded-xl font-medium">Pedido enviado</span>
+            )}
+            {currentUser && person && currentUser.id !== person.id && relationship === 'received' && request && (
+              <>
+                <button onClick={acceptRequest} className="flex-1 flex items-center justify-center gap-2 bg-green-50 text-green-700 text-sm font-medium py-2.5 rounded-xl hover:bg-green-100 transition-colors">
+                  <Check size={16} /> Aceitar
+                </button>
+                <button onClick={rejectRequest} className="flex-1 flex items-center justify-center gap-2 bg-red-50 text-red-700 text-sm font-medium py-2.5 rounded-xl hover:bg-red-100 transition-colors">
+                  <X size={16} /> Rejeitar
+                </button>
+              </>
+            )}
+            {currentUser && person && currentUser.id !== person.id && relationship === 'connected' && (
+              <button onClick={handleMessage} className="flex-1 flex items-center justify-center gap-2 bg-ms-surface text-ms-dark border border-ms-border text-sm font-medium py-2.5 rounded-xl hover:bg-ms-purple-light hover:text-ms-purple transition-colors">
                 <MessageSquare size={16} /> Mensagem
               </button>
+            )}
+            {currentUser && person && currentUser.id !== person.id && relationship === 'rejected' && (
+              <span className="flex-1 text-center text-sm py-2.5 bg-gray-100 text-gray-500 rounded-xl font-medium">Pedido rejeitado</span>
             )}
             <button onClick={() => setSaved(v => !v)} className={`w-11 h-11 flex items-center justify-center rounded-xl border transition-colors ${saved ? 'bg-ms-blue text-white border-ms-blue' : 'bg-white text-ms-gray border-ms-border hover:bg-ms-surface'}`}>
               <Bookmark size={18} className={saved ? 'fill-white' : ''} />
