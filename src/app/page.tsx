@@ -186,6 +186,22 @@ export default function HomePage() {
     return list
   }, [vagas, allExternal])
 
+  const recommendedJobs = useMemo(() => {
+    const seen = new Set()
+    return allJobs
+      .filter((job: any) => {
+        if (seen.has(job.favId)) return false
+        seen.add(job.favId)
+        return (job.score || 0) >= 20 || job.is_prioritaria === true || !!job.salary
+      })
+      .sort((a: any, b: any) => {
+        const scoreDiff = (b.score || 0) - (a.score || 0)
+        if (scoreDiff !== 0) return scoreDiff
+        return new Date(b.first_seen_at || b.posted_at || 0).getTime() - new Date(a.first_seen_at || a.posted_at || 0).getTime()
+      })
+      .slice(0, 8)
+  }, [allJobs])
+
   const baseFiltered = useMemo(() => {
     const kw = searchQuery.trim().toLowerCase()
     return allJobs.filter((job: any) => {
@@ -235,7 +251,7 @@ export default function HomePage() {
 
   const jobHref = (job: any) => job.source === 'external' ? `/vagas/externa/?id=${encodeURIComponent(job.id)}` : `/vagas/detalhe/?id=${job.id}`
 
-  const JobCard = ({ job, featured }: { job: any; featured?: boolean }) => {
+  const JobCard = ({ job, featured, recommended }: { job: any; featured?: boolean; recommended?: boolean }) => {
     const fav = favorites.includes(job.favId)
     const title = job.titulo || job.title
     const company = job.empresa_nome || job.company
@@ -245,7 +261,12 @@ export default function HomePage() {
     const category = job.area || job.category
     return (
       <Link key={job.favId} href={jobHref(job)} className="block">
-        <div className={`bg-white rounded-2xl p-4 border ${featured ? 'border-ms-blue/20 shadow-md' : 'border-ms-border'} hover:shadow-md hover:border-ms-blue/30 transition-all relative`}>
+        <div className={`bg-white rounded-2xl p-4 border ${featured || recommended ? 'border-ms-blue/20 shadow-md' : 'border-ms-border'} hover:shadow-md hover:border-ms-blue/30 transition-all relative`}>
+          {recommended && (
+            <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-1 text-[10px] font-bold text-white bg-gradient-to-r from-ms-blue to-ms-purple px-2 py-0.5 rounded-full">
+              <Star size={10} className="fill-white" /> Recomendada
+            </span>
+          )}
           <button
             onClick={(e) => toggleFavorite(e, job)}
             className={`absolute top-3 right-3 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-colors ${fav ? 'bg-red-50 text-red-500' : 'bg-ms-surface text-ms-gray hover:text-red-400'}`}
@@ -501,6 +522,23 @@ export default function HomePage() {
             </Link>
           </div>
         </section>
+
+        {/* Recomendadas */}
+        {recommendedJobs.length > 0 && (
+          <section className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-bold text-ms-dark">Nossas Recomendações</h2>
+              <Link href="/vagas/" className="text-xs text-ms-blue font-medium">Ver todas</Link>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+              {recommendedJobs.map((job: any) => (
+                <div key={job.favId} className="flex-shrink-0 w-72">
+                  <JobCard job={job} recommended />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Vagas da Semana */}
         {weeklyJobs.length > 0 && (
