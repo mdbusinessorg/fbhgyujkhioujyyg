@@ -252,7 +252,7 @@ export function DashboardOverview({ role, data, onTabChange }: DashboardOverview
         <ProBanner
           role={role}
           daysRemaining={content.proDays}
-          onClick={() => onTabChange(role === 'candidato' ? 'subscricao' : 'home')}
+          onClick={() => onTabChange(role === 'candidato' ? 'subscricao' : 'nova_vaga')}
         />
       )}
 
