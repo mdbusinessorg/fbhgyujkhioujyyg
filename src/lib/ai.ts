@@ -86,6 +86,30 @@ export async function askSupport(message: string, context?: Record<string, unkno
   }
 }
 
+export async function parseCV(fileUrl: string, text?: string): Promise<{
+  nome?: string
+  area?: string
+  localizacao?: string
+  nivel_academico?: string
+  experiencias?: string
+  competencias?: string
+  bio?: string
+  error?: string
+}> {
+  try {
+    const res = await fetch('/api/parse-cv', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileUrl, text }),
+    })
+    const json = await res.json()
+    if (!res.ok) return { error: json.error || 'Erro a processar CV' }
+    return json
+  } catch (err) {
+    return { error: String(err) }
+  }
+}
+
 export async function fetchCareerJet(keywords: string, location = 'Luanda, Angola', page = 1): Promise<CareerJetResponse> {
   try {
     const params = new URLSearchParams({

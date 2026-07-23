@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { sortByMatch } from '@/lib/match'
 import {
   Search, SlidersHorizontal, Heart, Bell, Menu, X, Briefcase, Home as HomeIcon, User, LogOut, FileText,
   Settings, Star, MapPin, Monitor, Banknote, Stethoscope, Megaphone, Scale, GraduationCap, HardHat, Wrench,
@@ -61,6 +62,7 @@ export default function HomePage() {
   const [userRole, setUserRole] = useState('candidato')
   const [userName, setUserName] = useState('')
   const [userId, setUserId] = useState('')
+  const [profile, setProfile] = useState<any>(null)
   const [showMenu, setShowMenu] = useState(false)
   const [showNotif, setShowNotif] = useState(false)
   const [vagas, setVagas] = useState<any[]>([])
@@ -73,8 +75,9 @@ export default function HomePage() {
   const loadUserFromSession = async (session: any) => {
     if (!session?.user?.email) return null
     const { data, error } = await supabase.from('users').select('id, role, nome').eq('email', session.user.email).single()
-    if (error || !data) return { id: session.user.id, role: 'candidato', nome: session.user.email?.split('@')[0] || '' }
-    return { id: data.id || session.user.id, role: data.role || 'candidato', nome: data.nome || session.user.email?.split('@')[0] || '' }
+    if (error || !data) return { id: session.user.id, role: 'candidato', nome: session.user.email?.split('@')[0] || '', profile: null }
+    const { data: prof } = await supabase.from('profiles').select('*').eq('user_id', data.id).single()
+    return { id: data.id || session.user.id, role: data.role || 'candidato', nome: data.nome || session.user.email?.split('@')[0] || '', profile: prof || null }
   }
 
   const loadNotifications = async (uid: string, role: string) => {
@@ -116,6 +119,7 @@ export default function HomePage() {
         setUserRole(user.role)
         setUserName(user.nome)
         setUserId(user.id)
+        setProfile(user.profile)
         loadNotifications(user.id, user.role)
       } else {
         setIsLoggedIn(false)
@@ -147,6 +151,7 @@ export default function HomePage() {
             setUserRole(u.role)
             setUserName(u.nome)
             setUserId(u.id)
+            setProfile(u.profile)
             loadNotifications(u.id, u.role)
           }
         })
@@ -178,13 +183,8 @@ export default function HomePage() {
     const internal = vagas.map((v: any) => ({ ...v, source: 'internal' as const, favId: `internal:${v.id}` }))
     const external = allExternal.map((j: any) => ({ ...j, source: 'external' as const, favId: `external:${j.id}` }))
     const list = [...internal, ...external]
-    list.sort((a, b) => {
-      const da = new Date(a.created_at || a.first_seen_at || a.posted_at || 0).getTime()
-      const db = new Date(b.created_at || b.first_seen_at || b.posted_at || 0).getTime()
-      return db - da
-    })
-    return list
-  }, [vagas, allExternal])
+    return sortByMatch(list, profile)
+  }, [vagas, allExternal, profile])
 
   const recommendedJobs = useMemo(() => {
     const seen = new Set()

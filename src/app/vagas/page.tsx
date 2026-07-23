@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { Search, SlidersHorizontal, Heart, Briefcase, ArrowLeft, Home as HomeIcon, User, Star, MapPin, Globe, Building2, X, Filter, ChevronDown } from 'lucide-react'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import Logo from '@/components/Logo'
+import { sortByMatch } from '@/lib/match'
 
 const EXT_PAGE_SIZE = 20
 
@@ -56,18 +57,22 @@ export default function VagasPage() {
   const [externalError, setExternalError] = useState('')
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userRole, setUserRole] = useState('candidato')
+  const [profile, setProfile] = useState<any>(null)
 
   const syncUserFromSession = async (session: any) => {
     if (session?.user?.email) {
-      const { data, error } = await supabase.from('users').select('role, nome').eq('email', session.user.email).single()
+      const { data, error } = await supabase.from('users').select('role, nome, id').eq('email', session.user.email).single()
       if (!error && data) {
         setIsLoggedIn(true)
         setUserRole(data.role || 'candidato')
+        const { data: prof } = await supabase.from('profiles').select('*').eq('user_id', data.id).single()
+        setProfile(prof || null)
         return
       }
     }
     setIsLoggedIn(!!session)
     setUserRole('candidato')
+    setProfile(null)
   }
 
   useEffect(() => {
@@ -176,6 +181,9 @@ export default function VagasPage() {
     return matchSearch && matchFilter && matchContract && matchModality && matchLocation
   })
 
+  const sortedVagas = sortByMatch(filteredVagas, profile)
+  const sortedExternal = sortByMatch(filteredExternal, profile)
+
   const uniqueLocations = useMemo(() => {
     const locs = new Set<string>(DEFAULT_LOCATIONS)
     vagas.forEach(v => { if (v.localizacao) locs.add(v.localizacao) })
@@ -196,13 +204,13 @@ export default function VagasPage() {
   const HOURS_60 = 60 * 60 * 60 * 1000
   const isRecent = (date?: string) => !!date && (Date.now() - new Date(date).getTime()) <= HOURS_60
 
-  const recentVagas = filteredVagas.filter(v => isRecent(v.created_at))
-  const olderVagas = filteredVagas.filter(v => !isRecent(v.created_at))
+  const recentVagas = sortedVagas.filter(v => isRecent(v.created_at))
+  const olderVagas = sortedVagas.filter(v => !isRecent(v.created_at))
   const destaques = olderVagas.filter(v => v.is_prioritaria)
   const normais = olderVagas.filter(v => !v.is_prioritaria)
 
-  const recentExternal = filteredExternal.filter(j => isRecent(j.first_seen_at))
-  const olderExternal = filteredExternal.filter(j => !isRecent(j.first_seen_at))
+  const recentExternal = sortedExternal.filter(j => isRecent(j.first_seen_at))
+  const olderExternal = sortedExternal.filter(j => !isRecent(j.first_seen_at))
   const extOlderPages = Math.max(1, Math.ceil(olderExternal.length / EXT_PAGE_SIZE))
 
   const JobCard = ({ v, variant }: { v: any; variant: 'recent' | 'destaque' | 'normal' }) => {

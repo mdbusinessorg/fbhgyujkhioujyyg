@@ -10,7 +10,7 @@ import { DashboardOverview, type CandidatoData } from '@/components/dashboard'
 import SubscriptionBanner from '@/components/SubscriptionBanner'
 import SubscriptionModal from '@/components/SubscriptionModal'
 import { Search, Bell, Briefcase, FileText, User, Upload, ArrowRight, Clock, CheckCircle, XCircle, Plus, Eye, Sparkles, Lightbulb, Target, Award, AlertCircle, ChevronRight, Zap, LogOut, Menu, X, CreditCard, Wallet, Home as HomeIcon } from 'lucide-react'
-import { improveCV, getTips } from '@/lib/ai'
+import { improveCV, getTips, parseCV } from '@/lib/ai'
 
 export default function CandidatoDashboardPage() {
   return <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center"><div className="w-8 h-8 border-2 border-ms-purple border-t-transparent rounded-full animate-spin" /></div>}><CandidatoDashboard /></Suspense>
@@ -47,6 +47,8 @@ function CandidatoDashboard() {
   const [aiImproveLoading, setAiImproveLoading] = useState(false)
   const [aiVagaContext, setAiVagaContext] = useState('')
   const [aiError, setAiError] = useState('')
+  const [parseCvLoading, setParseCvLoading] = useState(false)
+  const [parseCvMessage, setParseCvMessage] = useState('')
   const [showMenu, setShowMenu] = useState(false)
   const [showNotifs, setShowNotifs] = useState(false)
   const router = useRouter()
@@ -219,6 +221,29 @@ function CandidatoDashboard() {
       setAiImproveResult(result)
     }
     setAiImproveLoading(false)
+  }
+
+  const handleParseCV = async () => {
+    if (documentos.length === 0) {
+      setParseCvMessage('Carrega primeiro o teu CV no separador Documentos.')
+      return
+    }
+    setParseCvLoading(true)
+    setParseCvMessage('')
+    const { nome, area, localizacao, nivel_academico, experiencias, competencias, bio, error } = await parseCV(documentos[0])
+    if (error) {
+      setParseCvMessage(error)
+    } else {
+      if (nome) setEditNome(nome)
+      if (area) setEditArea(area)
+      if (localizacao) setEditLocalizacao(localizacao)
+      if (nivel_academico) setEditNivel(nivel_academico)
+      if (experiencias) setEditExperiencias(experiencias)
+      if (competencias) setEditCompetencias(competencias)
+      if (bio) setEditBio(bio)
+      setParseCvMessage('Perfil preenchido a partir do CV. Não te esqueças de guardar.')
+    }
+    setParseCvLoading(false)
   }
 
   const notifications = candidaturas.filter(c => c.status === 'aprovada').map(c => ({
@@ -601,6 +626,20 @@ function CandidatoDashboard() {
                 <input type="file" className="hidden" onChange={handleUpload} accept=".pdf,.doc,.docx,.png,.jpg" />
               </label>
             )}
+
+            {documentos.length > 0 && (
+              <button
+                onClick={handleParseCV}
+                disabled={parseCvLoading}
+                className="w-full mt-4 bg-gradient-to-r from-ms-purple to-[#9B7BFF] text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                <Sparkles size={16} />
+                {parseCvLoading ? 'A ler CV com IA...' : 'Preencher perfil a partir do CV (IA)'}
+              </button>
+            )}
+            {parseCvMessage && (
+              <p className={`text-xs mt-2 text-center ${parseCvMessage.includes('Erro') || parseCvMessage.includes('Carrega') || parseCvMessage.includes('indisponível') ? 'text-red-500' : 'text-green-600'}`}>{parseCvMessage}</p>
+            )}
           </div>
         )}
 
@@ -608,6 +647,20 @@ function CandidatoDashboard() {
           <div>
             <h2 className="text-lg font-bold text-ms-dark mb-1">O Meu Perfil</h2>
             <p className="text-xs text-ms-gray mb-4">Um perfil completo aparece primeiro nas pesquisas dos recrutadores.</p>
+
+            {documentos.length > 0 && (
+              <button
+                onClick={handleParseCV}
+                disabled={parseCvLoading}
+                className="w-full mb-5 bg-gradient-to-r from-ms-purple to-[#9B7BFF] text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                <Sparkles size={16} />
+                {parseCvLoading ? 'A ler CV com IA...' : 'Preencher perfil a partir do CV (IA)'}
+              </button>
+            )}
+            {parseCvMessage && (
+              <p className={`text-xs mb-4 text-center ${parseCvMessage.includes('Erro') || parseCvMessage.includes('Carrega') || parseCvMessage.includes('indisponível') ? 'text-red-500' : 'text-green-600'}`}>{parseCvMessage}</p>
+            )}
 
             {/* Profile header preview */}
             <div className="bg-gradient-to-br from-ms-blue to-ms-purple rounded-2xl p-5 mb-5 text-white">

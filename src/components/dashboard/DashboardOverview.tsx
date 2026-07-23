@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { TrendingUp, Users, Briefcase, FileText, UserCheck, AlertTriangle } from 'lucide-react'
 import { DashboardHeader } from './DashboardHeader'
 import { StatChartCard } from './StatChartCard'
 import { DonutCard } from './DonutCard'
 import { LatestList } from './LatestList'
 import { ProBanner } from './ProBanner'
-import { groupByDay, countByField, countByStatus, formatDate } from './utils'
+import { PeriodFilter, type Period } from './PeriodFilter'
+import { groupByPeriod, countInPeriod, countByField, countByStatus, formatDate } from './utils'
 
 export interface AdminData {
   users: any[]
@@ -45,8 +45,15 @@ interface DashboardOverviewProps {
   onTabChange: (tab: string) => void
 }
 
+const periodLabel: Record<Period, string> = {
+  day: 'Nos últimos 7 dias',
+  month: 'Neste mês',
+  year: 'Neste ano',
+}
+
 export function DashboardOverview({ role, data, onTabChange }: DashboardOverviewProps) {
   const [externalJobs, setExternalJobs] = useState<any[]>([])
+  const [period, setPeriod] = useState<Period>('day')
 
   useEffect(() => {
     fetch('/external-jobs.json', { cache: 'no-store' })
@@ -56,13 +63,15 @@ export function DashboardOverview({ role, data, onTabChange }: DashboardOverview
   }, [])
 
   const content = useMemo(() => {
+    const chartColors = ['#3B82F6', '#6C47FF', '#EC4899', '#F59E0B', '#10B981', '#8B5CF6', '#14B8A6', '#F97316']
+
     if (role === 'admin') {
       const d = data as AdminData
       const activeVagas = d.vagas.filter((v) => v.status === 'aberta')
       const usersChartData = countByField(d.users, 'role', 5)
       const vagasChartData = countByField(d.vagas, 'area', 5)
-      const candidaturasByDay = groupByDay(d.candidaturas, 'data_candidatura')
-      const vagasByDay = groupByDay(d.vagas, 'created_at')
+      const candidaturasData = groupByPeriod(d.candidaturas, 'data_candidatura', period)
+      const vagasData = groupByPeriod(d.vagas, 'created_at', period)
       const statusData = [
         { name: 'Abertas', value: activeVagas.length, color: '#10B981' },
         { name: 'Em análise', value: d.vagasPendentes.length, color: '#F59E0B' },
@@ -109,18 +118,18 @@ export function DashboardOverview({ role, data, onTabChange }: DashboardOverview
         chartCards: [
           {
             title: 'Candidaturas recebidas',
-            value: d.candidaturas.length,
-            subtitle: 'Nesta semana',
-            data: candidaturasByDay,
-            color: '#3B82F6',
+            value: countInPeriod(d.candidaturas, 'data_candidatura', period),
+            subtitle: periodLabel[period],
+            data: candidaturasData,
+            colors: chartColors,
             onClick: () => onTabChange('utilizadores'),
           },
           {
             title: 'Vagas publicadas',
-            value: activeVagas.length,
-            subtitle: 'Activas no momento',
-            data: vagasByDay,
-            color: '#6C47FF',
+            value: countInPeriod(d.vagas, 'created_at', period),
+            subtitle: periodLabel[period],
+            data: vagasData,
+            colors: chartColors.slice(3),
             onClick: () => onTabChange('vagas'),
           },
         ],
@@ -136,8 +145,8 @@ export function DashboardOverview({ role, data, onTabChange }: DashboardOverview
     if (role === 'recrutador') {
       const d = data as RecrutadorData
       const activeVagas = d.vagas.filter((v) => v.status === 'aberta')
-      const candidaturasByDay = groupByDay(d.candidatos, 'data_candidatura')
-      const vagasByDay = groupByDay(d.vagas, 'created_at')
+      const candidaturasData = groupByPeriod(d.candidatos, 'data_candidatura', period)
+      const vagasData = groupByPeriod(d.vagas, 'created_at', period)
       const statusData = countByStatus(d.candidatos, ['enviada', 'aprovada', 'rejeitada'])
         .map((s) => ({ ...s, name: s.name === 'enviada' ? 'Pendente' : s.name === 'aprovada' ? 'Aceite' : 'Rejeitado' }))
         .filter((s) => s.value > 0)
@@ -159,18 +168,18 @@ export function DashboardOverview({ role, data, onTabChange }: DashboardOverview
         chartCards: [
           {
             title: 'Candidaturas recebidas',
-            value: d.candidatos.length,
-            subtitle: 'Total dos candidatos',
-            data: candidaturasByDay,
-            color: '#3B82F6',
+            value: countInPeriod(d.candidatos, 'data_candidatura', period),
+            subtitle: periodLabel[period],
+            data: candidaturasData,
+            colors: chartColors,
             onClick: () => onTabChange('candidatos'),
           },
           {
             title: 'Vagas activas',
-            value: activeVagas.length,
-            subtitle: 'Publicadas por ti',
-            data: vagasByDay,
-            color: '#6C47FF',
+            value: countInPeriod(d.vagas, 'created_at', period),
+            subtitle: periodLabel[period],
+            data: vagasData,
+            colors: chartColors.slice(3),
             onClick: () => onTabChange('vagas'),
           },
         ],
@@ -183,13 +192,12 @@ export function DashboardOverview({ role, data, onTabChange }: DashboardOverview
       }
     }
 
-    // candidato
     const d = data as CandidatoData
-    const candidaturasByDay = groupByDay(d.candidaturas, 'data_candidatura')
+    const candidaturasData = groupByPeriod(d.candidaturas, 'data_candidatura', period)
     const statusData = countByStatus(d.candidaturas, ['enviada', 'aprovada', 'rejeitada'])
       .map((s) => ({ ...s, name: s.name === 'enviada' ? 'Pendente' : s.name === 'aprovada' ? 'Aceite' : 'Rejeitado' }))
       .filter((s) => s.value > 0)
-    const recommendedByDay = groupByDay(externalJobs, 'first_seen_at')
+    const recommendedData = groupByPeriod(externalJobs, 'first_seen_at', period)
 
     const latestItems = d.candidaturas.slice(0, 5).map((c: any) => ({
       id: c.id,
@@ -208,18 +216,18 @@ export function DashboardOverview({ role, data, onTabChange }: DashboardOverview
       chartCards: [
         {
           title: 'Candidaturas enviadas',
-          value: d.candidaturas.length,
-          subtitle: 'Nesta semana',
-          data: candidaturasByDay,
-          color: '#3B82F6',
+          value: countInPeriod(d.candidaturas, 'data_candidatura', period),
+          subtitle: periodLabel[period],
+          data: candidaturasData,
+          colors: chartColors,
           onClick: () => onTabChange('candidaturas'),
         },
         {
           title: 'Vagas recomendadas',
-          value: externalJobs.length,
-          subtitle: 'Actualizadas esta semana',
-          data: recommendedByDay,
-          color: '#10B981',
+          value: countInPeriod(externalJobs, 'first_seen_at', period),
+          subtitle: periodLabel[period],
+          data: recommendedData,
+          colors: chartColors.slice(3),
           onClick: () => onTabChange('candidaturas'),
         },
       ],
@@ -230,7 +238,7 @@ export function DashboardOverview({ role, data, onTabChange }: DashboardOverview
       latestItems,
       proDays: d.daysRemaining,
     }
-  }, [role, data, externalJobs, onTabChange])
+  }, [role, data, externalJobs, period, onTabChange])
 
   return (
     <div className="space-y-6">
@@ -241,6 +249,11 @@ export function DashboardOverview({ role, data, onTabChange }: DashboardOverview
         notifications={content.notifications}
         onNotificationsClick={() => onTabChange('home')}
       />
+
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium text-gray-700">Estatísticas</p>
+        <PeriodFilter value={period} onChange={setPeriod} />
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {content.chartCards.map((card, i) => (

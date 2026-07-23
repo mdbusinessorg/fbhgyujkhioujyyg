@@ -55,7 +55,7 @@ export default function RegisterPage() {
       }
     }
 
-    router.push(`/dashboard/${role}/`)
+    router.push('/onboarding/')
     setLoading(false)
   }
 
