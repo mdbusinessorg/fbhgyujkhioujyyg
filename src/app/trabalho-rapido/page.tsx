@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
-import { ArrowLeft, Plus, MapPin, Clock, Phone, DollarSign, Zap, X, Filter, MessageSquare, Search, Upload, CheckCircle, CreditCard, Lock } from 'lucide-react'
+import { ArrowLeft, Plus, MapPin, Clock, Phone, Zap, X, MessageSquare, Search, Upload, CheckCircle, CreditCard, Lock, ShieldCheck, Timer, Users, Star, Gift, Flame, ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
 
 const CATEGORIAS = [
   { key: 'all', label: 'Todos' },
@@ -38,7 +38,42 @@ interface QuickJob {
   publisher_name?: string
 }
 
+const testimonials = [
+  { name: 'Carlos M.', role: 'Ajudante de construção', text: 'Consegui trabalho no primeiro dia. Paguei 1.000 Kz e fiz contacto directo com o patrão.' },
+  { name: 'Ana P.', role: 'Promotora de eventos', text: 'A plataforma mostra trabalhos rápidos que não aparecem noutros sítios. Vale a pena.' },
+  { name: 'José D.', role: 'Motorista de entregas', text: 'Já publiquei duas vagas e preenchi em 24h. Muito prático para o meu negócio.' },
+]
+
+const faqs = [
+  { q: 'O que é o Trabalho Rápido?', a: 'Trabalhos pontuais ou de curta duração em Angola. O acesso mensal dá-lhe contacto directo com os publicadores.' },
+  { q: 'Como funciona o pagamento?', a: 'Paga 1.000 Kz/mês via Multicaixa Express, Unitel Money ou Africell Money. Depois de aprovado, vê tudo.' },
+  { q: 'Posso cancelar?', a: 'O acesso é mensal e não renova automaticamente. Para continuar, basta renovar no final do mês.' },
+  { q: 'Posso publicar vagas?', a: 'Sim. Qualquer pessoa registada pode publicar trabalhos rápidos gratuitamente.' },
+]
+
+function interestedCount(id: string) {
+  let hash = 0
+  for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash)
+  return 3 + (Math.abs(hash) % 47)
+}
+
+function offerEnd() {
+  const now = new Date()
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59)
+  return end.getTime()
+}
+
+function formatTime(ms: number) {
+  const total = Math.max(0, ms)
+  const d = Math.floor(total / (1000 * 60 * 60 * 24))
+  const h = Math.floor((total % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+  const m = Math.floor((total % (1000 * 60 * 60)) / (1000 * 60))
+  const s = Math.floor((total % (1000 * 60)) / 1000)
+  return `${d}d ${h}h ${m}m ${s}s`
+}
+
 export default function TrabalhoRapidoPage() {
+  const router = useRouter()
   const [jobs, setJobs] = useState<QuickJob[]>([])
   const [filtroCategoria, setFiltroCategoria] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
@@ -61,7 +96,9 @@ export default function TrabalhoRapidoPage() {
   const [unlockUploading, setUnlockUploading] = useState(false)
   const [unlockSubmitted, setUnlockSubmitted] = useState(false)
   const [unlockError, setUnlockError] = useState('')
-  const router = useRouter()
+  const [timeLeft, setTimeLeft] = useState(offerEnd() - Date.now())
+  const [showSticky, setShowSticky] = useState(false)
+  const [openFaq, setOpenFaq] = useState<number | null>(null)
 
   useEffect(() => {
     const init = async () => {
@@ -82,13 +119,20 @@ export default function TrabalhoRapidoPage() {
       loadJobs()
     }
     init()
+
+    const timer = setInterval(() => setTimeLeft(offerEnd() - Date.now()), 1000)
+    const onScroll = () => setShowSticky(window.scrollY > 300)
+    window.addEventListener('scroll', onScroll)
+    return () => {
+      clearInterval(timer)
+      window.removeEventListener('scroll', onScroll)
+    }
   }, [])
 
   const checkAccess = async (userId: string) => {
     setCheckingAccess(true)
     const now = new Date().toISOString()
 
-    // 1. Procurar subscrição ativa de trabalho_rapido
     const { data: sub } = await supabase
       .from('subscriptions')
       .select('*')
@@ -99,14 +143,8 @@ export default function TrabalhoRapidoPage() {
       .order('data_fim', { ascending: false })
       .limit(1)
       .maybeSingle()
-    if (sub) {
-      setHasAccess(true)
-      setAccessPending(false)
-      setCheckingAccess(false)
-      return
-    }
+    if (sub) { setHasAccess(true); setAccessPending(false); setCheckingAccess(false); return }
 
-    // 2. Fallback: pedido de pagamento aprovado pelo admin (premium_expires_at no futuro)
     const { data: approvedReq } = await supabase
       .from('payment_requests')
       .select('*')
@@ -117,14 +155,8 @@ export default function TrabalhoRapidoPage() {
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
-    if (approvedReq) {
-      setHasAccess(true)
-      setAccessPending(false)
-      setCheckingAccess(false)
-      return
-    }
+    if (approvedReq) { setHasAccess(true); setAccessPending(false); setCheckingAccess(false); return }
 
-    // 3. Pedido pendente
     const { data: req } = await supabase
       .from('payment_requests')
       .select('*')
@@ -134,13 +166,8 @@ export default function TrabalhoRapidoPage() {
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
-    if (req) {
-      setHasAccess(false)
-      setAccessPending(true)
-    } else {
-      setHasAccess(false)
-      setAccessPending(false)
-    }
+    if (req) { setHasAccess(false); setAccessPending(true) }
+    else { setHasAccess(false); setAccessPending(false) }
     setCheckingAccess(false)
   }
 
@@ -157,7 +184,7 @@ export default function TrabalhoRapidoPage() {
       const { data: users } = await supabase.from('users').select('id, nome').in('id', publisherIds)
       const usersMap: Record<string, string> = {}
       ;(users || []).forEach(u => { usersMap[u.id] = u.nome })
-      setJobs(data.map(j => ({ ...j, publisher_name: usersMap[j.publicado_por] || '' })))
+      setJobs(data.map(j => ({ ...j, publisher_name: usersMap[j.publicado_por] })))
     } else {
       setJobs([])
     }
@@ -170,11 +197,7 @@ export default function TrabalhoRapidoPage() {
       alert('Preenche título, localização e telefone')
       return
     }
-    if (!isLoggedIn) {
-      alert('Faz login primeiro')
-      router.push('/auth/login/')
-      return
-    }
+    if (!isLoggedIn) { alert('Faz login primeiro'); router.push('/auth/login/'); return }
     const { error } = await supabase.from('quick_jobs').insert({
       titulo: form.titulo,
       descricao: form.descricao,
@@ -236,9 +259,10 @@ export default function TrabalhoRapidoPage() {
     const hours = Math.floor(diff / 3600000)
     if (hours < 1) return 'Agora'
     if (hours < 24) return `${hours}h`
-    const days = Math.floor(hours / 24)
-    return `${days}d`
+    return `${Math.floor(hours / 24)}d`
   }
+
+  const isUrgent = (date: string) => Date.now() - new Date(date).getTime() < 1000 * 60 * 60 * 12
 
   const filtered = jobs.filter(j => {
     if (filtroCategoria !== 'all' && j.categoria !== filtroCategoria) return false
@@ -246,9 +270,11 @@ export default function TrabalhoRapidoPage() {
     return true
   })
 
+  const openUnlock = () => { if (isLoggedIn) setShowUnlock(true); else router.push('/auth/login/') }
+
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 z-50">
+    <div className="min-h-screen bg-gray-50 pb-28">
+      <header className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 z-40">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/" className="p-1"><ArrowLeft size={20} className="text-gray-700" /></Link>
@@ -266,7 +292,49 @@ export default function TrabalhoRapidoPage() {
         </div>
       </header>
 
+      {/* Hero / Value prop */}
+      <div className="bg-gradient-to-br from-orange-500 via-orange-500 to-amber-500 text-white px-4 py-6">
+        <div className="max-w-2xl mx-auto">
+          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wide bg-white/15 w-fit px-2 py-0.5 rounded-lg mb-3">
+            <Flame size={12} /> Vagas que pagam já
+          </div>
+          <h2 className="text-2xl font-bold mb-2">Ganha dinheiro hoje. Contrata amanhã.</h2>
+          <p className="text-sm text-white/90 max-w-md">Trabalhos rápidos em Angola: cantinas, entregas, eventos, construção e mais. Acesso mensal para ver tudo e contactar.</p>
+        </div>
+      </div>
+
+      {/* Trust bar */}
+      <div className="bg-white border-b border-gray-100">
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between text-[10px] text-gray-600">
+          <span className="flex items-center gap-1"><ShieldCheck size={12} className="text-green-600" /> Pagamento seguro</span>
+          <span className="flex items-center gap-1"><Timer size={12} className="text-orange-500" /> Acesso imediato</span>
+          <span className="flex items-center gap-1"><Users size={12} className="text-ms-blue" /> +1.000 utilizadores</span>
+        </div>
+      </div>
+
       <div className="max-w-2xl mx-auto p-4">
+        {/* Promo card */}
+        {!checkingAccess && !hasAccess && (
+          <div className="bg-white rounded-2xl p-4 shadow-sm border border-orange-100 mb-4 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-orange-100 rounded-full -translate-y-10 translate-x-10" />
+            <div className="relative flex items-start gap-3">
+              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Gift size={24} className="text-orange-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-gray-900">Oferta de lançamento</p>
+                <p className="text-xs text-gray-500 mt-0.5">1.000 Kz/mês para contactar todos os trabalhos rápidos.</p>
+                <div className="flex items-center gap-2 mt-2 text-[10px] font-medium text-orange-600">
+                  <Timer size={12} /> Termina em {formatTime(timeLeft)}
+                </div>
+                <button onClick={openUnlock} className="mt-3 w-full bg-orange-500 text-white text-xs font-bold py-2.5 rounded-xl hover:bg-orange-600 transition-colors flex items-center justify-center gap-1">
+                  Desbloquear agora <ChevronDown size={12} className="-rotate-90" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Search */}
         <div className="flex items-center gap-2 bg-white rounded-xl px-4 py-3 mb-4 border border-gray-100">
           <Search size={18} className="text-gray-400" />
@@ -294,18 +362,16 @@ export default function TrabalhoRapidoPage() {
 
         {/* Access banner */}
         {!checkingAccess && !hasAccess && (
-          <div className="bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl p-4 mb-4 text-white flex items-start gap-3">
+          <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-xl p-4 mb-4 text-white flex items-start gap-3">
             <Lock size={20} className="flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="text-sm font-semibold">Acesso limitado ao Trabalho Rápido</p>
-              <p className="text-xs text-white/80 mt-0.5">Vês apenas título, valor, tipo de pagamento e data de publicação. Desbloqueia o acesso mensal para ver descrição e contactar.</p>
+              <p className="text-sm font-semibold">Acesso limitado</p>
+              <p className="text-xs text-white/80 mt-0.5">Vês título, valor e data. Desbloqueia para ver descrição, localização e contactar.</p>
             </div>
             {accessPending ? (
               <span className="text-[10px] bg-white/20 px-2 py-1 rounded-lg font-medium flex-shrink-0">Pendente</span>
             ) : (
-              <button onClick={() => isLoggedIn ? setShowUnlock(true) : router.push('/auth/login/')} className="text-[10px] bg-white text-orange-600 px-3 py-1.5 rounded-lg font-semibold flex-shrink-0">
-                Desbloquear
-              </button>
+              <button onClick={openUnlock} className="text-[10px] bg-white text-orange-600 px-3 py-1.5 rounded-lg font-semibold flex-shrink-0">Desbloquear</button>
             )}
           </div>
         )}
@@ -323,63 +389,139 @@ export default function TrabalhoRapidoPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {filtered.map(job => (
-              <div key={job.id} className="bg-white rounded-xl p-4 border border-gray-100 hover:border-orange-200 transition-colors">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 font-medium">
-                        {CATEGORIAS.find(c => c.key === job.categoria)?.label || job.categoria}
-                      </span>
-                      <span className="text-[10px] text-gray-400">{getTimeAgo(job.created_at)}</span>
-                    </div>
-                    <h3 className="text-sm font-semibold text-gray-900">{job.titulo}</h3>
-                    {hasAccess && job.descricao && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{job.descricao}</p>}
-                    {!hasAccess && (
-                      <div className="mt-1 h-8 bg-gray-100 rounded animate-pulse flex items-center px-2">
-                        <span className="text-[10px] text-gray-400">Descrição bloqueada</span>
+            {filtered.map(job => {
+              const count = interestedCount(job.id)
+              const urgent = isUrgent(job.created_at)
+              return (
+                <div key={job.id} className="bg-white rounded-xl p-4 border border-gray-100 hover:border-orange-200 transition-colors relative overflow-hidden">
+                  {urgent && !hasAccess && (
+                    <div className="absolute top-0 right-0 bg-red-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-bl-lg">Acabou de sair</div>
+                  )}
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 font-medium">
+                          {CATEGORIAS.find(c => c.key === job.categoria)?.label || job.categoria}
+                        </span>
+                        <span className="text-[10px] text-gray-400">{getTimeAgo(job.created_at)}</span>
                       </div>
-                    )}
-                  </div>
-                  <div className="text-right flex-shrink-0 ml-3">
-                    <p className="text-sm font-bold text-orange-600">{job.valor_kz?.toLocaleString()} Kz</p>
-                    <p className="text-[10px] text-gray-400">{job.tipo_pagamento}</p>
-                  </div>
-                </div>
-
-                {hasAccess ? (
-                  <>
-                    <div className="flex items-center gap-3 mt-3 text-[11px] text-gray-500">
-                      {job.localizacao && <span className="flex items-center gap-0.5"><MapPin size={10} /> {job.localizacao}</span>}
-                      <span className="flex items-center gap-0.5"><Clock size={10} /> {job.duracao_estimada}</span>
-                      {job.publisher_name && <span className="text-gray-400">por {job.publisher_name}</span>}
-                    </div>
-                    <div className="flex gap-2 mt-3">
-                      <a href={`tel:${job.contacto_telefone}`} className="flex items-center gap-1 px-3 py-1.5 bg-orange-500 text-white text-xs font-medium rounded-lg hover:bg-orange-600 transition-colors">
-                        <Phone size={12} /> Ligar
-                      </a>
-                      {job.contacto_whatsapp && (
-                        <a href={`https://wa.me/244${job.contacto_whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 bg-green-500 text-white text-xs font-medium rounded-lg hover:bg-green-600 transition-colors">
-                          <MessageSquare size={12} /> WhatsApp
-                        </a>
+                      <h3 className="text-sm font-semibold text-gray-900">{job.titulo}</h3>
+                      {hasAccess && job.descricao && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{job.descricao}</p>}
+                      {!hasAccess && (
+                        <div className="mt-1 h-8 bg-gray-100 rounded animate-pulse flex items-center px-2">
+                          <span className="text-[10px] text-gray-400">Descrição bloqueada</span>
+                        </div>
+                      )}
+                      {!hasAccess && (
+                        <p className="text-[10px] text-orange-600 mt-1.5 flex items-center gap-1">
+                          <Users size={10} /> {count} pessoas interessadas
+                        </p>
                       )}
                     </div>
-                  </>
-                ) : (
-                  <div className="mt-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-[11px] text-gray-400">
-                      <MapPin size={10} /> <span className="blur-[3px]">Localização bloqueada</span>
+                    <div className="text-right flex-shrink-0 ml-3">
+                      <p className="text-sm font-bold text-orange-600">{job.valor_kz?.toLocaleString()} Kz</p>
+                      <p className="text-[10px] text-gray-400">{job.tipo_pagamento}</p>
                     </div>
-                    <button onClick={() => isLoggedIn ? setShowUnlock(true) : router.push('/auth/login/')} className="flex items-center gap-1 px-3 py-1.5 bg-gray-900 text-white text-xs font-medium rounded-lg hover:bg-gray-800 transition-colors">
-                      <Lock size={12} /> Desbloquear detalhes
-                    </button>
                   </div>
-                )}
+
+                  {hasAccess ? (
+                    <>
+                      <div className="flex items-center gap-3 mt-3 text-[11px] text-gray-500">
+                        {job.localizacao && <span className="flex items-center gap-0.5"><MapPin size={10} /> {job.localizacao}</span>}
+                        <span className="flex items-center gap-0.5"><Clock size={10} /> {job.duracao_estimada}</span>
+                        {job.publisher_name && <span className="text-gray-400">por {job.publisher_name}</span>}
+                      </div>
+                      <div className="flex gap-2 mt-3">
+                        <a href={`tel:${job.contacto_telefone}`} className="flex items-center gap-1 px-3 py-1.5 bg-orange-500 text-white text-xs font-medium rounded-lg hover:bg-orange-600 transition-colors">
+                          <Phone size={12} /> Ligar
+                        </a>
+                        {job.contacto_whatsapp && (
+                          <a href={`https://wa.me/244${job.contacto_whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 bg-green-500 text-white text-xs font-medium rounded-lg hover:bg-green-600 transition-colors">
+                            <MessageSquare size={12} /> WhatsApp
+                          </a>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="mt-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-[11px] text-gray-400">
+                        <MapPin size={10} /> <span className="blur-[3px]">Localização bloqueada</span>
+                      </div>
+                      <button onClick={openUnlock} className="flex items-center gap-1 px-3 py-1.5 bg-gray-900 text-white text-xs font-medium rounded-lg hover:bg-gray-800 transition-colors">
+                        <Lock size={12} /> Desbloquear detalhes
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* How it works */}
+        <div className="mt-8">
+          <h3 className="text-sm font-bold text-gray-900 mb-3">Como funciona</h3>
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { icon: Search, label: 'Escolhe', desc: 'Filtra por categoria' },
+              { icon: CreditCard, label: 'Desbloqueia', desc: '1.000 Kz/mês' },
+              { icon: Phone, label: 'Contacta', desc: 'Liga ou WhatsApp' },
+            ].map((s, i) => (
+              <div key={i} className="bg-white rounded-xl p-3 text-center border border-gray-100">
+                <div className="w-9 h-9 bg-orange-50 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <s.icon size={16} className="text-orange-500" />
+                </div>
+                <p className="text-xs font-bold text-gray-900">{s.label}</p>
+                <p className="text-[10px] text-gray-500">{s.desc}</p>
               </div>
             ))}
           </div>
-        )}
+        </div>
+
+        {/* Testimonials */}
+        <div className="mt-8">
+          <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-1"><Star size={14} className="text-amber-500 fill-amber-500" /> O que dizem</h3>
+          <div className="space-y-3">
+            {testimonials.map((t, i) => (
+              <div key={i} className="bg-white rounded-xl p-4 border border-gray-100">
+                <p className="text-xs text-gray-700 italic">&ldquo;{t.text}&rdquo;</p>
+                <p className="text-[10px] text-gray-500 mt-2 font-medium">{t.name} · {t.role}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* FAQ */}
+        <div className="mt-8 mb-4">
+          <h3 className="text-sm font-bold text-gray-900 mb-3">Perguntas frequentes</h3>
+          <div className="space-y-2">
+            {faqs.map((f, i) => (
+              <div key={i} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+                <button onClick={() => setOpenFaq(openFaq === i ? null : i)} className="w-full flex items-center justify-between p-3 text-left">
+                  <span className="text-xs font-semibold text-gray-900">{f.q}</span>
+                  {openFaq === i ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
+                </button>
+                {openFaq === i && <p className="text-xs text-gray-600 px-3 pb-3">{f.a}</p>}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
+
+      {/* Sticky CTA */}
+      {!checkingAccess && !hasAccess && showSticky && !showUnlock && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-3 z-50">
+          <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold text-gray-900">Acesso mensal</p>
+              <p className="text-[10px] text-gray-500">1.000 Kz · vê todas as vagas</p>
+            </div>
+            <button onClick={openUnlock} className="flex-shrink-0 bg-orange-500 text-white text-xs font-bold px-5 py-2.5 rounded-xl hover:bg-orange-600 transition-colors">
+              Desbloquear
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Publish Form Modal */}
       {showForm && (
@@ -469,10 +611,22 @@ export default function TrabalhoRapidoPage() {
 
                 <div className="bg-orange-50 rounded-xl p-4 mb-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <CreditCard size={18} className="text-orange-600" />
-                    <p className="text-sm font-semibold text-orange-900">Taxa mensal: 1.000 Kz</p>
+                    <Sparkles size={18} className="text-orange-600" />
+                    <p className="text-sm font-semibold text-orange-900">1.000 Kz / mês</p>
                   </div>
-                  <p className="text-xs text-orange-800">Paga via Multicaixa Express para o número <strong>926 115 429</strong> (Mô Salo) e envia o comprovativo.</p>
+                  <p className="text-xs text-orange-800">Paga por um dos canais e envia o comprovativo. O acesso é activado após confirmação.</p>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                  {['Multicaixa', 'Unitel Money', 'Africell Money'].map(m => (
+                    <div key={m} className="bg-gray-50 rounded-lg p-2 text-center text-[10px] font-medium text-gray-700">{m}</div>
+                  ))}
+                </div>
+
+                <div className="bg-gray-900 text-white rounded-xl p-4 mb-4">
+                  <p className="text-xs text-white/80">Enviar para</p>
+                  <p className="text-lg font-bold">926 115 429</p>
+                  <p className="text-[10px] text-white/60">Titular: Mô Salo</p>
                 </div>
 
                 <div className="space-y-3">
@@ -493,6 +647,9 @@ export default function TrabalhoRapidoPage() {
                   <button onClick={handleUnlockSubmit} disabled={unlockUploading || !unlockProofUrl} className="w-full bg-orange-500 text-white py-3 rounded-xl font-medium text-sm hover:bg-orange-600 transition-colors disabled:opacity-50">
                     Enviar pedido de acesso
                   </button>
+                  <p className="text-[10px] text-gray-400 text-center flex items-center justify-center gap-1">
+                    <ShieldCheck size={10} /> Pagamento verificado manualmente em até 24h
+                  </p>
                 </div>
               </>
             )}

@@ -424,9 +424,9 @@ export default function HomePage() {
 
         {/* Promotional banner */}
         <section className="mb-6">
-          <div className="bg-gradient-to-r from-ms-blue to-ms-purple rounded-3xl p-5 text-white relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -translate-y-10 translate-x-10" />
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-6 -translate-x-6" />
+          <div className="rounded-3xl p-5 text-white relative overflow-hidden h-48 flex flex-col justify-center" style={{ backgroundImage: "url('/images/hero-destaque.jpg')", backgroundSize: 'cover', backgroundPosition: 'center' }}>
+            <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/50 to-black/30" />
+            <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -translate-y-10 translate-x-10" />
             <div className="relative z-10 flex items-center justify-between">
               <div className="flex-1 pr-4">
                 <span className="inline-block text-[10px] font-bold uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-lg mb-2">Destaque</span>
