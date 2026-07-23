@@ -5,9 +5,10 @@ import Link from 'next/link'
 import Logo from '@/components/Logo'
 import BottomNav from '@/components/BottomNav'
 import { DashboardOverview, type RecrutadorData } from '@/components/dashboard'
+import { ATS } from '@/components/ATS'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Search, Bell, Briefcase, Users, Plus, Eye, TrendingUp, Download, FileText, CheckCircle, XCircle, Clock, LogOut, Menu, X, Star, Filter, ChevronDown, Zap, Award, MessageSquare, HelpCircle, Trash2, Home as HomeIcon } from 'lucide-react'
+import { Search, Bell, Briefcase, Users, Plus, Eye, TrendingUp, Download, FileText, CheckCircle, XCircle, Clock, LogOut, Menu, X, Star, Filter, ChevronDown, Zap, Award, MessageSquare, HelpCircle, Trash2, Home as HomeIcon, GitBranch } from 'lucide-react'
 import { AREAS, PROVINCIAS_ANGOLA } from '@/lib/types'
 
 export default function RecrutadorDashboard() {
@@ -36,6 +37,17 @@ export default function RecrutadorDashboard() {
   })
   const [vagaPerguntas, setVagaPerguntas] = useState<string[]>([])
   const [novaPergunta, setNovaPergunta] = useState('')
+
+  function calcScore(c: any) {
+    let score = 0
+    if (c.profiles?.documentos?.length > 0) score += 30
+    if (c.profiles?.documentos?.length >= 2) score += 10
+    if (c.users?.telefone) score += 10
+    if (c.mensagem && c.mensagem.length > 20) score += 15
+    if (c.respostas && Object.keys(c.respostas).filter(k => k !== '__ats').length > 0) score += 25
+    if (c.users?.nome) score += 10
+    return Math.min(score, 100)
+  }
 
   useEffect(() => { loadData() }, [])
 
@@ -66,7 +78,7 @@ export default function RecrutadorDashboard() {
           // Enrich with user info and profile data
           const candidatoIds = Array.from(new Set(candsData.map((c: any) => c.candidato_id)))
           const { data: usersData } = await supabase.from('users').select('id, nome, email, telefone').in('id', candidatoIds)
-          const { data: profilesData } = await supabase.from('profiles').select('user_id, documentos').in('user_id', candidatoIds)
+          const { data: profilesData } = await supabase.from('profiles').select('*').in('user_id', candidatoIds)
 
           const usersMap: Record<string, any> = {}
           ;(usersData || []).forEach((u: any) => { usersMap[u.id] = u })
@@ -80,6 +92,7 @@ export default function RecrutadorDashboard() {
             users: usersMap[c.candidato_id] || null,
             profiles: profilesMap[c.candidato_id] || null,
             vagas: vagasMap[c.vaga_id] || null,
+            score: calcScore(c),
           }))
           setCandidatos(enriched)
         } else {
@@ -157,18 +170,6 @@ export default function RecrutadorDashboard() {
     setVagaPerguntas(vagaPerguntas.filter((_, i) => i !== index))
   }
 
-  // Candidate scoring
-  const calcScore = (c: any) => {
-    let score = 0
-    if (c.profiles?.documentos?.length > 0) score += 30
-    if (c.profiles?.documentos?.length >= 2) score += 10
-    if (c.users?.telefone) score += 10
-    if (c.mensagem && c.mensagem.length > 20) score += 15
-    if (c.respostas && Object.keys(c.respostas).length > 0) score += 25
-    if (c.users?.nome) score += 10
-    return Math.min(score, 100)
-  }
-
   const notifications = candidatos.filter(c => c.status === 'enviada').map(c => ({
     text: `${c.users?.nome || 'Candidato'} candidatou-se a "${c.vagas?.titulo}"`,
     time: 'Pendente'
@@ -187,7 +188,7 @@ export default function RecrutadorDashboard() {
       if (filterStatus !== 'all' && c.status !== filterStatus) return false
       return true
     })
-    .sort((a, b) => calcScore(b) - calcScore(a))
+    .sort((a, b) => (b.score || 0) - (a.score || 0))
 
   if (loading) {
     return (
@@ -239,6 +240,7 @@ export default function RecrutadorDashboard() {
                 { key: 'home', icon: Briefcase, label: 'Painel' },
                 { key: 'vagas', icon: Eye, label: 'Minhas Vagas' },
                 { key: 'candidatos', icon: Users, label: 'Candidatos' },
+                { key: 'ats', icon: GitBranch, label: 'ATS' },
                 { key: 'selecao', icon: Zap, label: 'Selecção Inteligente' },
                 { key: 'nova_vaga', icon: Plus, label: 'Publicar Vaga' },
               ].map(item => {
@@ -300,6 +302,7 @@ export default function RecrutadorDashboard() {
             { key: 'home', icon: Briefcase, label: 'Painel' },
             { key: 'vagas', icon: Eye, label: 'Minhas Vagas' },
             { key: 'candidatos', icon: Users, label: 'Candidatos', badge: notifications.length },
+            { key: 'ats', icon: GitBranch, label: 'ATS' },
             { key: 'selecao', icon: Zap, label: 'Selecção Inteligente' },
             { key: 'nova_vaga', icon: Plus, label: 'Publicar Vaga' },
           ].map(item => {
@@ -404,6 +407,10 @@ export default function RecrutadorDashboard() {
           </div>
         )}
 
+        {activeTab === 'ats' && (
+          <ATS role="recrutador" vagas={vagas} candidatos={candidatos} onUpdate={loadData} />
+        )}
+
         {activeTab === 'candidatos' && (
           <div>
             <h2 className="text-lg font-bold text-ms-dark mb-4">Candidatos</h2>
@@ -459,10 +466,10 @@ export default function RecrutadorDashboard() {
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-medium text-ms-dark">{c.users?.nome || 'Candidato'}</p>
                           <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${
-                            calcScore(c) >= 70 ? 'bg-green-100 text-green-700' :
-                            calcScore(c) >= 40 ? 'bg-amber-100 text-amber-700' :
+                            c.score >= 70 ? 'bg-green-100 text-green-700' :
+                            c.score >= 40 ? 'bg-amber-100 text-amber-700' :
                             'bg-gray-100 text-gray-500'
-                          }`}>{calcScore(c)}%</span>
+                          }`}>{c.score}%</span>
                         </div>
                         <p className="text-xs text-ms-gray">{c.users?.email}</p>
                         {c.users?.telefone && <p className="text-xs text-ms-gray">Tel: {c.users.telefone}</p>}
@@ -470,7 +477,7 @@ export default function RecrutadorDashboard() {
                         {c.mensagem && <p className="text-xs text-ms-gray mt-1 italic">&ldquo;{c.mensagem}&rdquo;</p>}
 
                         {/* Respostas às perguntas */}
-                        {c.respostas && Object.keys(c.respostas).length > 0 && (
+                        {c.respostas && Object.keys(c.respostas).filter(k => k !== '__ats').length > 0 && (
                           <div className="mt-2 space-y-1">
                             <p className="text-[10px] font-semibold text-ms-purple flex items-center gap-1"><MessageSquare size={10} /> Respostas:</p>
                             {Object.entries(c.respostas).map(([q, a], i) => (
@@ -549,7 +556,7 @@ export default function RecrutadorDashboard() {
             {vagas.filter(v => v.status === 'aberta').map(vaga => {
               const vagaCands = candidatos
                 .filter(c => c.vaga_id === vaga.id)
-                .sort((a, b) => calcScore(b) - calcScore(a))
+                .sort((a, b) => (b.score || 0) - (a.score || 0))
 
               if (vagaCands.length === 0) return null
 
@@ -576,10 +583,10 @@ export default function RecrutadorDashboard() {
                         </div>
                         <div className="text-right flex-shrink-0">
                           <p className={`text-sm font-bold ${
-                            calcScore(c) >= 70 ? 'text-green-600' :
-                            calcScore(c) >= 40 ? 'text-amber-600' :
+                            c.score >= 70 ? 'text-green-600' :
+                            c.score >= 40 ? 'text-amber-600' :
                             'text-gray-400'
-                          }`}>{calcScore(c)}%</p>
+                          }`}>{c.score}%</p>
                           <p className="text-[9px] text-ms-gray">compatível</p>
                         </div>
                       </div>

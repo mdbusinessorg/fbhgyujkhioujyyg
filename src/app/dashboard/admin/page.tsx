@@ -5,9 +5,10 @@ import Link from 'next/link'
 import Logo from '@/components/Logo'
 import BottomNav from '@/components/BottomNav'
 import { DashboardOverview, type AdminData } from '@/components/dashboard'
+import { ATS } from '@/components/ATS'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Search, Bell, Briefcase, Users, UserCheck, Shield, Settings, CreditCard, CheckCircle, XCircle, Eye, TrendingUp, Plus, AlertTriangle, LogOut, Menu, X, Download, Linkedin, ExternalLink, Trash2, Edit2, Wallet, Zap, Home as HomeIcon, Globe } from 'lucide-react'
+import { Search, Bell, Briefcase, Users, UserCheck, Shield, Settings, CreditCard, CheckCircle, XCircle, Eye, TrendingUp, Plus, AlertTriangle, LogOut, Menu, X, Download, Linkedin, ExternalLink, Trash2, Edit2, Wallet, Zap, Home as HomeIcon, Globe, GitBranch } from 'lucide-react'
 
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
@@ -47,14 +48,34 @@ export default function AdminDashboard() {
     const { data: users } = await supabase.from('users').select('*')
     const { data: vagas } = await supabase.from('vagas').select('*')
     const { data: cands } = await supabase.from('candidaturas').select('*')
+    const { data: profiles } = await supabase.from('profiles').select('*')
 
     const vagasMap: Record<string, any> = {}
     ;(vagas || []).forEach((v: any) => { vagasMap[v.id] = v })
     const usersMap: Record<string, any> = {}
     ;(users || []).forEach((u: any) => { usersMap[u.id] = u })
+    const profilesMap: Record<string, any> = {}
+    ;(profiles || []).forEach((p: any) => { profilesMap[p.user_id] = p })
+
+    function calcScore(c: any) {
+      let score = 0
+      if (c.profiles?.documentos?.length > 0) score += 30
+      if (c.profiles?.documentos?.length >= 2) score += 10
+      if (c.users?.telefone) score += 10
+      if (c.mensagem && c.mensagem.length > 20) score += 15
+      if (c.respostas && Object.keys(c.respostas).filter(k => k !== '__ats').length > 0) score += 25
+      if (c.users?.nome) score += 10
+      return Math.min(score, 100)
+    }
 
     setAllVagas(vagas || [])
-    setAllCandidaturas((cands || []).map((c: any) => ({ ...c, vagas: vagasMap[c.vaga_id] || null, users: usersMap[c.candidato_id] || null })))
+    setAllCandidaturas((cands || []).map((c: any) => ({
+      ...c,
+      vagas: vagasMap[c.vaga_id] || null,
+      users: usersMap[c.candidato_id] || null,
+      profiles: profilesMap[c.candidato_id] || null,
+      score: calcScore({ ...c, profiles: profilesMap[c.candidato_id] || null, users: usersMap[c.candidato_id] || null }),
+    })))
 
     const { data: subsRaw } = await supabase.from('subscriptions').select('*')
     const { data: ljobs } = await supabase.from('linkedin_jobs').select('*').order('created_at', { ascending: false })
@@ -245,6 +266,7 @@ export default function AdminDashboard() {
                 { key: 'recrutadores', icon: UserCheck, label: 'Aprovar Recrutadores' },
                 { key: 'vagas', icon: Briefcase, label: 'Aprovar Vagas' },
                 { key: 'pagamentos', icon: Wallet, label: 'Pagamentos' },
+                { key: 'ats', icon: GitBranch, label: 'ATS / Selecção' },
                 { key: 'linkedin', icon: Linkedin, label: 'LinkedIn Jobs' },
                 { key: 'externas', icon: Globe, label: 'Vagas Externas' },
                 { key: 'trabalho_rapido', icon: Zap, label: 'Trabalho Rápido' },
@@ -310,6 +332,7 @@ export default function AdminDashboard() {
             { key: 'recrutadores', icon: UserCheck, label: 'Aprovar Recrutadores', badge: pendentes.length },
             { key: 'vagas', icon: Briefcase, label: 'Aprovar Vagas', badge: vagasPendentes.length },
             { key: 'pagamentos', icon: Wallet, label: 'Pagamentos', badge: paymentRequests.filter(p => p.status === 'pending').length },
+            { key: 'ats', icon: GitBranch, label: 'ATS / Selecção' },
             { key: 'linkedin', icon: Linkedin, label: 'LinkedIn Jobs', badge: linkedinJobs.length },
             { key: 'externas', icon: Globe, label: 'Vagas Externas', badge: externalJobs.length },
             { key: 'trabalho_rapido', icon: Zap, label: 'Trabalho Rápido', badge: 0 },
@@ -376,6 +399,10 @@ export default function AdminDashboard() {
             } as AdminData}
             onTabChange={setActiveTab}
           />
+        )}
+
+        {activeTab === 'ats' && (
+          <ATS role="admin" vagas={allVagas} candidatos={allCandidaturas} onUpdate={loadData} />
         )}
 
         {activeTab === 'recrutadores' && (

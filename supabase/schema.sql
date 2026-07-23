@@ -32,15 +32,18 @@ CREATE TABLE IF NOT EXISTS vagas (
   empresa_nome text NOT NULL,
   titulo text NOT NULL,
   descricao text NOT NULL,
+  requisitos text,
   area text NOT NULL,
   nivel_minimo text NOT NULL,
   experiencia_requerida text,
   salario text,
   localizacao text NOT NULL,
   prazo text NOT NULL,
-  status text DEFAULT 'aberta' CHECK (status IN ('aberta', 'em_analise', 'encerrada')),
+  tipo_emprego text DEFAULT 'formal',
+  status text DEFAULT 'aberta' CHECK (status IN ('aberta', 'em_analise', 'rejeitada', 'encerrada')),
   is_prioritaria boolean DEFAULT false,
   visualizacoes integer DEFAULT 0,
+  perguntas text[],
   created_at timestamptz DEFAULT now()
 );
 
@@ -48,8 +51,9 @@ CREATE TABLE IF NOT EXISTS candidaturas (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   vaga_id uuid REFERENCES vagas(id) ON DELETE CASCADE,
   candidato_id uuid REFERENCES users(id) ON DELETE CASCADE,
-  status text DEFAULT 'enviada' CHECK (status IN ('enviada', 'em_analise', 'aprovada', 'recusada')),
+  status text DEFAULT 'enviada' CHECK (status IN ('enviada', 'em_analise', 'aprovada', 'rejeitada')),
   mensagem text,
+  respostas jsonb DEFAULT '{}',
   data_candidatura timestamptz DEFAULT now(),
   UNIQUE(vaga_id, candidato_id)
 );
