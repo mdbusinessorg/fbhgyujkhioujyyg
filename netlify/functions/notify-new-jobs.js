@@ -30,6 +30,13 @@ function tokens(text) {
   return normalize(text).split(/[\s,;|]+/).map(t => t.trim()).filter(t => t.length > 2)
 }
 
+function isRecent(job, hours = 24) {
+  const raw = job.first_seen_at || job.posted_at || job.created_at
+  const ts = Date.parse(raw)
+  if (!raw || Number.isNaN(ts)) return false
+  return Date.now() - ts < hours * 60 * 60 * 1000
+}
+
 function computeMatchScore(job, profile) {
   if (!profile) return 0
   const text = normalize(`${job.titulo || job.title || ''} ${job.area || job.category || ''} ${job.descricao || job.description || job.excerpt || ''}`)
@@ -114,15 +121,16 @@ exports.handler = async (event) => {
     try { seenIds = JSON.parse(seenRaw) } catch {}
     const seenSet = new Set(seenIds)
 
-    // First run: seed seen IDs and avoid spamming all users with historical jobs
-    if (seenSet.size === 0) {
-      const allIds = jobs.map((j) => j.id)
-      await stateStore.set('seen-ids', JSON.stringify(allIds))
-      console.log('Primeira execução: seed de', allIds.length, 'vagas. Sem notificações enviadas.')
-      return { statusCode: 200, headers, body: JSON.stringify({ ok: true, seeded: allIds.length, notifications: 0 }) }
-    }
+    const force = event.queryStringParameters?.force === 'true' || event.queryStringParameters?.force === '1'
+    let newJobs = []
 
-    const newJobs = jobs.filter((j) => !seenSet.has(j.id))
+    if (force) {
+      newJobs = jobs.filter((j) => isRecent(j, 24))
+    } else if (seenSet.size === 0) {
+      newJobs = jobs
+    } else {
+      newJobs = jobs.filter((j) => !seenSet.has(j.id))
+    }
     if (newJobs.length === 0) {
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true, new: 0, notifications: 0 }) }
     }

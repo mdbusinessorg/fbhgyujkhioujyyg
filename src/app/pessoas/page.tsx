@@ -11,10 +11,11 @@ import NotificationsBell from '@/components/NotificationsBell'
 import ShareMenu from '@/components/ShareMenu'
 import ProfileAvatar from '@/components/ProfileAvatar'
 import {
-  Search, MessageSquare, Users, User, MapPin, Briefcase, Home, FileText,
+  Search, MessageSquare, Users, User, MapPin, Home, FileText,
   UserPlus, UserCheck, Link2, Send, Trash2, MoreHorizontal, Heart,
   MessageCircle, Plus, Bell, Check, X, ImagePlus
 } from 'lucide-react'
+import { AreaIcon } from '@/lib/area-icons'
 
 interface PersonResult {
   id: string
@@ -413,7 +414,7 @@ export default function PessoasPage() {
                     </span>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 mt-1.5 text-[11px] text-ms-gray">
-                    {person.profile?.area && <span className="flex items-center gap-1"><Briefcase size={11} /> {person.profile.area}</span>}
+                    {person.profile?.area && <span className="flex items-center gap-1"><AreaIcon area={person.profile.area} size={12} className="text-ms-blue" /> {person.profile.area}</span>}
                     {person.profile?.localizacao && <span className="flex items-center gap-1"><MapPin size={11} /> {person.profile.localizacao}</span>}
                   </div>
                   {person.profile?.bio && <p className="text-xs text-ms-dark mt-1.5 line-clamp-2">{person.profile.bio}</p>}

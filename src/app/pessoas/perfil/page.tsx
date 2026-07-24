@@ -8,7 +8,8 @@ import { startOrRequestConversation } from '@/lib/messaging'
 import { social, type MessageRequest } from '@/lib/social'
 import Logo from '@/components/Logo'
 import ShareMenu from '@/components/ShareMenu'
-import { ArrowLeft, MapPin, Briefcase, MessageSquare, Bookmark, Users, UserPlus, UserCheck, Link2, Check, X } from 'lucide-react'
+import { ArrowLeft, MapPin, MessageSquare, Bookmark, Users, UserPlus, UserCheck, Link2, Check, X } from 'lucide-react'
+import { AreaIcon } from '@/lib/area-icons'
 import ProfileAvatar from '@/components/ProfileAvatar'
 
 interface PersonProfile {
@@ -88,14 +89,18 @@ function PerfilContent() {
 
   const handleConnect = async () => {
     if (!currentUser || !person) { router.push('/auth/login/'); return }
-    await startOrRequestConversation(currentUser.id, person.id, router)
     try {
-      const req = await social.getRequestBetween(currentUser.id, person.id)
+      const { data: u } = await supabase.from('users').select('id, nome, avatar_url, role').eq('id', currentUser.id).single()
+      const req = await social.createRequest({
+        requester_id: currentUser.id,
+        recipient_id: person.id,
+        requester: u || { id: currentUser.id, nome: 'Utilizador', role: 'candidato' },
+      })
       setRequest(req)
-      if (req?.status === 'accepted') setRelationship('connected')
-      else if (req?.status === 'pending') setRelationship(req.requester_id === currentUser.id ? 'sent' : 'received')
-      else if (req?.status === 'rejected') setRelationship('rejected')
-    } catch {}
+      setRelationship('sent')
+    } catch (err: any) {
+      alert('Erro ao enviar pedido: ' + (err.message || 'tenta de novo'))
+    }
   }
 
   const handleMessage = async () => {
@@ -107,25 +112,31 @@ function PerfilContent() {
 
   const acceptRequest = async () => {
     if (!currentUser || !person || !request) return
-    const { data: existing } = await supabase.from('conversations').select('id').or(`and(participant_1_id.eq.${request.requester_id},participant_2_id.eq.${currentUser.id}),and(participant_1_id.eq.${currentUser.id},participant_2_id.eq.${request.requester_id})`).maybeSingle()
-    let convId = existing?.id
-    if (!convId) {
-      const { data: conv } = await supabase.from('conversations').insert({ participant_1_id: request.requester_id, participant_2_id: currentUser.id }).select('id').single()
-      if (conv) convId = conv.id
-    }
-    if (convId) {
-      try { await social.updateRequest(request.id, 'accepted') } catch {}
+    try {
+      await social.updateRequest(request.id, 'accepted')
+      const { data: existing } = await supabase.from('conversations').select('id').or(`and(participant_1_id.eq.${request.requester_id},participant_2_id.eq.${currentUser.id}),and(participant_1_id.eq.${currentUser.id},participant_2_id.eq.${request.requester_id})`).maybeSingle()
+      let convId = existing?.id
+      if (!convId) {
+        const { data: conv } = await supabase.from('conversations').insert({ participant_1_id: request.requester_id, participant_2_id: currentUser.id }).select('id').single()
+        if (conv) convId = conv.id
+      }
       setRelationship('connected')
       setRequest(prev => prev ? { ...prev, status: 'accepted' } : prev)
-      router.push(`/mensagens/?conv=${convId}`)
+      if (convId) router.push(`/mensagens/?conv=${convId}`)
+    } catch (err: any) {
+      alert('Erro ao aceitar: ' + (err.message || 'tenta de novo'))
     }
   }
 
   const rejectRequest = async () => {
     if (!request) return
-    try { await social.updateRequest(request.id, 'rejected') } catch {}
-    setRelationship('rejected')
-    setRequest(prev => prev ? { ...prev, status: 'rejected' } : prev)
+    try {
+      await social.updateRequest(request.id, 'rejected')
+      setRelationship('rejected')
+      setRequest(prev => prev ? { ...prev, status: 'rejected' } : prev)
+    } catch (err: any) {
+      alert('Erro ao rejeitar: ' + (err.message || 'tenta de novo'))
+    }
   }
 
   const profileUrl = typeof window !== 'undefined' && person ? `${window.location.origin}/pessoas/perfil/?id=${person.id}` : ''
@@ -176,41 +187,53 @@ function PerfilContent() {
           </span>
 
           <div className="flex flex-wrap items-center justify-center gap-3 text-xs text-ms-gray mb-5">
-            {person.profile?.area && <span className="flex items-center gap-1"><Briefcase size={12} /> {person.profile.area}</span>}
+            {person.profile?.area && <span className="flex items-center gap-1"><AreaIcon area={person.profile.area} size={14} className="text-ms-blue" /> {person.profile.area}</span>}
             {person.profile?.localizacao && <span className="flex items-center gap-1"><MapPin size={12} /> {person.profile.localizacao}</span>}
             {person.telefone && <span className="flex items-center gap-1">{person.telefone}</span>}
           </div>
 
-          <div className="flex items-center justify-center gap-3">
-            {currentUser && person && currentUser.id !== person.id && relationship === 'none' && (
-              <button onClick={handleConnect} className="flex-1 flex items-center justify-center gap-2 bg-ms-blue text-white text-sm font-medium py-2.5 rounded-xl hover:bg-blue-700 transition-colors">
-                <UserPlus size={16} /> Conectar
-              </button>
-            )}
-            {currentUser && person && currentUser.id !== person.id && relationship === 'sent' && (
-              <span className="flex-1 text-center text-sm py-2.5 bg-ms-surface text-ms-gray rounded-xl font-medium">Pedido enviado</span>
-            )}
+          <div className="flex flex-col gap-3">
             {currentUser && person && currentUser.id !== person.id && relationship === 'received' && request && (
-              <>
-                <button onClick={acceptRequest} className="flex-1 flex items-center justify-center gap-2 bg-green-50 text-green-700 text-sm font-medium py-2.5 rounded-xl hover:bg-green-100 transition-colors">
-                  <Check size={16} /> Aceitar
+              <div className="w-full bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-4 shadow-sm">
+                <p className="text-sm font-semibold text-ms-dark mb-3 flex items-center justify-center gap-2">
+                  <UserPlus size={16} className="text-ms-blue" /> {person.nome} quer conectar contigo
+                </p>
+                <div className="flex gap-3">
+                  <button onClick={acceptRequest} className="flex-1 flex items-center justify-center gap-2 bg-green-500 text-white text-sm font-bold py-3 rounded-xl hover:bg-green-600 active:scale-[0.98] shadow-md transition-all">
+                    <Check size={18} /> Aceitar
+                  </button>
+                  <button onClick={rejectRequest} className="flex-1 flex items-center justify-center gap-2 bg-white border-2 border-red-100 text-red-500 text-sm font-bold py-3 rounded-xl hover:bg-red-50 active:scale-[0.98] transition-all">
+                    <X size={18} /> Rejeitar
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center justify-center gap-3">
+              {currentUser && person && currentUser.id !== person.id && relationship === 'none' && (
+                <button onClick={handleConnect} className="flex-1 flex items-center justify-center gap-2 bg-ms-blue text-white text-sm font-bold py-3 rounded-xl hover:bg-blue-700 active:scale-[0.98] shadow-md transition-all">
+                  <UserPlus size={18} /> Conectar
                 </button>
-                <button onClick={rejectRequest} className="flex-1 flex items-center justify-center gap-2 bg-red-50 text-red-700 text-sm font-medium py-2.5 rounded-xl hover:bg-red-100 transition-colors">
-                  <X size={16} /> Rejeitar
+              )}
+              {currentUser && person && currentUser.id !== person.id && relationship === 'sent' && (
+                <span className="flex-1 flex items-center justify-center gap-2 text-center text-sm py-3 bg-ms-surface text-ms-gray rounded-xl font-semibold">
+                  <UserCheck size={18} /> Pedido enviado
+                </span>
+              )}
+              {currentUser && person && currentUser.id !== person.id && relationship === 'connected' && (
+                <button onClick={handleMessage} className="flex-1 flex items-center justify-center gap-2 bg-ms-purple text-white text-sm font-bold py-3 rounded-xl hover:bg-purple-700 active:scale-[0.98] shadow-md transition-all">
+                  <MessageSquare size={18} /> Mensagem
                 </button>
-              </>
-            )}
-            {currentUser && person && currentUser.id !== person.id && relationship === 'connected' && (
-              <button onClick={handleMessage} className="flex-1 flex items-center justify-center gap-2 bg-ms-surface text-ms-dark border border-ms-border text-sm font-medium py-2.5 rounded-xl hover:bg-ms-purple-light hover:text-ms-purple transition-colors">
-                <MessageSquare size={16} /> Mensagem
-              </button>
-            )}
-            {currentUser && person && currentUser.id !== person.id && relationship === 'rejected' && (
-              <span className="flex-1 text-center text-sm py-2.5 bg-gray-100 text-gray-500 rounded-xl font-medium">Pedido rejeitado</span>
-            )}
-            <button onClick={() => setSaved(v => !v)} className={`w-11 h-11 flex items-center justify-center rounded-xl border transition-colors ${saved ? 'bg-ms-blue text-white border-ms-blue' : 'bg-white text-ms-gray border-ms-border hover:bg-ms-surface'}`}>
-              <Bookmark size={18} className={saved ? 'fill-white' : ''} />
-            </button>
+              )}
+              {currentUser && person && currentUser.id !== person.id && relationship === 'rejected' && (
+                <span className="flex-1 text-center text-sm py-3 bg-gray-100 text-gray-500 rounded-xl font-semibold">Pedido rejeitado</span>
+              )}
+              {currentUser && person && currentUser.id !== person.id && (
+                <button onClick={() => setSaved(v => !v)} className={`w-12 h-12 flex items-center justify-center rounded-xl border transition-all shadow-sm ${saved ? 'bg-ms-blue text-white border-ms-blue' : 'bg-white text-ms-gray border-ms-border hover:bg-ms-surface'}`}>
+                  <Bookmark size={20} className={saved ? 'fill-white' : ''} />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 

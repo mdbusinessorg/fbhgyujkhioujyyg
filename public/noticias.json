@@ -1,6 +1,38 @@
 {
-  "updatedAt": "2026-07-24T13:52:30.415Z",
+  "updatedAt": "2026-07-24T16:14:25.427Z",
   "items": [
+    {
+      "id": "http://jornaldeangola.ao/noticias/1/pol%C3%ADtica/681675/angola-defende-cumprimento-dos-estatutos-na-reestrutura%C3%A7%C3%A3o-da-ceeac",
+      "link": "http://jornaldeangola.ao/noticias/1/pol%C3%ADtica/681675/angola-defende-cumprimento-dos-estatutos-na-reestrutura%C3%A7%C3%A3o-da-ceeac",
+      "source": "Jornal de Angola",
+      "title": "Angola defende cumprimento dos estatutos na reestruturação da CEEAC",
+      "excerpt": "A secretária de Estado para as Relações Exteriores, Esmeralda Mendonça, defendeu, hoje, o cumprimento dos trâmites jurídico-legais previstos nos estatutos da Comunidade Económica dos Estados da África Central (CEEAC), no âmbito dos processos de reestruturação dos órgãos directivos da organização.",
+      "date": "2026-07-24T12:00:00.000Z"
+    },
+    {
+      "id": "http://jornaldeangola.ao/noticias/5/cultura/681674/manuel-rui-monteiro-recebe-certificados-de-registo-de-tr%C3%AAs-obras-",
+      "link": "http://jornaldeangola.ao/noticias/5/cultura/681674/manuel-rui-monteiro-recebe-certificados-de-registo-de-tr%C3%AAs-obras-",
+      "source": "Jornal de Angola",
+      "title": "Manuel Rui Monteiro recebe certificados de registo de três obras",
+      "excerpt": "O escritor angolano Manuel Rui Monteiro recebeu, na quinta-feira, em Luanda, das mãos do ministro da Cultura, Filipe Zau, os certificados de registo de três das suas obras literárias.",
+      "date": "2026-07-24T12:00:00.000Z"
+    },
+    {
+      "id": "http://jornaldeangola.ao/noticias/3/sociedade/681673/governador-de-luanda-constata-obras-em-curso-no-hoji-ya-henda",
+      "link": "http://jornaldeangola.ao/noticias/3/sociedade/681673/governador-de-luanda-constata-obras-em-curso-no-hoji-ya-henda",
+      "source": "Jornal de Angola",
+      "title": "Governador de Luanda constata obras em curso no Hoji-ya-Henda",
+      "excerpt": "O governador de Luanda, Luís Nunes, visitou, esta sexta-feira, o município do Hoji-ya-Henda, onde constatou as obras em curso na via da Igreja Nossa Senhora de Fátima.",
+      "date": "2026-07-24T12:00:00.000Z"
+    },
+    {
+      "id": "http://jornaldeangola.ao/noticias/1/pol%C3%ADtica/681672/burundi-apoia-candidatura-de-angola-%C3%A0-lideran%C3%A7a-da-fao",
+      "link": "http://jornaldeangola.ao/noticias/1/pol%C3%ADtica/681672/burundi-apoia-candidatura-de-angola-%C3%A0-lideran%C3%A7a-da-fao",
+      "source": "Jornal de Angola",
+      "title": "Burundi apoia candidatura de Angola à liderança da FAO",
+      "excerpt": "O Presidente do Burundi e líder da União Africana, Évariste Ndayishimiye, manifestou, esta sexta-feira, apoio à candidatura de Angola à liderança da Organização das Nações Unidas para a Alimentação e a Agricultura (FAO), encabeçada pela candidata angolana Josefa Sacko.",
+      "date": "2026-07-24T12:00:00.000Z"
+    },
     {
       "id": "http://jornaldeangola.ao/noticias/2/regi%C3%B5es/681671/malanje-regista-418-mortes-por-mal%C3%A1ria-no-primeiro-semestre-de-2026",
       "link": "http://jornaldeangola.ao/noticias/2/regi%C3%B5es/681671/malanje-regista-418-mortes-por-mal%C3%A1ria-no-primeiro-semestre-de-2026",
@@ -15,38 +47,6 @@
       "source": "Jornal de Angola",
       "title": "BUAP leva actualização do registo eleitoral à FILDA",
       "excerpt": "O Balcão Único de Atendimento ao Público (BUAP) expandiu os serviços de actualização do Registo Eleitoral Oficioso e de prova de vida à Feira Internacional de Luanda (FILDA 2026), que decorre na Zona Económica Especial (ZEE).",
-      "date": "2026-07-24T12:00:00.000Z"
-    },
-    {
-      "id": "http://jornaldeangola.ao/noticias/1/pol%C3%ADtica/681668/angola-apela-a-parcerias-africanas-para-impulsionar-desenvolvimento-sustent%C3%A1vel",
-      "link": "http://jornaldeangola.ao/noticias/1/pol%C3%ADtica/681668/angola-apela-a-parcerias-africanas-para-impulsionar-desenvolvimento-sustent%C3%A1vel",
-      "source": "Jornal de Angola",
-      "title": "Angola apela a parcerias africanas para impulsionar desenvolvimento sustentável",
-      "excerpt": "Angola apelou, hoje, aos Estados africanos para unirem esforços, vontades e encontrarem soluções consensuais que permitam estabelecer parcerias capazes de transformar a Economia Azul numa força impulsionadora do desenvolvimento sustentável no continente.",
-      "date": "2026-07-24T12:00:00.000Z"
-    },
-    {
-      "id": "http://jornaldeangola.ao/noticias/4/economia/681667/debates-sobre-corredor-do-lobito-e-o-investimento-nos-direitos-da-crian%C3%A7a-marcam-quinto-dia-da-filda-2026",
-      "link": "http://jornaldeangola.ao/noticias/4/economia/681667/debates-sobre-corredor-do-lobito-e-o-investimento-nos-direitos-da-crian%C3%A7a-marcam-quinto-dia-da-filda-2026",
-      "source": "Jornal de Angola",
-      "title": "Debates sobre Corredor do Lobito e o investimento nos direitos da criança marcam quinto dia da FILDA 2026",
-      "excerpt": "A conferência sobre o investimento nos direitos da criança, organizada pelo Fundo das Nações Unidas para a Infância (UNICEF), e o debate sobre o Corredor do Lobito destacam-se no programa de actividades do quinto dia da Feira Internacional de Luanda (FILDA 2026).",
-      "date": "2026-07-24T12:00:00.000Z"
-    },
-    {
-      "id": "http://jornaldeangola.ao/noticias/4/economia/681666/angolanos-passam-a-ter-acesso-a-cart%C3%A3o-de-d%C3%A9bito-visa-multicaixa",
-      "link": "http://jornaldeangola.ao/noticias/4/economia/681666/angolanos-passam-a-ter-acesso-a-cart%C3%A3o-de-d%C3%A9bito-visa-multicaixa",
-      "source": "Jornal de Angola",
-      "title": "Angolanos passam a ter acesso a cartão de débito Visa-Multicaixa",
-      "excerpt": "A Visa, a Empresa Interbancária de Serviços (EMIS) e o Banco Millennium Atlântico apresentaram, esta sexta-feira, na Feira Internacional de Angola (FILDA), na Zona Económica Especial, em Icolo e Bengo, o primeiro cartão de débito Visa em Angola.",
-      "date": "2026-07-24T12:00:00.000Z"
-    },
-    {
-      "id": "http://jornaldeangola.ao/noticias/0/%20/681665/enviado-especial-de-f%C3%A9lix-tshisekedi-entrega-mensagem-a-jo%C3%A3o-louren%C3%A7o",
-      "link": "http://jornaldeangola.ao/noticias/0/%20/681665/enviado-especial-de-f%C3%A9lix-tshisekedi-entrega-mensagem-a-jo%C3%A3o-louren%C3%A7o",
-      "source": "Jornal de Angola",
-      "title": "Enviado especial de Félix Tshisekedi entrega mensagem a João Lourenço",
-      "excerpt": "O Presidente da República, João Lourenço, recebeu, esta sexta-feira, no Palácio Presidencial da Cidade Alta, em Luanda, o enviado especial do seu homólogo da República Democrática do Congo (RDC), Félix Tshisekedi, que procedeu à entrega de uma mensagem do Chefe de Estado congolês.",
       "date": "2026-07-24T12:00:00.000Z"
     }
   ]
