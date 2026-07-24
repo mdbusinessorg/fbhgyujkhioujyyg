@@ -27,22 +27,12 @@ function stripNonPrintable(str) {
 
 async function extractPdfText(buf) {
   try {
-    const [{ getDocument, GlobalWorkerOptions }, { pathToFileURL }] = await Promise.all([
-      import('pdfjs-dist/legacy/build/pdf.mjs'),
-      import('url'),
-    ])
-    const workerPath = pathToFileURL(require.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs')).href
-    GlobalWorkerOptions.workerSrc = workerPath
-    const doc = await getDocument({ data: new Uint8Array(buf), useSystemFonts: true, disableFontFace: true }).promise
-    const pages = await Promise.all(Array.from({ length: doc.numPages }, (_, i) => doc.getPage(i + 1)))
-    const texts = await Promise.all(pages.map(async p => {
-      const txt = await p.getTextContent()
-      return txt.items.map(item => item.str).join(' ')
-    }))
-    await doc.destroy()
-    return stripNonPrintable(texts.join('\n'))
+    const { extractText } = await import('unpdf')
+    const { text, totalPages } = await extractText(new Uint8Array(buf))
+    if (!text || totalPages === 0) return ''
+    return stripNonPrintable(Array.isArray(text) ? text.join('\n') : text)
   } catch (err) {
-    console.error('pdfjs-dist falhou:', err.message || err)
+    console.error('unpdf falhou:', err.message || err)
     return ''
   }
 }
