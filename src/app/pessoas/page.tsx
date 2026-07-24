@@ -327,10 +327,10 @@ export default function PessoasPage() {
   const renderStories = () => {
     const highlights = people.slice(0, 12)
     return (
-      <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2 mb-5 -mx-4 px-4">
+      <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 mb-5 -mx-4 px-4">
         <Link href={currentUser ? `/dashboard/${currentUser.role}/?tab=perfil` : '/auth/login/'} className="flex-shrink-0 flex flex-col items-center gap-1.5">
           <div className="relative">
-            <Avatar url={currentUser?.avatar_url} name={currentUser?.nome} size={66} ring />
+            <Avatar url={currentUser?.avatar_url} name={currentUser?.nome} size={60} ring />
             <div className="absolute bottom-0 right-0 w-5 h-5 bg-ms-blue text-white rounded-full flex items-center justify-center border-2 border-white">
               <Plus size={12} />
             </div>
@@ -339,10 +339,10 @@ export default function PessoasPage() {
         </Link>
         {highlights.map(person => (
           <button key={person.id} onClick={() => { recordView(person.id); router.push(`/pessoas/perfil/?id=${person.id}`) }} className="flex-shrink-0 flex flex-col items-center gap-1.5">
-            <div className="w-[70px] h-[70px] rounded-full p-1" style={{ background: 'linear-gradient(135deg, #1A56FF 0%, #6C47FF 100%)' }}>
-              <Avatar url={person.avatar_url} name={person.nome} size={62} className="w-full h-full rounded-none border-2 border-white" />
+            <div className="w-16 h-16 rounded-full p-[3px]" style={{ background: 'linear-gradient(135deg, #1A56FF 0%, #6C47FF 100%)' }}>
+              <Avatar url={person.avatar_url} name={person.nome} size={58} className="w-full h-full rounded-none border-2 border-white" />
             </div>
-            <span className="text-[10px] font-medium text-ms-dark text-center leading-tight max-w-[70px] truncate">{(person.nome || '').split(' ')[0]}</span>
+            <span className="text-[10px] font-medium text-ms-dark text-center leading-tight max-w-[60px] truncate">{(person.nome || '').split(' ')[0]}</span>
           </button>
         ))}
       </div>
@@ -353,22 +353,22 @@ export default function PessoasPage() {
     <div className="space-y-4">
       {renderStories()}
 
-      <div className="bg-white rounded-2xl p-3 border border-ms-border shadow-sm flex items-center gap-2">
+      <div className="bg-white rounded-2xl p-3 border border-ms-border/60 shadow-sm flex items-center gap-2">
         <Search size={18} className="text-ms-gray ml-1" />
         <input type="text" value={query} onChange={e => setQuery(e.target.value)} placeholder="Pesquisar por nome, área ou cidade..." className="flex-1 bg-transparent outline-none text-sm text-ms-dark placeholder:text-ms-gray" />
       </div>
 
       <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
         {FILTROS.map(f => (
-          <button key={f} onClick={() => setFiltro(f)} className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-medium transition-colors ${filtro === f ? 'bg-ms-blue text-white' : 'bg-white text-ms-dark border border-ms-border hover:bg-ms-surface'}`}>{f}</button>
+          <button key={f} onClick={() => setFiltro(f)} className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-medium transition-all ${filtro === f ? 'bg-blue-50 text-ms-blue ring-1 ring-ms-blue/20' : 'bg-white text-ms-dark border border-ms-border/80 hover:bg-ms-surface'}`}>{f}</button>
         ))}
       </div>
 
       {categorias.length > 0 && (
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-          <button onClick={() => setAreaFilter(null)} className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors ${areaFilter === null ? 'bg-ms-purple text-white' : 'bg-white text-ms-dark border border-ms-border'}`}>Todas as áreas</button>
+          <button onClick={() => setAreaFilter(null)} className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all ${areaFilter === null ? 'bg-purple-50 text-ms-purple ring-1 ring-ms-purple/20' : 'bg-white text-ms-dark border border-ms-border/80 hover:bg-ms-surface'}`}>Todas as áreas</button>
           {categorias.slice(0, 8).map(a => (
-            <button key={a} onClick={() => setAreaFilter(areaFilter === a ? null : a)} className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors ${areaFilter === a ? 'bg-ms-purple text-white' : 'bg-white text-ms-dark border border-ms-border'}`}>{a}</button>
+            <button key={a} onClick={() => setAreaFilter(areaFilter === a ? null : a)} className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all ${areaFilter === a ? 'bg-purple-50 text-ms-purple ring-1 ring-ms-purple/20' : 'bg-white text-ms-dark border border-ms-border/80 hover:bg-ms-surface'}`}>{a}</button>
           ))}
         </div>
       )}
@@ -387,7 +387,7 @@ export default function PessoasPage() {
             const rel = relationshipWith(person.id)
             const isMe = currentUser?.id === person.id
             return (
-              <div key={person.id} className="bg-white rounded-2xl p-4 border border-ms-border shadow-sm flex items-start gap-3">
+              <div key={person.id} className="bg-white rounded-2xl p-4 border border-ms-border/80 shadow-sm flex items-start gap-3 hover:shadow-md transition-shadow">
                 <button onClick={() => { recordView(person.id); router.push(`/pessoas/perfil/?id=${person.id}`) }}>
                   <Avatar url={person.avatar_url} name={person.nome} size={52} />
                 </button>
@@ -653,22 +653,22 @@ export default function PessoasPage() {
   return (
     <div className="min-h-screen bg-ms-surface pb-24 lg:pb-0">
       <header className="sticky top-0 bg-white z-50 px-4 py-3 shadow-sm">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center"><Logo variant="full" className="h-8 w-auto" /></Link>
-          <div className="flex items-center gap-2">
+        <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
+          <Link href="/" className="flex items-center max-w-[120px]"><Logo variant="full" className="h-7 w-auto max-w-full" /></Link>
+          <div className="flex items-center gap-2 flex-shrink-0">
             <Link href="/mensagens/" className="p-2 text-ms-dark hover:text-ms-blue rounded-full bg-ms-surface"><MessageSquare size={20} /></Link>
           </div>
         </div>
       </header>
 
       <main className="max-w-3xl mx-auto px-4 pt-4">
-        <div className="flex items-center justify-between bg-white rounded-2xl p-1 border border-ms-border shadow-sm mb-4">
+        <div className="flex items-center justify-between bg-ms-surface rounded-full p-1 mb-4">
           {tabs.map(t => {
             const Icon = t.icon
             const active = activeTab === t.key
             return (
-              <button key={t.key} onClick={() => setActiveTab(t.key)} className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-medium transition-colors ${active ? 'bg-ms-blue text-white shadow-sm' : 'text-ms-gray hover:bg-ms-surface'}`}>
-                <Icon size={14} /> {t.label}
+              <button key={t.key} onClick={() => setActiveTab(t.key)} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-full text-[11px] font-medium transition-all ${active ? 'bg-ms-blue text-white shadow-sm' : 'text-ms-gray hover:text-ms-dark hover:bg-white/60'}`}>
+                <Icon size={13} /> {t.label}
               </button>
             )
           })}

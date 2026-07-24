@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
-import Logo from '@/components/Logo'
 
 export default function SplashScreen() {
   const pathname = usePathname()
@@ -30,21 +29,29 @@ export default function SplashScreen() {
 
   return (
     <div
-      className={`fixed inset-0 z-[200] flex flex-col items-center justify-center transition-opacity duration-500 ${fadeOut ? 'opacity-0' : 'opacity-100'}`}
+      className={`fixed inset-0 z-[200] flex flex-col items-center justify-center px-6 transition-opacity duration-500 ${fadeOut ? 'opacity-0' : 'opacity-100'}`}
       style={{ background: 'linear-gradient(135deg, #1A56FF 0%, #6C47FF 100%)' }}
     >
-      <div className="animate-scale-in">
-        <Logo variant="icon" className="w-24 h-24 bg-white rounded-3xl p-5 shadow-2xl mb-6 animate-bounce-slow" />
-      </div>
-      <h1 className="text-white text-2xl font-bold tracking-tight mb-1 animate-fade-up">MÔ SALO</h1>
-      <p className="text-white/70 text-sm animate-fade-up" style={{ animationDelay: '0.15s' }}>Emprego Ideal em Angola</p>
-      <div className="mt-8 animate-fade-up" style={{ animationDelay: '0.3s' }}>
-        <div className="w-8 h-8 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+      <div className="animate-scale-in flex flex-col items-center w-full max-w-xs">
+        <div className="relative w-20 h-20 sm:w-24 sm:h-24 bg-white rounded-3xl p-4 shadow-2xl mb-5 flex items-center justify-center overflow-hidden max-w-[80vw] max-h-[35vh]">
+          <img
+            src="/logo-icon.png"
+            alt="MÔ SALO"
+            width={96}
+            height={96}
+            className="w-full h-full object-contain"
+          />
+        </div>
+        <h1 className="text-white text-xl sm:text-2xl font-bold tracking-tight mb-1 animate-fade-up text-center">MÔ SALO</h1>
+        <p className="text-white/70 text-xs sm:text-sm animate-fade-up text-center" style={{ animationDelay: '0.15s' }}>Emprego Ideal em Angola</p>
+        <div className="mt-6 animate-fade-up" style={{ animationDelay: '0.3s' }}>
+          <div className="w-7 h-7 sm:w-8 sm:h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+        </div>
       </div>
       <style jsx>{`
         @keyframes bounce-slow {
           0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-10px); }
+          50% { transform: translateY(-8px); }
         }
         .animate-bounce-slow { animation: bounce-slow 2s ease-in-out infinite; }
         @keyframes scale-in {
