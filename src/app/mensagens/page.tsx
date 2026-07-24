@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { social, MessageRequest as ApiMessageRequest } from '@/lib/social'
-import { ArrowLeft, Send, MessageSquare, User, Search, Check, X, Users } from 'lucide-react'
+import { ArrowLeft, Send, MessageSquare, User, Search, Check, X, Users, ImagePlus } from 'lucide-react'
+import NotificationsBell from '@/components/NotificationsBell'
 
 interface Conversation {
   id: string
@@ -42,6 +43,9 @@ export default function MensagensPage() {
   )
 }
 
+const isImageMessage = (content: string) => /^\[imagem:https?:\/\/.+\]$/.test(content)
+const extractImageUrl = (content: string) => content.slice(8, -1)
+
 function MensagensContent() {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [requests, setRequests] = useState<MessageRequest[]>([])
@@ -52,7 +56,9 @@ function MensagensContent() {
   const [currentUserId, setCurrentUserId] = useState('')
   const [loading, setLoading] = useState(true)
   const [searchConv, setSearchConv] = useState('')
+  const [uploadingImage, setUploadingImage] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const searchParams = useSearchParams()
   const router = useRouter()
 
@@ -98,7 +104,9 @@ function MensagensContent() {
 
     const lastMsgMap: Record<string, string> = {}
     ;(lastMsgs || []).forEach(m => {
-      if (!lastMsgMap[m.conversation_id]) lastMsgMap[m.conversation_id] = m.content
+      if (!lastMsgMap[m.conversation_id]) {
+        lastMsgMap[m.conversation_id] = isImageMessage(m.content) ? '📷 Imagem' : m.content
+      }
     })
 
     const enriched: Conversation[] = convs.map(c => {
@@ -207,20 +215,42 @@ function MensagensContent() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !activeConv || !currentUserId) return
-    const content = newMessage.trim()
+  const sendMessage = async (content?: string) => {
+    const text = (content ?? newMessage).trim()
+    if (!text || !activeConv || !currentUserId) return
     setNewMessage('')
 
     await supabase.from('messages').insert({
       conversation_id: activeConv,
       sender_id: currentUserId,
-      content,
+      content: text,
     })
 
     await supabase.from('conversations').update({
       last_message_at: new Date().toISOString(),
     }).eq('id', activeConv)
+  }
+
+  const sendImage = async (file: File) => {
+    if (!activeConv || !currentUserId) return
+    setUploadingImage(true)
+    try {
+      const ext = file.name.split('.').pop() || 'jpg'
+      const path = `chat-images/${currentUserId}/${Date.now()}.${ext}`
+      const { error } = await supabase.storage.from('documentos').upload(path, file, { upsert: true })
+      if (error) throw error
+      const { data: { publicUrl } } = supabase.storage.from('documentos').getPublicUrl(path)
+      await sendMessage(`[imagem:${publicUrl}]`)
+    } catch (err: any) {
+      alert('Erro ao enviar imagem: ' + (err.message || 'tenta de novo'))
+    }
+    setUploadingImage(false)
+  }
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) sendImage(file)
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -262,9 +292,12 @@ function MensagensContent() {
     <div className="min-h-screen bg-white flex flex-col lg:flex-row">
       <div className={`${activeConv ? 'hidden lg:flex' : 'flex'} flex-col w-full lg:w-80 lg:border-r border-gray-100 h-screen`}>
         <header className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 z-10">
-          <div className="flex items-center gap-3 mb-3">
-            <Link href="/" className="p-1"><ArrowLeft size={20} className="text-gray-700" /></Link>
-            <h1 className="font-semibold text-gray-900">Mensagens</h1>
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-3">
+              <Link href="/" className="p-1"><ArrowLeft size={20} className="text-gray-700" /></Link>
+              <h1 className="font-semibold text-gray-900">Mensagens</h1>
+            </div>
+            <NotificationsBell />
           </div>
           <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 mb-3">
             <Search size={14} className="text-gray-400" />
@@ -276,16 +309,16 @@ function MensagensContent() {
               className="flex-1 bg-transparent outline-none text-sm text-gray-900 placeholder:text-gray-400"
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 bg-gray-100 rounded-full p-1">
             <button
               onClick={() => setActiveView('conversas')}
-              className={`flex-1 py-2 rounded-lg text-xs font-medium ${activeView === 'conversas' ? 'bg-[#1A56FF] text-white' : 'bg-gray-100 text-gray-700'}`}
+              className={`flex-1 py-2 rounded-full text-xs font-medium transition-colors ${activeView === 'conversas' ? 'bg-[#1A56FF] text-white shadow-sm' : 'text-gray-700 hover:bg-white/60'}`}
             >
               Conversas
             </button>
             <button
               onClick={() => setActiveView('pedidos')}
-              className={`flex-1 py-2 rounded-lg text-xs font-medium ${activeView === 'pedidos' ? 'bg-[#1A56FF] text-white' : 'bg-gray-100 text-gray-700'}`}
+              className={`flex-1 py-2 rounded-full text-xs font-medium transition-colors ${activeView === 'pedidos' ? 'bg-[#1A56FF] text-white shadow-sm' : 'text-gray-700 hover:bg-white/60'}`}
             >
               Pedidos {requests.length > 0 && <span className="ml-1 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{requests.length}</span>}
             </button>
@@ -372,10 +405,15 @@ function MensagensContent() {
             )}
             {messages.map(msg => {
               const isMe = msg.sender_id === currentUserId
+              const isImage = isImageMessage(msg.content)
               return (
                 <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${isMe ? 'bg-[#1A56FF] text-white rounded-br-sm' : 'bg-white text-gray-900 border border-gray-100 rounded-bl-sm'}`}>
-                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 overflow-hidden ${isMe ? 'bg-[#1A56FF] text-white rounded-br-sm' : 'bg-white text-gray-900 border border-gray-100 rounded-bl-sm'}`}>
+                    {isImage ? (
+                      <img src={extractImageUrl(msg.content)} alt="Imagem" className="max-w-full rounded-xl cursor-pointer" onClick={() => window.open(extractImageUrl(msg.content), '_blank')} />
+                    ) : (
+                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                    )}
                     <p className={`text-[10px] mt-1 ${isMe ? 'text-white/60' : 'text-gray-400'}`}>{formatTime(msg.created_at)}</p>
                   </div>
                 </div>
@@ -386,6 +424,14 @@ function MensagensContent() {
 
           <div className="bg-white border-t border-gray-100 p-3">
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingImage}
+                className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-[#1A56FF] transition-colors flex-shrink-0"
+              >
+                {uploadingImage ? <div className="w-4 h-4 border-2 border-[#1A56FF] border-t-transparent rounded-full animate-spin" /> : <ImagePlus size={18} />}
+              </button>
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
               <input
                 type="text"
                 value={newMessage}
@@ -395,7 +441,7 @@ function MensagensContent() {
                 className="flex-1 bg-gray-50 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#1A56FF]/20"
               />
               <button
-                onClick={sendMessage}
+                onClick={() => sendMessage()}
                 disabled={!newMessage.trim()}
                 className="w-10 h-10 bg-[#1A56FF] rounded-xl flex items-center justify-center text-white disabled:opacity-50 hover:bg-[#1445DD] transition-colors flex-shrink-0"
               >

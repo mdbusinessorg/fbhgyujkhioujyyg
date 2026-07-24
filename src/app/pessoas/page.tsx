@@ -7,6 +7,7 @@ import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
 import { startOrRequestConversation } from '@/lib/messaging'
 import { social, type MessageRequest, type Post, type PostAuthor } from '@/lib/social'
 import Logo from '@/components/Logo'
+import NotificationsBell from '@/components/NotificationsBell'
 import ShareMenu from '@/components/ShareMenu'
 import {
   Search, MessageSquare, Users, User, MapPin, Briefcase, Home, FileText,
@@ -324,24 +325,31 @@ export default function PessoasPage() {
     { key: 'perfil', label: 'Perfil', href: isLoggedIn && currentUser ? `/dashboard/${currentUser.role}/?tab=perfil` : '/auth/login/', icon: User },
   ]
 
+  const StoryAvatar = ({ url, name, isMe = false }: { url?: string | null; name?: string; isMe?: boolean }) => (
+    <div className="relative w-16 h-16 rounded-full p-[3px] overflow-hidden flex-shrink-0" style={{ background: 'linear-gradient(135deg, #1A56FF 0%, #6C47FF 100%)' }}>
+      <div className="w-full h-full rounded-full border-2 border-white bg-gradient-to-br from-ms-blue to-ms-purple flex items-center justify-center overflow-hidden">
+        <img src={getAvatarUrl(url) || undefined} alt={name || ''} className="w-full h-full object-cover" />
+        {!url && <span className="text-white font-bold text-lg">{(name || 'U').charAt(0).toUpperCase()}</span>}
+      </div>
+      {isMe && (
+        <div className="absolute bottom-0 right-0 w-5 h-5 bg-ms-blue text-white rounded-full flex items-center justify-center border-2 border-white">
+          <Plus size={12} />
+        </div>
+      )}
+    </div>
+  )
+
   const renderStories = () => {
     const highlights = people.slice(0, 12)
     return (
-      <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 mb-5 -mx-4 px-4">
-        <Link href={currentUser ? `/dashboard/${currentUser.role}/?tab=perfil` : '/auth/login/'} className="flex-shrink-0 flex flex-col items-center gap-1.5">
-          <div className="relative">
-            <Avatar url={currentUser?.avatar_url} name={currentUser?.nome} size={60} ring />
-            <div className="absolute bottom-0 right-0 w-5 h-5 bg-ms-blue text-white rounded-full flex items-center justify-center border-2 border-white">
-              <Plus size={12} />
-            </div>
-          </div>
+      <div className="flex gap-4 overflow-x-auto no-scrollbar pb-3 mb-5 -mx-4 px-4 pt-1">
+        <Link href={currentUser ? `/dashboard/${currentUser.role}/?tab=perfil` : '/auth/login/'} className="flex-shrink-0 flex flex-col items-center gap-2">
+          <StoryAvatar url={currentUser?.avatar_url} name={currentUser?.nome} isMe />
           <span className="text-[10px] font-medium text-ms-dark max-w-[60px] truncate">Eu</span>
         </Link>
         {highlights.map(person => (
-          <button key={person.id} onClick={() => { recordView(person.id); router.push(`/pessoas/perfil/?id=${person.id}`) }} className="flex-shrink-0 flex flex-col items-center gap-1.5">
-            <div className="w-16 h-16 rounded-full p-[3px]" style={{ background: 'linear-gradient(135deg, #1A56FF 0%, #6C47FF 100%)' }}>
-              <Avatar url={person.avatar_url} name={person.nome} size={58} className="w-full h-full rounded-none border-2 border-white" />
-            </div>
+          <button key={person.id} onClick={() => { recordView(person.id); router.push(`/pessoas/perfil/?id=${person.id}`) }} className="flex-shrink-0 flex flex-col items-center gap-2">
+            <StoryAvatar url={person.avatar_url} name={person.nome} />
             <span className="text-[10px] font-medium text-ms-dark text-center leading-tight max-w-[60px] truncate">{(person.nome || '').split(' ')[0]}</span>
           </button>
         ))}
@@ -656,6 +664,7 @@ export default function PessoasPage() {
         <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
           <Link href="/" className="flex items-center max-w-[120px]"><Logo variant="full" className="h-7 w-auto max-w-full" /></Link>
           <div className="flex items-center gap-2 flex-shrink-0">
+            <NotificationsBell />
             <Link href="/mensagens/" className="p-2 text-ms-dark hover:text-ms-blue rounded-full bg-ms-surface"><MessageSquare size={20} /></Link>
           </div>
         </div>

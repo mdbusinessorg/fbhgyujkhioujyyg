@@ -24,6 +24,18 @@ export interface MessageRequest {
   requester?: PostAuthor
 }
 
+export interface Notification {
+  id: string
+  user_id: string
+  type: 'network_request' | 'network_accepted' | 'message'
+  title: string
+  body: string
+  data?: Record<string, any>
+  sender?: PostAuthor
+  read: boolean
+  created_at: string
+}
+
 const api = async (path: string, options?: RequestInit) => {
   const res = await fetch(`/api${path}`, {
     headers: { 'Content-Type': 'application/json' },
@@ -70,4 +82,13 @@ export const social = {
 
   updateRequest: (id: string, status: 'accepted' | 'rejected'): Promise<MessageRequest> =>
     api('/message-requests', { method: 'PUT', body: JSON.stringify({ id, status }) }),
+
+  getNotifications: (user_id: string): Promise<Notification[]> =>
+    api(`/notifications?user_id=${user_id}`),
+
+  createNotification: (payload: Omit<Notification, 'id' | 'read' | 'created_at'>): Promise<Notification> =>
+    api('/notifications', { method: 'POST', body: JSON.stringify(payload) }),
+
+  markNotificationRead: (id: string): Promise<Notification> =>
+    api('/notifications', { method: 'PUT', body: JSON.stringify({ id, read: true }) }),
 }

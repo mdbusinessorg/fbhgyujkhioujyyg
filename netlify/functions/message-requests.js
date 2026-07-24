@@ -6,10 +6,30 @@ const headers = {
   'Content-Type': 'application/json',
 }
 
+const createNotification = async (notificationStore, { user_id, type, title, body, data, sender }) => {
+  const items = JSON.parse((await notificationStore.get('all')) || '[]')
+  items.push({
+    id: crypto.randomUUID(),
+    user_id,
+    type,
+    title,
+    body: body || '',
+    data: data || {},
+    sender: sender || {},
+    read: false,
+    created_at: new Date().toISOString(),
+  })
+  await notificationStore.set('all', JSON.stringify(items))
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' }
 
   const store = getStore('message-requests', {
+    siteID: process.env.NETLIFY_BLOBS_SITE_ID,
+    token: process.env.NETLIFY_BLOBS_TOKEN,
+  })
+  const notificationStore = getStore('notifications', {
     siteID: process.env.NETLIFY_BLOBS_SITE_ID,
     token: process.env.NETLIFY_BLOBS_TOKEN,
   })
@@ -68,6 +88,16 @@ exports.handler = async (event) => {
     }
     requests.push(req)
     await save(requests)
+
+    await createNotification(notificationStore, {
+      user_id: recipient_id,
+      type: 'network_request',
+      title: 'Novo pedido de network',
+      body: `${requester?.nome || 'Alguém'} quer conectar contigo`,
+      data: { request_id: req.id, requester_id },
+      sender: requester || { id: requester_id, nome: 'Utilizador' },
+    })
+
     return { statusCode: 200, headers, body: JSON.stringify(req) }
   }
 
@@ -82,6 +112,18 @@ exports.handler = async (event) => {
     if (index === -1) return { statusCode: 404, headers, body: JSON.stringify({ error: 'Pedido não encontrado' }) }
     requests[index].status = status
     await save(requests)
+
+    if (status === 'accepted') {
+      await createNotification(notificationStore, {
+        user_id: requests[index].requester_id,
+        type: 'network_accepted',
+        title: 'Pedido de network aceite',
+        body: 'A tua conexão foi aceite. Podes começar a conversar.',
+        data: { request_id: requests[index].id, recipient_id: requests[index].recipient_id },
+        sender: requests[index].requester || { id: requests[index].requester_id, nome: 'Utilizador' },
+      })
+    }
+
     return { statusCode: 200, headers, body: JSON.stringify(requests[index]) }
   }
 
