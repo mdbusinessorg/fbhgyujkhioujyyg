@@ -27,6 +27,9 @@ exports.handler = async (event) => {
 
   if (event.httpMethod === 'POST') {
     const type = event.queryStringParameters?.event || 'impression'
+    if (ad === 'all') {
+      return { statusCode: 400, headers, body: JSON.stringify({ ok: false, error: 'Especifique um anúncio no POST.' }) }
+    }
     if (!stats[ad]) {
       stats[ad] = { impressions: 0, clicks: 0, updated_at: new Date().toISOString() }
     }
@@ -35,6 +38,10 @@ exports.handler = async (event) => {
     stats[ad].updated_at = new Date().toISOString()
     await store.set('stats', JSON.stringify(stats))
     return { statusCode: 200, headers, body: JSON.stringify({ ok: true, ad, stats: stats[ad] }) }
+  }
+
+  if (ad === 'all') {
+    return { statusCode: 200, headers, body: JSON.stringify({ ok: true, stats }) }
   }
 
   return { statusCode: 200, headers, body: JSON.stringify({ ok: true, ad, stats: stats[ad] || { impressions: 0, clicks: 0 } }) }

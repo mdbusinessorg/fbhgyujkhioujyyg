@@ -6,9 +6,10 @@ import Logo from '@/components/Logo'
 import BottomNav from '@/components/BottomNav'
 import { DashboardOverview, type AdminData } from '@/components/dashboard'
 import { ATS } from '@/components/ATS'
+import AdStatsPanel from '@/components/AdStatsPanel'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Search, Bell, Briefcase, Users, UserCheck, Shield, Settings, CreditCard, CheckCircle, XCircle, Eye, TrendingUp, Plus, AlertTriangle, LogOut, Menu, X, Download, Linkedin, ExternalLink, Trash2, Edit2, Wallet, Zap, Home as HomeIcon, Globe, GitBranch } from 'lucide-react'
+import { Search, Bell, Briefcase, Users, UserCheck, Shield, Settings, CreditCard, CheckCircle, XCircle, Eye, TrendingUp, Plus, AlertTriangle, LogOut, Menu, X, Download, Linkedin, ExternalLink, Trash2, Edit2, Wallet, Zap, Home as HomeIcon, Globe, GitBranch, Megaphone } from 'lucide-react'
 
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
@@ -267,6 +268,7 @@ export default function AdminDashboard() {
                 { key: 'vagas', icon: Briefcase, label: 'Aprovar Vagas' },
                 { key: 'pagamentos', icon: Wallet, label: 'Pagamentos' },
                 { key: 'ats', icon: GitBranch, label: 'ATS / Selecção' },
+                { key: 'anuncios', icon: Megaphone, label: 'Anúncios' },
                 { key: 'linkedin', icon: Linkedin, label: 'LinkedIn Jobs' },
                 { key: 'externas', icon: Globe, label: 'Vagas Externas' },
                 { key: 'trabalho_rapido', icon: Zap, label: 'Trabalho Rápido' },
@@ -333,6 +335,7 @@ export default function AdminDashboard() {
             { key: 'vagas', icon: Briefcase, label: 'Aprovar Vagas', badge: vagasPendentes.length },
             { key: 'pagamentos', icon: Wallet, label: 'Pagamentos', badge: paymentRequests.filter(p => p.status === 'pending').length },
             { key: 'ats', icon: GitBranch, label: 'ATS / Selecção' },
+            { key: 'anuncios', icon: Megaphone, label: 'Anúncios' },
             { key: 'linkedin', icon: Linkedin, label: 'LinkedIn Jobs', badge: linkedinJobs.length },
             { key: 'externas', icon: Globe, label: 'Vagas Externas', badge: externalJobs.length },
             { key: 'trabalho_rapido', icon: Zap, label: 'Trabalho Rápido', badge: 0 },
@@ -691,6 +694,10 @@ export default function AdminDashboard() {
               </div>
             )}
           </div>
+        )}
+
+        {activeTab === 'anuncios' && (
+          <AdStatsPanel />
         )}
 
         {activeTab === 'externas' && (

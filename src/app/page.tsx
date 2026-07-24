@@ -585,6 +585,45 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* Anúncio pago — Curso Preparatório 2ª Edição */}
+        <section className="mb-6">
+          <div className="bg-white rounded-3xl overflow-hidden border border-ms-border shadow-xl hover:shadow-2xl transition-shadow">
+            <div
+              onClick={handleAdClick}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleAdClick(e as any) }}
+              className="block relative group cursor-pointer"
+            >
+              <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-white bg-gradient-to-r from-ms-blue to-ms-purple px-2.5 py-1 rounded-full shadow-sm">
+                Anúncio Pago
+              </span>
+              <img
+                src="/anuncios/curso-preparatorio-2edicao.png"
+                alt="Curso Preparatório 2ª Edição — Matemática e Física"
+                className="w-full h-auto object-cover object-top max-h-[260px] group-hover:scale-[1.01] transition-transform duration-500"
+              />
+              <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/70 to-transparent" />
+            </div>
+            <div className="p-4 bg-gradient-to-br from-ms-blue to-ms-purple flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="text-white">
+                <p className="text-sm font-bold">Curso Preparatório 2ª Edição</p>
+                <p className="text-[10px] text-white/80">Matemática e Física • Início 05.08.2026 • 25.000 Kzs</p>
+                <p className="text-[10px] text-white/70 mt-1 flex items-center gap-2">
+                  <span className="inline-flex items-center gap-0.5"><Eye size={11} /> {adStats.impressions}</span>
+                  <span className="inline-flex items-center gap-0.5"><MousePointerClick size={11} /> {adStats.clicks}</span>
+                </p>
+              </div>
+              <button
+                onClick={handleAdClick}
+                className="inline-flex items-center justify-center gap-1.5 bg-white text-ms-blue text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-ms-surface transition-colors whitespace-nowrap"
+              >
+                <MessageCircle size={16} /> Inscrever pelo WhatsApp
+              </button>
+            </div>
+          </div>
+        </section>
+
         {/* Recomendadas */}
         {recommendedJobs.length > 0 && (
           <section className="mb-6">
@@ -705,48 +744,6 @@ export default function HomePage() {
             </div>
           </section>
         )}
-
-        {/* Anúncio pago — Curso Preparatório 2ª Edição */}
-        <section className="mb-8">
-          <div className="bg-white rounded-3xl overflow-hidden border border-ms-border shadow-xl hover:shadow-2xl transition-shadow">
-            <a
-              href={AD_WHATSAPP}
-              onClick={handleAdClick}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block relative group"
-            >
-              <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-white bg-gradient-to-r from-ms-blue to-ms-purple px-2.5 py-1 rounded-full shadow-sm">
-                Anúncio Pago
-              </span>
-              <img
-                src="/anuncios/curso-preparatorio-2edicao.png"
-                alt="Curso Preparatório 2ª Edição — Matemática e Física"
-                className="w-full h-auto object-cover object-top max-h-[420px] group-hover:scale-[1.01] transition-transform duration-500"
-              />
-              <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/70 to-transparent" />
-            </a>
-            <div className="p-4 bg-gradient-to-br from-ms-blue to-ms-purple flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="text-white">
-                <p className="text-sm font-bold">Curso Preparatório 2ª Edição</p>
-                <p className="text-[10px] text-white/80">Matemática e Física • Início 05.08.2026 • 25.000 Kzs</p>
-                <p className="text-[10px] text-white/70 mt-1 flex items-center gap-2">
-                  <span className="inline-flex items-center gap-0.5"><Eye size={11} /> {adStats.impressions}</span>
-                  <span className="inline-flex items-center gap-0.5"><MousePointerClick size={11} /> {adStats.clicks}</span>
-                </p>
-              </div>
-              <a
-                href={AD_WHATSAPP}
-                onClick={handleAdClick}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-1.5 bg-white text-ms-blue text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-ms-surface transition-colors whitespace-nowrap"
-              >
-                <MessageCircle size={16} /> Inscrever pelo WhatsApp
-              </a>
-            </div>
-          </div>
-        </section>
 
         {/* Job listings */}
         <section className="mb-6">
