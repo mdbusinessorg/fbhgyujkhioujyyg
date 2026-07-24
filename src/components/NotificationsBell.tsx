@@ -84,8 +84,8 @@ export default function NotificationsBell() {
       else router.push('/pessoas/')
     } else if (n.type === 'message' && n.data?.conversation_id) {
       router.push(`/mensagens/?conv=${n.data.conversation_id}`)
-    } else if (n.type === 'job_match' && n.data?.job_ids?.length) {
-      router.push(`/vagas/externa/?id=${encodeURIComponent(n.data.job_ids[0])}`)
+    } else if (n.type === 'job_match') {
+      router.push('/vagas/?recentes=1')
     } else {
       router.push('/pessoas/?tab=network')
     }

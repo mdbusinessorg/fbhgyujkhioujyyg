@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { Search, SlidersHorizontal, Heart, Briefcase, ArrowLeft, Home as HomeIcon, User, Star, MapPin, Globe, Building2, X, Filter, ChevronDown, MessageCircle, LogIn } from 'lucide-react'
@@ -58,6 +58,7 @@ export default function VagasPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userRole, setUserRole] = useState('candidato')
   const [profile, setProfile] = useState<any>(null)
+  const recentesRef = useRef<HTMLElement>(null)
 
   const syncUserFromSession = async (session: any) => {
     if (session?.user?.email) {
@@ -128,12 +129,16 @@ export default function VagasPage() {
     const area = params.get('area')
     const q = params.get('q')
     const openFilters = params.get('showFilters')
+    const recentes = params.get('recentes')
     const cat = area ? getCategoryByKeyOrLabel(area) : null
     if (cat) {
       setActiveFilter(cat.key)
     }
     if (q) setSearchQuery(q)
     if (openFilters === '1') setShowFilters(true)
+    if (recentes === '1' && recentesRef.current) {
+      setTimeout(() => recentesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 400)
+    }
   }, [])
 
   const detectContractType = (text: string) => {
@@ -443,7 +448,7 @@ export default function VagasPage() {
 
         {/* Vagas Recentes (internas + externas, visível sempre no topo) */}
         {(recentVagas.length > 0 || recentExternal.length > 0) && (
-          <section className="mb-6">
+          <section ref={recentesRef} className="mb-6">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
               <h2 className="text-sm font-semibold text-ms-dark">Vagas Recentes <span className="text-xs font-normal text-ms-gray">(últimas 60h)</span></h2>

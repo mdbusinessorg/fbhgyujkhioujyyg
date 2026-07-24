@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -8,7 +8,8 @@ import { sortByMatch } from '@/lib/match'
 import {
   Search, SlidersHorizontal, Heart, Bell, Menu, X, Briefcase, Home as HomeIcon, User, LogOut, FileText,
   Settings, Star, MapPin, Monitor, Banknote, Stethoscope, Megaphone, Scale, GraduationCap, HardHat, Wrench,
-  MessageSquare, Zap, Users, Clock, ChevronDown, Newspaper, BookOpen, HeartHandshake, MessageCircle
+  MessageSquare, Zap, Users, Clock, ChevronDown, Newspaper, BookOpen, HeartHandshake, MessageCircle,
+  Eye, MousePointerClick
 } from 'lucide-react'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import InstallPWA from '@/components/InstallPWA'
@@ -72,6 +73,37 @@ export default function HomePage() {
   const [activeFilter, setActiveFilter] = useState('Todas')
   const [favorites, setFavorites] = useState<string[]>([])
   const [noticias, setNoticias] = useState<any[]>([])
+  const [adStats, setAdStats] = useState({ impressions: 0, clicks: 0 })
+  const adTracked = useRef(false)
+
+  const AD_ID = 'curso-preparatorio'
+  const AD_WHATSAPP = `https://wa.me/244929914392?text=${encodeURIComponent('Olá! Vi o anúncio do Curso Preparatório 2ª Edição no MÔ SALO e quero inscrever-me.')}`
+
+  const loadAdStats = async () => {
+    try {
+      const res = await fetch(`/api/ad-analytics?ad=${AD_ID}`)
+      const data = await res.json()
+      if (data?.stats) setAdStats(data.stats)
+    } catch {}
+  }
+
+  const trackAdImpression = async () => {
+    if (adTracked.current) return
+    adTracked.current = true
+    try {
+      await fetch(`/api/ad-analytics?ad=${AD_ID}&event=impression`, { method: 'POST' })
+      await loadAdStats()
+    } catch {}
+  }
+
+  const handleAdClick = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    try {
+      await fetch(`/api/ad-analytics?ad=${AD_ID}&event=click`, { method: 'POST' })
+      await loadAdStats()
+    } catch {}
+    window.open(AD_WHATSAPP, '_blank', 'noopener,noreferrer')
+  }
 
   const loadUserFromSession = async (session: any) => {
     if (!session?.user?.email) return null
@@ -151,6 +183,8 @@ export default function HomePage() {
       } catch {
         setNoticias([])
       }
+
+      trackAdImpression()
     }
     init()
 
@@ -172,6 +206,7 @@ export default function HomePage() {
     })
 
     return () => subscription.unsubscribe()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -675,7 +710,8 @@ export default function HomePage() {
         <section className="mb-8">
           <div className="bg-white rounded-3xl overflow-hidden border border-ms-border shadow-xl hover:shadow-2xl transition-shadow">
             <a
-              href={`https://wa.me/244929914392?text=${encodeURIComponent('Olá! Vi o anúncio do Curso Preparatório 2ª Edição no MÔ SALO e quero inscrever-me.')}`}
+              href={AD_WHATSAPP}
+              onClick={handleAdClick}
               target="_blank"
               rel="noopener noreferrer"
               className="block relative group"
@@ -694,9 +730,14 @@ export default function HomePage() {
               <div className="text-white">
                 <p className="text-sm font-bold">Curso Preparatório 2ª Edição</p>
                 <p className="text-[10px] text-white/80">Matemática e Física • Início 05.08.2026 • 25.000 Kzs</p>
+                <p className="text-[10px] text-white/70 mt-1 flex items-center gap-2">
+                  <span className="inline-flex items-center gap-0.5"><Eye size={11} /> {adStats.impressions}</span>
+                  <span className="inline-flex items-center gap-0.5"><MousePointerClick size={11} /> {adStats.clicks}</span>
+                </p>
               </div>
               <a
-                href={`https://wa.me/244929914392?text=${encodeURIComponent('Olá! Vi o anúncio do Curso Preparatório 2ª Edição no MÔ SALO e quero inscrever-me.')}`}
+                href={AD_WHATSAPP}
+                onClick={handleAdClick}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-1.5 bg-white text-ms-blue text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-ms-surface transition-colors whitespace-nowrap"
