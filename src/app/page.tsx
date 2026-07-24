@@ -586,33 +586,35 @@ export default function HomePage() {
 
         {/* Últimas Notícias */}
         {noticias.length > 0 && (
-          <section className="mb-6">
+          <section className="mb-8">
             <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Newspaper size={16} className="text-ms-blue" />
-                <h2 className="text-sm font-bold text-ms-dark">Últimas Notícias</h2>
+              <div>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <div className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center">
+                    <Newspaper size={16} className="text-red-600" />
+                  </div>
+                  <h2 className="text-base font-bold text-ms-dark">Últimas Notícias</h2>
+                </div>
+                <p className="text-[10px] text-ms-gray pl-9">Fica a par do que move Angola</p>
               </div>
-              <span className="text-[10px] text-ms-gray">Portal de Angola</span>
+              <span className="text-[10px] text-ms-gray">{noticias[0]?.source || 'Jornal de Angola'}</span>
             </div>
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-              {noticias.map((news: any) => (
+            <div className="flex gap-3 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-3 no-scrollbar -mx-4 px-4">
+              {noticias.map((news: any, idx: number) => (
                 <a
-                  key={news.id}
+                  key={news.id || idx}
                   href={news.link || '#'}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-shrink-0 w-64 bg-white border border-ms-border rounded-2xl p-4 hover:border-ms-blue/30 transition-all"
+                  className="snap-start flex-shrink-0 w-72 bg-white border border-ms-border rounded-2xl p-4 hover:border-red-400 hover:shadow-md transition-all group"
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <Newspaper size={20} className="text-red-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-ms-dark line-clamp-2">{news.title}</p>
-                      <p className="text-[10px] text-ms-gray mt-1 line-clamp-3">{news.excerpt || ''}</p>
-                      <p className="text-[10px] text-ms-blue mt-2">{getTimeAgo(news.date)}</p>
-                    </div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-red-600 px-2 py-0.5 rounded-md">Notícia</span>
+                    <span className="text-[10px] text-ms-gray">{getTimeAgo(news.date)}</span>
                   </div>
+                  <p className="text-sm font-bold text-ms-dark leading-snug line-clamp-3 mb-2 group-hover:text-red-700 transition-colors">{news.title}</p>
+                  <p className="text-xs text-ms-gray line-clamp-3 mb-3">{news.excerpt || ''}</p>
+                  <span className="inline-flex items-center text-[10px] font-semibold text-red-600">Ler notícia <ChevronDown size={12} className="-rotate-90 ml-0.5" /></span>
                 </a>
               ))}
             </div>
@@ -621,17 +623,22 @@ export default function HomePage() {
 
         {/* Programas de Estágio */}
         {estagioJobs.length > 0 && (
-          <section className="mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <BookOpen size={16} className="text-ms-blue" />
-                <h2 className="text-sm font-bold text-ms-dark">Programas de Estágio</h2>
+          <section className="mb-8">
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <div className="w-7 h-7 rounded-lg bg-ms-purple-light flex items-center justify-center">
+                    <BookOpen size={16} className="text-ms-blue" />
+                  </div>
+                  <h2 className="text-base font-bold text-ms-dark">Programas de Estágio</h2>
+                </div>
+                <p className="text-[10px] text-ms-gray pl-9">Dá o primeiro passo na tua carreira</p>
               </div>
-              <Link href="/vagas/?tipo=estagio" className="text-xs text-ms-blue font-medium">Ver todas</Link>
+              <Link href="/vagas/?q=estágio" className="text-xs text-ms-blue font-medium whitespace-nowrap mt-2">Ver todas</Link>
             </div>
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+            <div className="flex gap-3 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-3 no-scrollbar -mx-4 px-4">
               {estagioJobs.map((job: any) => (
-                <div key={job.favId} className="flex-shrink-0 w-72">
+                <div key={job.favId} className="snap-start flex-shrink-0 w-72">
                   <JobCard job={job} />
                 </div>
               ))}
@@ -641,17 +648,22 @@ export default function HomePage() {
 
         {/* Voluntariado */}
         {volunteerJobs.length > 0 && (
-          <section className="mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <HeartHandshake size={16} className="text-ms-blue" />
-                <h2 className="text-sm font-bold text-ms-dark">Voluntariado</h2>
+          <section className="mb-8">
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <div className="w-7 h-7 rounded-lg bg-green-50 flex items-center justify-center">
+                    <HeartHandshake size={16} className="text-green-600" />
+                  </div>
+                  <h2 className="text-base font-bold text-ms-dark">Voluntariado</h2>
+                </div>
+                <p className="text-[10px] text-ms-gray pl-9">Contribui e cresce com causas importantes</p>
               </div>
-              <Link href="/vagas/?tipo=voluntariado" className="text-xs text-ms-blue font-medium">Ver todas</Link>
+              <Link href="/vagas/?q=voluntariado" className="text-xs text-ms-blue font-medium whitespace-nowrap mt-2">Ver todas</Link>
             </div>
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+            <div className="flex gap-3 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-3 no-scrollbar -mx-4 px-4">
               {volunteerJobs.map((job: any) => (
-                <div key={job.favId} className="flex-shrink-0 w-72">
+                <div key={job.favId} className="snap-start flex-shrink-0 w-72">
                   <JobCard job={job} />
                 </div>
               ))}
