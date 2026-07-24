@@ -8,7 +8,7 @@ import { sortByMatch } from '@/lib/match'
 import {
   Search, SlidersHorizontal, Heart, Bell, Menu, X, Briefcase, Home as HomeIcon, User, LogOut, FileText,
   Settings, Star, MapPin, Monitor, Banknote, Stethoscope, Megaphone, Scale, GraduationCap, HardHat, Wrench,
-  MessageSquare, Zap, Users, Clock, ChevronDown
+  MessageSquare, Zap, Users, Clock, ChevronDown, Newspaper, BookOpen, HeartHandshake
 } from 'lucide-react'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import InstallPWA from '@/components/InstallPWA'
@@ -71,6 +71,7 @@ export default function HomePage() {
   const [notifications, setNotifications] = useState<any[]>([])
   const [activeFilter, setActiveFilter] = useState('Todas')
   const [favorites, setFavorites] = useState<string[]>([])
+  const [noticias, setNoticias] = useState<any[]>([])
 
   const loadUserFromSession = async (session: any) => {
     if (!session?.user?.email) return null
@@ -139,6 +140,16 @@ export default function HomePage() {
         }
       } catch {
         setAllExternal([])
+      }
+
+      try {
+        const res = await fetch('/noticias.json', { cache: 'no-store' })
+        if (res.ok) {
+          const news = await res.json()
+          setNoticias(Array.isArray(news.items) ? news.items : [])
+        }
+      } catch {
+        setNoticias([])
       }
     }
     init()
@@ -242,6 +253,22 @@ export default function HomePage() {
 
   const weeklyJobs = baseFiltered.filter((job: any) => weeklyJobIds.has(job.favId))
   const mainJobs = baseFiltered.filter((job: any) => !weeklyJobIds.has(job.favId))
+
+  const estagioJobs = useMemo(() => {
+    const kw = /estágio|estagio|internship|trainee|recém[- ]formados|recémformados|jovem|jovens/i
+    return allJobs.filter((job: any) => {
+      const text = `${job.titulo || job.title || ''} ${job.descricao || job.description || job.excerpt || ''} ${job.area || job.category || ''}`
+      return kw.test(text)
+    }).slice(0, 8)
+  }, [allJobs])
+
+  const volunteerJobs = useMemo(() => {
+    const kw = /voluntariado|voluntário|voluntario|ong|responsabilidade social|projecto social|comunidade|solidariedade|volunteer/i
+    return allJobs.filter((job: any) => {
+      const text = `${job.titulo || job.title || ''} ${job.descricao || job.description || job.excerpt || ''} ${job.area || job.category || ''}`
+      return kw.test(text)
+    }).slice(0, 8)
+  }, [allJobs])
 
   const toggleFavorite = (e: React.MouseEvent, job: any) => {
     e.preventDefault()
@@ -557,6 +584,81 @@ export default function HomePage() {
           </section>
         )}
 
+        {/* Últimas Notícias */}
+        {noticias.length > 0 && (
+          <section className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Newspaper size={16} className="text-ms-blue" />
+                <h2 className="text-sm font-bold text-ms-dark">Últimas Notícias</h2>
+              </div>
+              <span className="text-[10px] text-ms-gray">Portal de Angola</span>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+              {noticias.map((news: any) => (
+                <a
+                  key={news.id}
+                  href={news.link || '#'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-shrink-0 w-64 bg-white border border-ms-border rounded-2xl p-4 hover:border-ms-blue/30 transition-all"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <Newspaper size={20} className="text-red-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-ms-dark line-clamp-2">{news.title}</p>
+                      <p className="text-[10px] text-ms-gray mt-1 line-clamp-3">{news.excerpt || ''}</p>
+                      <p className="text-[10px] text-ms-blue mt-2">{getTimeAgo(news.date)}</p>
+                    </div>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Programas de Estágio */}
+        {estagioJobs.length > 0 && (
+          <section className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <BookOpen size={16} className="text-ms-blue" />
+                <h2 className="text-sm font-bold text-ms-dark">Programas de Estágio</h2>
+              </div>
+              <Link href="/vagas/?tipo=estagio" className="text-xs text-ms-blue font-medium">Ver todas</Link>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+              {estagioJobs.map((job: any) => (
+                <div key={job.favId} className="flex-shrink-0 w-72">
+                  <JobCard job={job} />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Voluntariado */}
+        {volunteerJobs.length > 0 && (
+          <section className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <HeartHandshake size={16} className="text-ms-blue" />
+                <h2 className="text-sm font-bold text-ms-dark">Voluntariado</h2>
+              </div>
+              <Link href="/vagas/?tipo=voluntariado" className="text-xs text-ms-blue font-medium">Ver todas</Link>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+              {volunteerJobs.map((job: any) => (
+                <div key={job.favId} className="flex-shrink-0 w-72">
+                  <JobCard job={job} />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* Ad placeholder */}
         <section className="mb-6">
           <div className="bg-gradient-to-r from-gray-100 to-gray-200 rounded-2xl p-5 border border-dashed border-gray-300 flex items-center justify-between">
@@ -588,7 +690,7 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {mainJobs.slice(0, 10).map((job: any) => <JobCard key={job.favId} job={job} featured={job.is_prioritaria || (job.score || 0) >= 20} />)}
+              {mainJobs.slice(0, 6).map((job: any) => <JobCard key={job.favId} job={job} featured={job.is_prioritaria || (job.score || 0) >= 20} />)}
             </div>
           )}
         </section>
