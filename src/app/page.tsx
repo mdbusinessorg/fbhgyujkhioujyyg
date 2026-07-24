@@ -8,7 +8,7 @@ import { sortByMatch } from '@/lib/match'
 import {
   Search, SlidersHorizontal, Heart, Bell, Menu, X, Briefcase, Home as HomeIcon, User, LogOut, FileText,
   Settings, Star, MapPin, Monitor, Banknote, Stethoscope, Megaphone, Scale, GraduationCap, HardHat, Wrench,
-  MessageSquare, Zap, Users, Clock, ChevronDown, Newspaper, BookOpen, HeartHandshake
+  MessageSquare, Zap, Users, Clock, ChevronDown, Newspaper, BookOpen, HeartHandshake, MessageCircle
 } from 'lucide-react'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import InstallPWA from '@/components/InstallPWA'
@@ -671,16 +671,38 @@ export default function HomePage() {
           </section>
         )}
 
-        {/* Ad placeholder */}
-        <section className="mb-6">
-          <div className="bg-gradient-to-r from-gray-100 to-gray-200 rounded-2xl p-5 border border-dashed border-gray-300 flex items-center justify-between">
-            <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Publicidade</span>
-              <p className="text-sm font-bold text-gray-700 mt-1">Espaço para anúncio</p>
-              <p className="text-[10px] text-gray-500">Promove a tua empresa ou formação aqui.</p>
-            </div>
-            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center flex-shrink-0">
-              <Megaphone size={24} className="text-gray-400" />
+        {/* Anúncio pago — Curso Preparatório 2ª Edição */}
+        <section className="mb-8">
+          <div className="bg-white rounded-3xl overflow-hidden border border-ms-border shadow-xl hover:shadow-2xl transition-shadow">
+            <a
+              href={`https://wa.me/244929914392?text=${encodeURIComponent('Olá! Vi o anúncio do Curso Preparatório 2ª Edição no MÔ SALO e quero inscrever-me.')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block relative group"
+            >
+              <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-white bg-gradient-to-r from-ms-blue to-ms-purple px-2.5 py-1 rounded-full shadow-sm">
+                Anúncio Pago
+              </span>
+              <img
+                src="/anuncios/curso-preparatorio-2edicao.png"
+                alt="Curso Preparatório 2ª Edição — Matemática e Física"
+                className="w-full h-auto object-cover object-top max-h-[420px] group-hover:scale-[1.01] transition-transform duration-500"
+              />
+              <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/70 to-transparent" />
+            </a>
+            <div className="p-4 bg-gradient-to-br from-ms-blue to-ms-purple flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="text-white">
+                <p className="text-sm font-bold">Curso Preparatório 2ª Edição</p>
+                <p className="text-[10px] text-white/80">Matemática e Física • Início 05.08.2026 • 25.000 Kzs</p>
+              </div>
+              <a
+                href={`https://wa.me/244929914392?text=${encodeURIComponent('Olá! Vi o anúncio do Curso Preparatório 2ª Edição no MÔ SALO e quero inscrever-me.')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-1.5 bg-white text-ms-blue text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-ms-surface transition-colors whitespace-nowrap"
+              >
+                <MessageCircle size={16} /> Inscrever pelo WhatsApp
+              </a>
             </div>
           </div>
         </section>

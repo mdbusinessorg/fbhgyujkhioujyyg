@@ -55,3 +55,14 @@
 .external-job-desc ol { list-style: decimal; }
 .external-job-desc li { margin: 0.25rem 0; }
 .external-job-desc strong, .external-job-desc b { color: #1f2937; font-weight: 600; }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+.animate-float-delayed {
+  animation: float 3s ease-in-out 0.5s infinite;
+}
