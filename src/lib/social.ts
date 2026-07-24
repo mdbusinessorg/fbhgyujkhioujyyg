@@ -28,7 +28,7 @@ export interface MessageRequest {
 export interface Notification {
   id: string
   user_id: string
-  type: 'network_request' | 'network_accepted' | 'message'
+  type: 'network_request' | 'network_accepted' | 'message' | 'job_match'
   title: string
   body: string
   data?: Record<string, any>

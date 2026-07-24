@@ -6,6 +6,9 @@
 [functions]
   node_bundler = "esbuild"
 
+[functions."notify-new-jobs"]
+  schedule = "*/30 * * * *"
+
 [[headers]]
   for = "/external-jobs.json"
   [headers.values]
