@@ -25,6 +25,28 @@ function stripNonPrintable(str) {
   return str.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
+async function extractPdfText(buf) {
+  try {
+    const [{ getDocument, GlobalWorkerOptions }, { pathToFileURL }] = await Promise.all([
+      import('pdfjs-dist/legacy/build/pdf.mjs'),
+      import('url'),
+    ])
+    const workerPath = pathToFileURL(require.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs')).href
+    GlobalWorkerOptions.workerSrc = workerPath
+    const doc = await getDocument({ data: new Uint8Array(buf), useSystemFonts: true, disableFontFace: true }).promise
+    const pages = await Promise.all(Array.from({ length: doc.numPages }, (_, i) => doc.getPage(i + 1)))
+    const texts = await Promise.all(pages.map(async p => {
+      const txt = await p.getTextContent()
+      return txt.items.map(item => item.str).join(' ')
+    }))
+    await doc.destroy()
+    return stripNonPrintable(texts.join('\n'))
+  } catch (err) {
+    console.error('pdfjs-dist falhou:', err.message || err)
+    return ''
+  }
+}
+
 async function extractText(fileUrl, fallbackText) {
   const text = (fallbackText || '').trim()
   if (text) return text
@@ -38,15 +60,10 @@ async function extractText(fileUrl, fallbackText) {
       return stripNonPrintable(buf.toString('utf-8'))
     }
     if (name.endsWith('.pdf')) {
-      try {
-        const pdf = require('pdf-parse')
-        const data = await pdf(buf)
-        return stripNonPrintable(data.text || '')
-      } catch (pdfErr) {
-        console.error('pdf-parse falhou, a tentar extração simples:', pdfErr.message || pdfErr)
-        const raw = buf.toString('utf-8', 0, Math.min(buf.length, 500000))
-        return stripNonPrintable(raw.replace(/[^\x20-\x7E\n\r\tÁÉÍÓÚáéíóúÀÈÌÒÙàèìòùÃÕãõÂÊÔâêôÇç]/gi, ' '))
-      }
+      const pdfText = await extractPdfText(buf)
+      if (pdfText) return pdfText
+      const raw = buf.toString('utf-8', 0, Math.min(buf.length, 100000))
+      return stripNonPrintable(raw.replace(/[^\x20-\x7E\n\r\tÁÉÍÓÚáéíóúÀÈÌÒÙàèìòùÃÕãõÂÊÔâêôÇç]/gi, ' '))
     }
     if (name.endsWith('.docx') || name.endsWith('.doc')) {
       try {
