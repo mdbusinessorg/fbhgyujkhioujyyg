@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
-import { ArrowLeft, Heart, MapPin, Send, Upload, MessageSquare } from 'lucide-react'
+import { ArrowLeft, Heart, MapPin, Send, Upload, MessageSquare, MessageCircle, LogIn } from 'lucide-react'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import Logo from '@/components/Logo'
 
@@ -166,14 +166,36 @@ function VagaDetalheContent() {
 
         {/* About */}
         {vaga.descricao && (
-          <div className="mb-6">
+          <div className="mb-6 relative">
             <h2 className="text-sm font-semibold text-ms-dark mb-2">Sobre a Vaga</h2>
-            <p className="text-sm text-ms-gray leading-relaxed whitespace-pre-line">{vaga.descricao}</p>
+            {!isLoggedIn ? (
+              <>
+                <p className="text-sm text-ms-gray leading-relaxed whitespace-pre-line">{vaga.descricao.slice(0, 180)}...</p>
+                <div className="mt-3 bg-gradient-to-r from-ms-blue to-ms-purple rounded-xl p-4 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <p className="text-xs text-white/90">Entra ou regista-te para ver a descrição completa e candidatar-te.</p>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Link href="/auth/login/" className="inline-flex items-center gap-1 bg-white text-ms-blue text-xs font-bold px-3 py-2 rounded-xl hover:bg-ms-surface">
+                      <LogIn size={14} /> Entrar
+                    </Link>
+                    <a
+                      href={`https://wa.me/244934859497?text=${encodeURIComponent(`Olá! Vi a vaga *${vaga.titulo}* no MÔ SALO e quero saber mais.`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 bg-green-500 text-white text-xs font-bold px-3 py-2 rounded-xl hover:bg-green-600"
+                    >
+                      <MessageCircle size={14} /> WhatsApp
+                    </a>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-ms-gray leading-relaxed whitespace-pre-line">{vaga.descricao}</p>
+            )}
           </div>
         )}
 
         {/* Requirements - extracted from descricao if present */}
-        {vaga.descricao && vaga.descricao.includes('Requisitos:') && (
+        {isLoggedIn && vaga.descricao && vaga.descricao.includes('Requisitos:') && (
           <div className="mb-6">
             <h2 className="text-sm font-semibold text-ms-dark mb-2">Requisitos</h2>
             <ul className="space-y-1">

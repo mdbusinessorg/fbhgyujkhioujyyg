@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { Search, SlidersHorizontal, Heart, Briefcase, ArrowLeft, Home as HomeIcon, User, Star, MapPin, Globe, Building2, X, Filter, ChevronDown } from 'lucide-react'
+import { Search, SlidersHorizontal, Heart, Briefcase, ArrowLeft, Home as HomeIcon, User, Star, MapPin, Globe, Building2, X, Filter, ChevronDown, MessageCircle, LogIn } from 'lucide-react'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import Logo from '@/components/Logo'
 import { sortByMatch } from '@/lib/match'
@@ -241,7 +241,11 @@ export default function VagasPage() {
             <div className="flex-1 min-w-0 pr-16">
               <h3 className={`text-sm ${isDestaque ? 'font-semibold' : 'font-medium'} text-ms-dark line-clamp-2`}>{v.titulo}</h3>
               <p className="text-xs text-ms-gray">{v.empresa_nome}</p>
-              <p className="text-xs text-ms-gray mt-1.5 line-clamp-3 sm:line-clamp-2">{stripHtml(v.descricao || '').slice(0, 220)}</p>
+              {isLoggedIn ? (
+                <p className="text-xs text-ms-gray mt-1.5 line-clamp-3 sm:line-clamp-2">{stripHtml(v.descricao || '').slice(0, 220)}</p>
+              ) : (
+                <p className="text-xs text-ms-blue mt-1.5">Entre para ver a descrição completa</p>
+              )}
               <div className="flex items-center gap-2 mt-2 flex-wrap">
                 {v.area && (
                   <span className="text-[10px] text-ms-blue bg-ms-blue/10 px-2 py-0.5 rounded-full">{v.area}</span>
@@ -281,7 +285,11 @@ export default function VagasPage() {
             <div className="flex-1 min-w-0">
               <h3 className="text-base font-bold text-ms-dark leading-snug mb-1 line-clamp-2">{j.title}</h3>
               {j.company && <p className="text-xs text-ms-gray mb-1">{j.company}</p>}
-              <p className="text-xs text-ms-gray mt-1 line-clamp-4 sm:line-clamp-2">{stripHtml(j.excerpt || j.description)}</p>
+              {isLoggedIn ? (
+                <p className="text-xs text-ms-gray mt-1 line-clamp-4 sm:line-clamp-2">{stripHtml(j.excerpt || j.description)}</p>
+              ) : (
+                <p className="text-xs text-ms-blue mt-1">Entre para ver a descrição completa</p>
+              )}
               <div className="flex items-center gap-2 mt-2 flex-wrap">
                 {j.location && <span className="inline-flex items-center gap-0.5 text-[11px] text-ms-gray"><MapPin size={10} /> {j.location}</span>}
                 {j.salary && <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">{j.salary}</span>}
@@ -333,6 +341,29 @@ export default function VagasPage() {
             <SlidersHorizontal size={14} className="text-white" />
           </button>
         </div>
+
+        {/* Guest CTA */}
+        {!isLoggedIn && (
+          <div className="bg-gradient-to-r from-ms-blue to-ms-purple rounded-2xl p-4 mb-4 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold">Entre para ver as vagas completas</p>
+              <p className="text-xs text-white/80 mt-0.5">Vês título e empresa, mas as descrições completas e candidatura exigem login. Fala connosco no WhatsApp se precisares de ajuda.</p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Link href="/auth/login/" className="inline-flex items-center gap-1 bg-white text-ms-blue text-xs font-bold px-3 py-2 rounded-xl hover:bg-ms-surface">
+                <LogIn size={14} /> Entrar
+              </Link>
+              <a
+                href={`https://wa.me/244934859497?text=${encodeURIComponent('Olá! Vi as vagas no MÔ SALO e quero saber mais.')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 bg-green-500 text-white text-xs font-bold px-3 py-2 rounded-xl hover:bg-green-600"
+              >
+                <MessageCircle size={14} /> WhatsApp
+              </a>
+            </div>
+          </div>
+        )}
 
         {/* Source toggle: MÔ SALO vs External (CareerJet) */}
         <div className="flex gap-2 mb-4 bg-ms-surface rounded-xl p-1">

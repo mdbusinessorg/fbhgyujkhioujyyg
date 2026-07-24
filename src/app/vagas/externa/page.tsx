@@ -3,7 +3,8 @@
 import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Heart, MapPin, Clock, Linkedin, Send } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
+import { ArrowLeft, Heart, MapPin, Clock, Linkedin, Send, MessageCircle, LogIn } from 'lucide-react'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import Logo from '@/components/Logo'
 
@@ -13,6 +14,7 @@ function ExternaContent() {
   const jobId = searchParams.get('id')
   const [job, setJob] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -23,6 +25,8 @@ function ExternaContent() {
       } catch {
         // ignore — handled by not-found state below
       }
+      const { data: { session } } = await supabase.auth.getSession()
+      setIsLoggedIn(!!session)
       setLoading(false)
     }
     load()
@@ -96,12 +100,37 @@ function ExternaContent() {
         </div>
 
         {job.description && (
-          <div className="mb-6">
+          <div className="mb-6 relative">
             <h2 className="text-sm font-semibold text-ms-dark mb-2">Sobre a Vaga</h2>
-            <div
-              className="external-job-desc text-sm text-ms-gray leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: job.description }}
-            />
+            {!isLoggedIn ? (
+              <>
+                <div
+                  className="external-job-desc text-sm text-ms-gray leading-relaxed line-clamp-6"
+                  dangerouslySetInnerHTML={{ __html: job.description }}
+                />
+                <div className="mt-3 bg-gradient-to-r from-ms-blue to-ms-purple rounded-xl p-4 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <p className="text-xs text-white/90">Entra ou regista-te para ver a descrição completa.</p>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Link href="/auth/login/" className="inline-flex items-center gap-1 bg-white text-ms-blue text-xs font-bold px-3 py-2 rounded-xl hover:bg-ms-surface">
+                      <LogIn size={14} /> Entrar
+                    </Link>
+                    <a
+                      href={`https://wa.me/244934859497?text=${encodeURIComponent(`Olá! Vi a vaga *${job.title}* no MÔ SALO e quero saber mais.`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 bg-green-500 text-white text-xs font-bold px-3 py-2 rounded-xl hover:bg-green-600"
+                    >
+                      <MessageCircle size={14} /> WhatsApp
+                    </a>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div
+                className="external-job-desc text-sm text-ms-gray leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: job.description }}
+              />
+            )}
           </div>
         )}
 
