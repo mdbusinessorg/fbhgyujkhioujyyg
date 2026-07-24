@@ -21,32 +21,48 @@ async function fetchFileAsBuffer(fileUrl) {
   return Buffer.from(arrayBuffer)
 }
 
-async function extractText(fileUrl, fallbackText) {
-  if (!fileUrl) return fallbackText || ''
-  const name = fileNameFromUrl(fileUrl).toLowerCase()
-  const text = (fallbackText || '').trim()
+function stripNonPrintable(str) {
+  return str.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]/g, ' ').replace(/\s+/g, ' ').trim()
+}
 
+async function extractText(fileUrl, fallbackText) {
+  const text = (fallbackText || '').trim()
   if (text) return text
+
+  if (!fileUrl) return ''
+  const name = fileNameFromUrl(fileUrl).toLowerCase()
 
   try {
     const buf = await fetchFileAsBuffer(fileUrl)
     if (name.endsWith('.txt') || name.endsWith('.md')) {
-      return buf.toString('utf-8')
+      return stripNonPrintable(buf.toString('utf-8'))
     }
     if (name.endsWith('.pdf')) {
-      const pdf = require('pdf-parse')
-      const data = await pdf(buf)
-      return data.text || ''
+      try {
+        const pdf = require('pdf-parse')
+        const data = await pdf(buf)
+        return stripNonPrintable(data.text || '')
+      } catch (pdfErr) {
+        console.error('pdf-parse falhou, a tentar extração simples:', pdfErr.message || pdfErr)
+        const raw = buf.toString('utf-8', 0, Math.min(buf.length, 500000))
+        return stripNonPrintable(raw.replace(/[^\x20-\x7E\n\r\tÁÉÍÓÚáéíóúÀÈÌÒÙàèìòùÃÕãõÂÊÔâêôÇç]/gi, ' '))
+      }
     }
     if (name.endsWith('.docx') || name.endsWith('.doc')) {
-      const mammoth = require('mammoth')
-      const result = await mammoth.extractRawText({ buffer: buf })
-      return result.value || ''
+      try {
+        const mammoth = require('mammoth')
+        const result = await mammoth.extractRawText({ buffer: buf })
+        return stripNonPrintable(result.value || '')
+      } catch (docErr) {
+        console.error('mammoth falhou:', docErr.message || docErr)
+        return ''
+      }
     }
+    return stripNonPrintable(buf.toString('utf-8', 0, Math.min(buf.length, 100000)))
   } catch (err) {
-    console.error('Erro a extrair texto do CV:', err)
+    console.error('Erro a extrair texto do CV:', err.message || err)
+    return ''
   }
-  return ''
 }
 
 exports.handler = async (event) => {
@@ -72,6 +88,22 @@ exports.handler = async (event) => {
 
   const system = `És um assistente de recrutamento especializado no mercado angolano. Analisa um currículo e devolve APENAS um objeto JSON com estes campos preenchidos: nome (string), area (string - área principal/cargo procurado, em português), localizacao (string - cidade/província), nivel_academico (string), experiencias (string resumo das experiências principais, com anos se possível), competencias (string com competências separadas por vírgula) e bio (string com resumo profissional em 2-3 frases). Se não tiveres certeza de algum campo, usa string vazia.`
 
+function extractJson(raw) {
+  if (!raw) return null
+  raw = raw.trim()
+  if (raw.startsWith('```json')) {
+    raw = raw.slice(7).replace(/```$/, '').trim()
+  } else if (raw.startsWith('```')) {
+    raw = raw.slice(3).replace(/```$/, '').trim()
+  }
+  const start = raw.indexOf('{')
+  const end = raw.lastIndexOf('}')
+  if (start !== -1 && end > start) {
+    try { return JSON.parse(raw.slice(start, end + 1)) } catch {}
+  }
+  try { return JSON.parse(raw) } catch { return null }
+}
+
   try {
     const raw = await groqChat(
       [
@@ -80,9 +112,13 @@ exports.handler = async (event) => {
       ],
       { temperature: 0.4, maxTokens: 1024, json: true }
     )
-    const parsed = JSON.parse(raw || '{}')
-    return { statusCode: 200, headers, body: JSON.stringify({ ...parsed, _textPreview: text.slice(0, 200) }) }
+    const parsed = extractJson(raw) || {}
+    const fields = ['nome', 'area', 'localizacao', 'nivel_academico', 'experiencias', 'competencias', 'bio']
+    const result = {}
+    fields.forEach(f => { result[f] = parsed[f] || '' })
+    result._textPreview = text.slice(0, 200)
+    return { statusCode: 200, headers, body: JSON.stringify(result) }
   } catch (err) {
-    return { statusCode: 500, headers, body: JSON.stringify({ error: `Erro IA: ${err.message}` }) }
+    return { statusCode: 500, headers, body: JSON.stringify({ error: `Erro IA: ${err.message || err}` }) }
   }
 }

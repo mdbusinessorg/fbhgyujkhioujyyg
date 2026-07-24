@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
@@ -12,7 +12,7 @@ import ShareMenu from '@/components/ShareMenu'
 import {
   Search, MessageSquare, Users, User, MapPin, Briefcase, Home, FileText,
   UserPlus, UserCheck, Link2, Send, Trash2, MoreHorizontal, Heart,
-  MessageCircle, Plus, Bell, Check, X
+  MessageCircle, Plus, Bell, Check, X, ImagePlus
 } from 'lucide-react'
 
 interface PersonResult {
@@ -93,7 +93,7 @@ function parseCompetencias(comp: any): string[] {
 
 export default function PessoasPage() {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'descobrir' | 'network' | 'mensagens' | 'feed'>('descobrir')
+  const [activeTab, setActiveTab] = useState<'descobrir' | 'network' | 'mensagens' | 'feed'>('feed')
   const [currentUser, setCurrentUser] = useState<{ id: string; nome: string; role: string; avatar_url?: string | null } | null>(null)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
 
@@ -115,6 +115,9 @@ export default function PessoasPage() {
   const [postContent, setPostContent] = useState('')
   const [posting, setPosting] = useState(false)
   const [postedToday, setPostedToday] = useState(false)
+  const [postImage, setPostImage] = useState<File | null>(null)
+  const [postImagePreview, setPostImagePreview] = useState<string | null>(null)
+  const postFileInputRef = useRef<HTMLInputElement>(null)
   const [likersModal, setLikersModal] = useState<{ open: boolean; postId: string | null; likers: { id: string; nome: string }[] }>({ open: false, postId: null, likers: [] })
 
   const loadPeople = useCallback(async (search: string, currentUserId?: string) => {
@@ -288,13 +291,34 @@ export default function PessoasPage() {
     } catch {}
   }
 
+  const handlePostImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) { alert('Só podes carregar imagens.'); return }
+    if (file.size > 5 * 1024 * 1024) { alert('Imagem demasiado grande. Máx. 5 MB.'); return }
+    setPostImage(file)
+    setPostImagePreview(URL.createObjectURL(file))
+    if (postFileInputRef.current) postFileInputRef.current.value = ''
+  }
+
   const handlePublish = async () => {
-    if (!currentUser || !postContent.trim()) return
+    if (!currentUser || (!postContent.trim() && !postImage)) return
     if (postedToday) { alert('Só podes publicar uma vez por dia.'); return }
     setPosting(true)
     try {
-      await social.createPost({ user_id: currentUser.id, content: postContent.trim(), author: { id: currentUser.id, nome: currentUser.nome, avatar_url: currentUser.avatar_url, role: currentUser.role } })
+      let media_url: string | undefined
+      if (postImage) {
+        const ext = postImage.name.split('.').pop() || 'jpg'
+        const path = `post-images/${currentUser.id}/${Date.now()}.${ext}`
+        const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(path, postImage, { upsert: true })
+        if (error) throw error
+        const { data: { publicUrl } } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path)
+        media_url = publicUrl
+      }
+      await social.createPost({ user_id: currentUser.id, content: postContent.trim() || (media_url ? '' : '...'), media_url, author: { id: currentUser.id, nome: currentUser.nome, avatar_url: currentUser.avatar_url, role: currentUser.role } })
       setPostContent('')
+      setPostImage(null)
+      setPostImagePreview(null)
       setPostedToday(true)
       loadPosts(currentUser.id)
     } catch (err: any) { alert('Erro ao publicar: ' + (err.message || 'tenta de novo')) }
@@ -359,8 +383,6 @@ export default function PessoasPage() {
 
   const renderDiscover = () => (
     <div className="space-y-4">
-      {renderStories()}
-
       <div className="bg-white rounded-2xl p-3 border border-ms-border/60 shadow-sm flex items-center gap-2">
         <Search size={18} className="text-ms-gray ml-1" />
         <input type="text" value={query} onChange={e => setQuery(e.target.value)} placeholder="Pesquisar por nome, área ou cidade..." className="flex-1 bg-transparent outline-none text-sm text-ms-dark placeholder:text-ms-gray" />
@@ -419,23 +441,28 @@ export default function PessoasPage() {
                       {comps.slice(0, 4).map((c, i) => <span key={i} className="text-[10px] px-2 py-0.5 bg-ms-surface text-ms-dark rounded-full font-medium">{c}</span>)}
                     </div>
                   )}
-                  <div className="flex items-center gap-2 mt-3">
+                  <div className="flex flex-wrap items-center gap-2 mt-3">
+                    {!isMe && (
+                      <button onClick={() => { recordView(person.id); router.push(`/pessoas/perfil/?id=${person.id}`) }} className="flex items-center justify-center gap-1.5 px-3 py-2 bg-white border border-ms-border text-ms-dark text-xs font-medium rounded-xl hover:bg-ms-surface transition-colors">
+                        <User size={14} /> Ver perfil
+                      </button>
+                    )}
                     {!isMe && rel === 'none' && (
-                      <button onClick={() => handleConnect(person.id)} className="flex-1 flex items-center justify-center gap-1.5 bg-ms-blue text-white text-xs font-medium py-2 rounded-xl hover:bg-blue-700 transition-colors">
+                      <button onClick={() => handleConnect(person.id)} className="flex items-center justify-center gap-1.5 bg-ms-blue text-white text-xs font-medium px-4 py-2 rounded-xl hover:bg-blue-700 transition-colors">
                         <UserPlus size={14} /> Conectar
                       </button>
                     )}
                     {!isMe && rel === 'sent' && (
-                      <span className="flex-1 text-center text-xs py-2 bg-ms-surface text-ms-gray rounded-xl font-medium">Pedido enviado</span>
+                      <span className="text-center text-xs py-2 px-3 bg-ms-surface text-ms-gray rounded-xl font-medium">Pedido enviado</span>
                     )}
                     {!isMe && rel === 'received' && (
                       <>
-                        <button onClick={() => { const req = requests.find(r => r.requester_id === person.id && r.recipient_id === currentUser?.id); if (req) acceptRequest(req) }} className="flex-1 flex items-center justify-center gap-1.5 bg-green-50 text-green-700 text-xs font-medium py-2 rounded-xl hover:bg-green-100 transition-colors"><Check size={14} /> Aceitar</button>
-                        <button onClick={() => { const req = requests.find(r => r.requester_id === person.id && r.recipient_id === currentUser?.id); if (req) rejectRequest(req.id) }} className="flex-1 flex items-center justify-center gap-1.5 bg-red-50 text-red-700 text-xs font-medium py-2 rounded-xl hover:bg-red-100 transition-colors"><X size={14} /> Rejeitar</button>
+                        <button onClick={() => { const req = requests.find(r => r.requester_id === person.id && r.recipient_id === currentUser?.id); if (req) acceptRequest(req) }} className="flex items-center justify-center gap-1.5 bg-green-50 text-green-700 text-xs font-medium px-3 py-2 rounded-xl hover:bg-green-100 transition-colors"><Check size={14} /> Aceitar</button>
+                        <button onClick={() => { const req = requests.find(r => r.requester_id === person.id && r.recipient_id === currentUser?.id); if (req) rejectRequest(req.id) }} className="flex items-center justify-center gap-1.5 bg-red-50 text-red-700 text-xs font-medium px-3 py-2 rounded-xl hover:bg-red-100 transition-colors"><X size={14} /> Rejeitar</button>
                       </>
                     )}
                     {!isMe && rel === 'connected' && (
-                      <button onClick={() => handleMessage(person.id)} className="flex-1 flex items-center justify-center gap-1.5 bg-ms-surface text-ms-dark border border-ms-border text-xs font-medium py-2 rounded-xl hover:bg-ms-purple-light hover:text-ms-purple transition-colors">
+                      <button onClick={() => handleMessage(person.id)} className="flex items-center justify-center gap-1.5 bg-ms-surface text-ms-dark border border-ms-border text-xs font-medium px-4 py-2 rounded-xl hover:bg-ms-purple-light hover:text-ms-purple transition-colors">
                         <MessageSquare size={14} /> Mensagem
                       </button>
                     )}
@@ -584,11 +611,23 @@ export default function PessoasPage() {
           <Avatar url={currentUser?.avatar_url} name={currentUser?.nome} size={44} />
           <div className="flex-1">
             <textarea value={postContent} onChange={e => setPostContent(e.target.value)} maxLength={500} rows={3} placeholder={currentUser ? "Partilha uma ideia, oportunidade ou conquista profissional..." : "Inicia sessão para publicares"} disabled={!currentUser || postedToday || posting} className="w-full bg-ms-surface rounded-xl px-4 py-3 text-sm text-ms-dark placeholder:text-ms-gray outline-none focus:ring-2 focus:ring-ms-blue/20 resize-none disabled:opacity-60" />
+            {postImagePreview && (
+              <div className="relative mt-2 inline-block">
+                <img src={postImagePreview} alt="Pré-visualização" className="h-24 w-auto rounded-xl object-cover" />
+                <button onClick={() => { setPostImage(null); setPostImagePreview(null) }} className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs">×</button>
+              </div>
+            )}
             <div className="flex items-center justify-between mt-2">
-              <span className="text-[10px] text-ms-gray">{postContent.length}/500</span>
+              <div className="flex items-center gap-2">
+                <button onClick={() => postFileInputRef.current?.click()} disabled={!currentUser || postedToday || posting} className="flex items-center gap-1 px-3 py-2 bg-ms-surface text-ms-gray rounded-xl text-xs font-medium hover:text-ms-blue disabled:opacity-50">
+                  <ImagePlus size={14} /> Foto
+                </button>
+                <input ref={postFileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePostImageSelect} />
+                <span className="text-[10px] text-ms-gray">{postContent.length}/500</span>
+              </div>
               {postedToday ? <span className="text-xs text-ms-gray">Já publicaste hoje</span> : (
-                <button onClick={handlePublish} disabled={!currentUser || !postContent.trim() || posting} className="flex items-center gap-1.5 px-4 py-2 bg-ms-blue text-white rounded-xl text-xs font-medium disabled:opacity-50 hover:bg-ms-blue-dark transition-colors">
-                  <Send size={14} /> Publicar
+                <button onClick={handlePublish} disabled={!currentUser || (!postContent.trim() && !postImage) || posting} className="flex items-center gap-1.5 px-4 py-2 bg-ms-blue text-white rounded-xl text-xs font-medium disabled:opacity-50 hover:bg-ms-blue-dark transition-colors">
+                  {posting ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send size={14} />} Publicar
                 </button>
               )}
             </div>
@@ -617,7 +656,8 @@ export default function PessoasPage() {
                 <span className={`inline-block text-[10px] px-2 py-0.5 rounded-full font-medium mt-1 ${post.author.role === 'recrutador' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`}>{post.author.role === 'recrutador' ? 'Recrutador' : 'Talento'}</span>
               </div>
             </div>
-            <p className="text-sm text-ms-dark whitespace-pre-wrap mb-4">{post.content}</p>
+            {post.content && <p className="text-sm text-ms-dark whitespace-pre-wrap mb-3">{post.content}</p>}
+            {post.media_url && <img src={post.media_url} alt="" className="w-full h-auto max-h-96 object-contain rounded-2xl mb-3 select-none" draggable={false} />}
             <div className="flex items-center justify-between pt-3 border-t border-ms-border">
               <div className="flex items-center gap-4">
                 <button onClick={() => toggleLike(post)} className={`flex items-center gap-1.5 text-xs font-medium ${post.liked_by_me ? 'text-red-500' : 'text-ms-gray hover:text-ms-dark'}`}>
@@ -652,10 +692,10 @@ export default function PessoasPage() {
   )
 
   const tabs = [
-    { key: 'descobrir', label: 'Descobrir', icon: Search },
+    { key: 'feed', label: 'Feed', icon: MessageCircle },
     { key: 'network', label: 'Network', icon: Link2 },
+    { key: 'descobrir', label: 'Descobrir', icon: Search },
     { key: 'mensagens', label: 'Mensagens', icon: MessageSquare },
-    { key: 'feed', label: 'Publicações', icon: MessageCircle },
   ] as const
 
   return (
@@ -671,6 +711,8 @@ export default function PessoasPage() {
       </header>
 
       <main className="max-w-3xl mx-auto px-4 pt-4">
+        {renderStories()}
+
         <div className="flex items-center justify-between bg-ms-surface rounded-full p-1 mb-4">
           {tabs.map(t => {
             const Icon = t.icon

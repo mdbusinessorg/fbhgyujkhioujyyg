@@ -29,9 +29,11 @@ exports.handler = async (event) => {
   if (event.httpMethod === 'POST') {
     let payload = {}
     try { payload = JSON.parse(event.body || '{}') } catch {}
-    const { user_id, content, author } = payload
-    if (!user_id || !content || !content.trim()) {
-      return { statusCode: 400, headers, body: JSON.stringify({ error: 'user_id e content obrigatórios' }) }
+    const { user_id, content, media_url, author } = payload
+    const hasContent = content && content.trim()
+    const hasMedia = media_url && typeof media_url === 'string'
+    if (!user_id || (!hasContent && !hasMedia)) {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: 'user_id e content/media_url obrigatórios' }) }
     }
 
     const data = (await store.get('all')) || '[]'
@@ -45,7 +47,8 @@ exports.handler = async (event) => {
     const post = {
       id: crypto.randomUUID(),
       user_id,
-      content: content.trim(),
+      content: (content || '').trim(),
+      media_url: media_url || null,
       created_at: new Date().toISOString(),
       author: author || { id: user_id, nome: 'Utilizador', role: 'candidato' },
     }

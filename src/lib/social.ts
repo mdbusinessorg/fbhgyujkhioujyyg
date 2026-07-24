@@ -9,6 +9,7 @@ export interface Post {
   id: string
   user_id: string
   content: string
+  media_url?: string | null
   created_at: string
   author: PostAuthor
   likes_count?: number
@@ -53,7 +54,7 @@ const api = async (path: string, options?: RequestInit) => {
 export const social = {
   getPosts: (): Promise<Post[]> => api('/posts'),
 
-  createPost: (payload: { user_id: string; content: string; author: PostAuthor }): Promise<Post> =>
+  createPost: (payload: { user_id: string; content: string; media_url?: string | null; author: PostAuthor }): Promise<Post> =>
     api('/posts', { method: 'POST', body: JSON.stringify(payload) }),
 
   deletePost: (id: string, user_id: string): Promise<{ ok: boolean }> =>

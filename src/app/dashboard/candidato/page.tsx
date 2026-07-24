@@ -161,24 +161,36 @@ function CandidatoDashboard() {
     setUploading(false)
   }
 
-  const handleSaveProfile = async () => {
+  const persistProfile = async (values?: { nome?: string; telefone?: string; area?: string; localizacao?: string; nivel?: string; bio?: string; experiencias?: string; competencias?: string }) => {
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
+    if (!session || !userId) return
 
-    if (!userId) return
-    await supabase.from('users').update({ nome: editNome, telefone: editTelefone }).eq('id', userId)
+    const nome = values?.nome ?? editNome
+    const telefone = values?.telefone ?? editTelefone
+    const area = values?.area ?? editArea
+    const localizacao = values?.localizacao ?? editLocalizacao
+    const nivel = values?.nivel ?? editNivel
+    const bio = values?.bio ?? editBio
+    const experiencias = values?.experiencias ?? editExperiencias
+    const competencias = values?.competencias ?? editCompetencias
+
+    await supabase.from('users').update({ nome, telefone }).eq('id', userId)
     const { error } = await supabase.from('profiles').upsert({
       user_id: userId,
       documentos,
-      area: editArea || null,
-      localizacao: editLocalizacao || null,
-      nivel_academico: editNivel || null,
-      bio: editBio || null,
-      experiencias: editExperiencias || null,
-      competencias: editCompetencias || null,
+      area: area || null,
+      localizacao: localizacao || null,
+      nivel_academico: nivel || null,
+      bio: bio || null,
+      experiencias: experiencias || null,
+      competencias: competencias || null,
     }, { onConflict: 'user_id' })
     if (error) { alert('Erro ao guardar: ' + error.message); return }
-    setProfile((p: any) => ({ ...(p || {}), area: editArea, localizacao: editLocalizacao, nivel_academico: editNivel, bio: editBio, experiencias: editExperiencias, competencias: editCompetencias }))
+    setProfile((p: any) => ({ ...(p || {}), area, localizacao, nivel_academico: nivel, bio, experiencias, competencias }))
+  }
+
+  const handleSaveProfile = async () => {
+    await persistProfile()
     setProfileSaved(true)
     setTimeout(() => setProfileSaved(false), 2500)
   }
@@ -241,7 +253,8 @@ function CandidatoDashboard() {
       if (experiencias) setEditExperiencias(experiencias)
       if (competencias) setEditCompetencias(competencias)
       if (bio) setEditBio(bio)
-      setParseCvMessage('Perfil preenchido a partir do CV. Não te esqueças de guardar.')
+      await persistProfile({ nome: nome || editNome, area, localizacao, nivel: nivel_academico, bio, experiencias, competencias })
+      setParseCvMessage('Perfil preenchido e guardado automaticamente a partir do CV.')
     }
     setParseCvLoading(false)
   }
