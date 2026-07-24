@@ -3,12 +3,13 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 import { startOrRequestConversation } from '@/lib/messaging'
 import { social, type MessageRequest } from '@/lib/social'
 import Logo from '@/components/Logo'
 import ShareMenu from '@/components/ShareMenu'
 import { ArrowLeft, MapPin, Briefcase, MessageSquare, Bookmark, Users, UserPlus, UserCheck, Link2, Check, X } from 'lucide-react'
+import ProfileAvatar from '@/components/ProfileAvatar'
 
 interface PersonProfile {
   id: string
@@ -26,12 +27,6 @@ interface PersonProfile {
     nivel_academico?: string
     experiencias?: string
   }
-}
-
-const getAvatarUrl = (avatar?: string | null) => {
-  if (!avatar) return null
-  if (avatar.startsWith('http')) return avatar
-  return `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${avatar}`
 }
 
 const parseCompetencias = (comp: any): string[] => {
@@ -153,8 +148,6 @@ function PerfilContent() {
     )
   }
 
-  const src = getAvatarUrl(person.avatar_url)
-  const initial = (person.nome || 'U').charAt(0).toUpperCase()
   const comps = parseCompetencias(person.profile?.competencias)
 
   return (
@@ -175,9 +168,7 @@ function PerfilContent() {
       <main className="max-w-3xl mx-auto px-4 pt-6">
         <div className="bg-white rounded-2xl p-6 border border-ms-border shadow-sm text-center mb-4">
           <div className="w-24 h-24 mx-auto mb-4 rounded-full p-1" style={{ background: 'linear-gradient(135deg, #1A56FF 0%, #6C47FF 100%)' }}>
-            <div className="w-full h-full rounded-full border-2 border-white overflow-hidden bg-gradient-to-br from-ms-blue to-ms-purple flex items-center justify-center text-white text-2xl font-bold">
-              {src ? <img src={src} alt={person.nome} className="w-full h-full object-cover" /> : initial}
-            </div>
+            <ProfileAvatar url={person.avatar_url} name={person.nome} size={88} className="rounded-full border-2 border-white" />
           </div>
           <h1 className="text-xl font-bold text-ms-dark mb-1">{person.nome}</h1>
           <span className={`inline-block text-xs px-3 py-1 rounded-full font-medium mb-3 ${person.role === 'recrutador' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`}>

@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { social, MessageRequest as ApiMessageRequest } from '@/lib/social'
-import { ArrowLeft, Send, MessageSquare, User, Search, Check, X, Users, ImagePlus } from 'lucide-react'
+import { ArrowLeft, Send, MessageSquare, User, Search, Check, X, Users, ImagePlus, UserPlus } from 'lucide-react'
 import NotificationsBell from '@/components/NotificationsBell'
 
 interface Conversation {
@@ -309,18 +309,18 @@ function MensagensContent() {
               className="flex-1 bg-transparent outline-none text-sm text-gray-900 placeholder:text-gray-400"
             />
           </div>
-          <div className="flex gap-2 bg-gray-100 rounded-full p-1">
+          <div className="flex gap-2 bg-white border border-gray-200 rounded-2xl p-1.5 shadow-sm">
             <button
               onClick={() => setActiveView('conversas')}
-              className={`flex-1 py-2 rounded-full text-xs font-medium transition-colors ${activeView === 'conversas' ? 'bg-[#1A56FF] text-white shadow-sm' : 'text-gray-700 hover:bg-white/60'}`}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${activeView === 'conversas' ? 'bg-[#1A56FF] text-white shadow-md' : 'text-gray-700 hover:bg-gray-100'}`}
             >
-              Conversas
+              <MessageSquare size={16} /> Conversas
             </button>
             <button
               onClick={() => setActiveView('pedidos')}
-              className={`flex-1 py-2 rounded-full text-xs font-medium transition-colors ${activeView === 'pedidos' ? 'bg-[#1A56FF] text-white shadow-sm' : 'text-gray-700 hover:bg-white/60'}`}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${activeView === 'pedidos' ? 'bg-[#1A56FF] text-white shadow-md' : 'text-gray-700 hover:bg-gray-100'}`}
             >
-              Pedidos {requests.length > 0 && <span className="ml-1 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{requests.length}</span>}
+              <UserPlus size={16} /> Pedidos {requests.length > 0 && <span className="ml-1 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{requests.length}</span>}
             </button>
           </div>
         </header>
@@ -370,12 +370,12 @@ function MensagensContent() {
                     <p className="text-sm font-medium text-gray-900 truncate">{req.requester?.nome || 'Utilizador'}</p>
                     <p className="text-xs text-gray-500">Quer fazer parte do teu network</p>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <button onClick={() => acceptRequest(req)} className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100">
-                      <Check size={16} />
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => acceptRequest(req)} className="flex items-center gap-1 px-3 py-2 bg-green-500 text-white text-xs font-semibold rounded-xl hover:bg-green-600 shadow-sm">
+                      <Check size={14} /> Aceitar
                     </button>
-                    <button onClick={() => rejectRequest(req.id)} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100">
-                      <X size={16} />
+                    <button onClick={() => rejectRequest(req.id)} className="flex items-center gap-1 px-3 py-2 bg-white border border-red-200 text-red-500 text-xs font-semibold rounded-xl hover:bg-red-50">
+                      <X size={14} /> Rejeitar
                     </button>
                   </div>
                 </div>

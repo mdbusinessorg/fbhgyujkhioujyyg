@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 import { detectValences, getStage, STAGE_ORDER, STAGE_LABELS, STAGE_COLORS, type ATSStage, drawWinners } from '@/lib/ats'
 import { Toast } from './Toast'
-import { Users, Search, Zap, Shuffle, ChevronRight, ChevronLeft, Star, Award, BrainCircuit, Trophy, X, Filter, Sparkles, TrendingUp, MessageSquare, Download, CheckCircle, XCircle } from 'lucide-react'
+import { Users, Search, Zap, Shuffle, ChevronRight, ChevronLeft, Star, Award, BrainCircuit, Trophy, X, Filter, Sparkles, TrendingUp, MessageSquare, Download, CheckCircle, XCircle, User } from 'lucide-react'
 
 interface ATSProps {
   role: 'recrutador' | 'admin'
@@ -220,8 +220,8 @@ export function ATS({ role, vagas, candidatos, onUpdate }: ATSProps) {
                     return (
                       <div key={c.id} className={`bg-white rounded-2xl p-3 border ${stage === 'concorrencia' ? 'border-amber-200 shadow-sm' : 'border-slate-100'} hover:shadow-md transition-all hover:-translate-y-0.5 group`}>
                         <div className="flex items-start gap-2">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-600 flex-shrink-0">
-                            {(c.users?.nome || 'U').charAt(0).toUpperCase()}
+                          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 flex-shrink-0">
+                            <User size={16} strokeWidth={1.5} />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-bold text-slate-900 truncate">{c.users?.nome || 'Candidato'}</p>

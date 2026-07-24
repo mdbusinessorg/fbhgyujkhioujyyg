@@ -678,8 +678,8 @@ function CandidatoDashboard() {
             {/* Profile header preview */}
             <div className="bg-gradient-to-br from-ms-blue to-ms-purple rounded-2xl p-5 mb-5 text-white">
               <div className="flex items-center gap-3">
-                <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center text-xl font-bold">
-                  {(editNome || 'U').charAt(0).toUpperCase()}
+                <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center text-white">
+                  <User size={28} strokeWidth={1.5} />
                 </div>
                 <div className="min-w-0">
                   <p className="font-bold truncate">{editNome || 'O teu nome'}</p>

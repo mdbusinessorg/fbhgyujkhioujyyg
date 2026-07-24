@@ -1,6 +1,6 @@
 'use client'
 
-import { Search, Bell } from 'lucide-react'
+import { Search, Bell, User } from 'lucide-react'
 
 interface DashboardHeaderProps {
   title: string
@@ -39,8 +39,8 @@ export function DashboardHeader({ title, subtitle, userName, notifications = 0, 
         </button>
 
         <div className="flex items-center gap-2 pl-2">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-ms-purple to-ms-blue flex items-center justify-center text-white font-bold text-sm">
-            {(userName || 'U').charAt(0).toUpperCase()}
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-ms-purple to-ms-blue flex items-center justify-center text-white">
+            <User size={20} strokeWidth={1.5} />
           </div>
           <div className="hidden sm:block">
             <p className="text-sm font-semibold text-gray-900">{userName || 'Utilizador'}</p>

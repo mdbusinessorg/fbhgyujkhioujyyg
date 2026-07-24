@@ -3,12 +3,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
+import { supabase, STORAGE_BUCKET } from '@/lib/supabase'
 import { startOrRequestConversation } from '@/lib/messaging'
 import { social, type MessageRequest, type Post, type PostAuthor } from '@/lib/social'
 import Logo from '@/components/Logo'
 import NotificationsBell from '@/components/NotificationsBell'
 import ShareMenu from '@/components/ShareMenu'
+import ProfileAvatar from '@/components/ProfileAvatar'
 import {
   Search, MessageSquare, Users, User, MapPin, Briefcase, Home, FileText,
   UserPlus, UserCheck, Link2, Send, Trash2, MoreHorizontal, Heart,
@@ -56,24 +57,7 @@ const getTimeAgo = (date?: string) => {
   return `${Math.floor(days / 30)}m`
 }
 
-const getAvatarUrl = (avatar?: string | null) => {
-  if (!avatar) return null
-  if (avatar.startsWith('http')) return avatar
-  return `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${avatar}`
-}
 
-const Avatar = ({ url, name, size = 40, className = '', ring = false }: { url?: string | null; name?: string; size?: number; className?: string; ring?: boolean }) => {
-  const src = getAvatarUrl(url)
-  const initial = (name || 'U').charAt(0).toUpperCase()
-  return (
-    <div
-      className={`rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 bg-gradient-to-br from-ms-blue to-ms-purple text-white font-semibold ${ring ? 'ring-2 ring-white ring-offset-2 ring-offset-ms-surface' : ''} ${className}`}
-      style={{ width: size, height: size, fontSize: size * 0.4 }}
-    >
-      {src ? <img src={src} alt={name || ''} className="w-full h-full object-cover" /> : initial}
-    </div>
-  )
-}
 
 function parseCompetencias(comp: any): string[] {
   if (!comp) return []
@@ -351,10 +335,7 @@ export default function PessoasPage() {
 
   const StoryAvatar = ({ url, name, isMe = false }: { url?: string | null; name?: string; isMe?: boolean }) => (
     <div className="relative w-16 h-16 rounded-full p-[3px] overflow-hidden flex-shrink-0" style={{ background: 'linear-gradient(135deg, #1A56FF 0%, #6C47FF 100%)' }}>
-      <div className="w-full h-full rounded-full border-2 border-white bg-gradient-to-br from-ms-blue to-ms-purple flex items-center justify-center overflow-hidden">
-        <img src={getAvatarUrl(url) || undefined} alt={name || ''} className="w-full h-full object-cover" />
-        {!url && <span className="text-white font-bold text-lg">{(name || 'U').charAt(0).toUpperCase()}</span>}
-      </div>
+      <ProfileAvatar url={url} name={name} size={58} className="rounded-full border-2 border-white" />
       {isMe && (
         <div className="absolute bottom-0 right-0 w-5 h-5 bg-ms-blue text-white rounded-full flex items-center justify-center border-2 border-white">
           <Plus size={12} />
@@ -419,7 +400,7 @@ export default function PessoasPage() {
             return (
               <div key={person.id} className="bg-white rounded-2xl p-4 border border-ms-border/80 shadow-sm flex items-start gap-3 hover:shadow-md transition-shadow">
                 <button onClick={() => { recordView(person.id); router.push(`/pessoas/perfil/?id=${person.id}`) }}>
-                  <Avatar url={person.avatar_url} name={person.nome} size={52} />
+                  <ProfileAvatar url={person.avatar_url} name={person.nome} size={52} />
                 </button>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
@@ -487,7 +468,7 @@ export default function PessoasPage() {
       if (!p) return null
       return (
         <div key={userId} className="bg-white rounded-2xl p-3 border border-ms-border shadow-sm flex items-center gap-3">
-          <button onClick={() => router.push(`/pessoas/perfil/?id=${userId}`)}><Avatar url={p.avatar_url} name={p.nome} size={44} /></button>
+          <button onClick={() => router.push(`/pessoas/perfil/?id=${userId}`)}><ProfileAvatar url={p.avatar_url} name={p.nome} size={44} /></button>
           <div className="flex-1 min-w-0">
             <h3 className="text-sm font-bold text-ms-dark truncate">{p.nome}</h3>
             <p className="text-[10px] text-ms-gray">{p.role === 'recrutador' ? 'Recrutador' : 'Talento'}{p.profile?.area ? ` • ${p.profile.area}` : ''}</p>
@@ -512,14 +493,14 @@ export default function PessoasPage() {
               {received.map(req => (
                 <div key={req.id} className="bg-white rounded-2xl p-3 border border-ms-border shadow-sm flex items-center gap-3">
                   <button onClick={() => router.push(`/pessoas/perfil/?id=${req.requester_id}`)}>
-                    <Avatar url={req.requester?.avatar_url} name={req.requester?.nome} size={44} />
+                    <ProfileAvatar url={req.requester?.avatar_url} name={req.requester?.nome} size={44} />
                   </button>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-bold text-ms-dark truncate">{req.requester?.nome || 'Utilizador'}</h3>
                     <p className="text-[10px] text-ms-gray">Quer conectar contigo</p>
                   </div>
-                  <button onClick={() => acceptRequest(req)} className="p-2 bg-green-50 text-green-600 rounded-xl hover:bg-green-100"><Check size={18} /></button>
-                  <button onClick={() => rejectRequest(req.id)} className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100"><X size={18} /></button>
+                  <button onClick={() => acceptRequest(req)} className="flex items-center gap-1 px-3 py-2 bg-green-500 text-white text-xs font-semibold rounded-xl hover:bg-green-600 shadow-sm"><Check size={14} /> Aceitar</button>
+                  <button onClick={() => rejectRequest(req.id)} className="flex items-center gap-1 px-3 py-2 bg-white border border-red-200 text-red-500 text-xs font-semibold rounded-xl hover:bg-red-50"><X size={14} /> Rejeitar</button>
                 </div>
               ))}
             </div>
@@ -559,7 +540,7 @@ export default function PessoasPage() {
                 if (!p) return null
                 return (
                   <div key={req.id} className="bg-white rounded-2xl p-3 border border-ms-border shadow-sm flex items-center gap-3 opacity-70">
-                    <Avatar url={p.avatar_url} name={p.nome} size={44} />
+                    <ProfileAvatar url={p.avatar_url} name={p.nome} size={44} />
                     <div className="flex-1 min-w-0">
                       <h3 className="text-sm font-bold text-ms-dark truncate">{p.nome}</h3>
                       <p className="text-[10px] text-ms-gray">Aguarda aceitação</p>
@@ -589,7 +570,7 @@ export default function PessoasPage() {
         conversations.map(conv => (
           <Link key={conv.id} href={`/mensagens/?conv=${conv.id}`} className="block bg-white rounded-2xl p-3 border border-ms-border shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center gap-3">
-              <Avatar url={conv.otherUser?.avatar_url} name={conv.otherUser?.nome} size={48} />
+              <ProfileAvatar url={conv.otherUser?.avatar_url} name={conv.otherUser?.nome} size={48} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-bold text-ms-dark truncate">{conv.otherUser?.nome || 'Utilizador'}</h3>
@@ -608,7 +589,7 @@ export default function PessoasPage() {
     <div className="space-y-4">
       <div className="bg-white rounded-2xl p-4 border border-ms-border shadow-sm">
         <div className="flex items-start gap-3">
-          <Avatar url={currentUser?.avatar_url} name={currentUser?.nome} size={44} />
+          <ProfileAvatar url={currentUser?.avatar_url} name={currentUser?.nome} size={44} />
           <div className="flex-1">
             <textarea value={postContent} onChange={e => setPostContent(e.target.value)} maxLength={500} rows={3} placeholder={currentUser ? "Partilha uma ideia, oportunidade ou conquista profissional..." : "Inicia sessão para publicares"} disabled={!currentUser || postedToday || posting} className="w-full bg-ms-surface rounded-xl px-4 py-3 text-sm text-ms-dark placeholder:text-ms-gray outline-none focus:ring-2 focus:ring-ms-blue/20 resize-none disabled:opacity-60" />
             {postImagePreview && (
@@ -646,7 +627,7 @@ export default function PessoasPage() {
         posts.map(post => (
           <article key={post.id} className="bg-white rounded-2xl p-4 border border-ms-border shadow-sm">
             <div className="flex items-start gap-3 mb-3">
-              <button onClick={() => router.push(`/pessoas/perfil/?id=${post.user_id}`)}><Avatar url={post.author.avatar_url} name={post.author.nome} size={44} /></button>
+              <button onClick={() => router.push(`/pessoas/perfil/?id=${post.user_id}`)}><ProfileAvatar url={post.author.avatar_url} name={post.author.nome} size={44} /></button>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-bold text-ms-dark truncate" onClick={() => router.push(`/pessoas/perfil/?id=${post.user_id}`)}>{post.author.nome || 'Utilizador'}</h3>
@@ -680,7 +661,7 @@ export default function PessoasPage() {
             {likersModal.likers.length === 0 ? <p className="text-sm text-ms-gray">Sem reacções.</p> : (
               <ul className="space-y-3">
                 {likersModal.likers.map(l => (
-                  <li key={l.id} className="flex items-center gap-3"><Avatar url={null} name={l.nome} size={32} /><span className="text-sm text-ms-dark">{l.nome}</span></li>
+                  <li key={l.id} className="flex items-center gap-3"><ProfileAvatar url={null} name={l.nome} size={32} /><span className="text-sm text-ms-dark">{l.nome}</span></li>
                 ))}
               </ul>
             )}
@@ -713,13 +694,13 @@ export default function PessoasPage() {
       <main className="max-w-3xl mx-auto px-4 pt-4">
         {renderStories()}
 
-        <div className="flex items-center justify-between bg-ms-surface rounded-full p-1 mb-4">
+        <div className="flex items-center justify-between bg-white border border-ms-border rounded-2xl p-1.5 mb-4 shadow-sm">
           {tabs.map(t => {
             const Icon = t.icon
             const active = activeTab === t.key
             return (
-              <button key={t.key} onClick={() => setActiveTab(t.key)} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-full text-[11px] font-medium transition-all ${active ? 'bg-ms-blue text-white shadow-sm' : 'text-ms-gray hover:text-ms-dark hover:bg-white/60'}`}>
-                <Icon size={13} /> {t.label}
+              <button key={t.key} onClick={() => setActiveTab(t.key)} className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${active ? 'bg-ms-blue text-white shadow-md' : 'text-ms-gray hover:text-ms-dark hover:bg-ms-surface'}`}>
+                <Icon size={16} /> {t.label}
               </button>
             )
           })}
