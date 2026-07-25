@@ -77,10 +77,10 @@ export default function FloatingAssistant() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed z-50 bottom-20 right-4 lg:bottom-6 lg:right-6 w-14 h-14 rounded-full bg-gradient-to-r from-ms-blue to-ms-purple text-white shadow-2xl flex items-center justify-center animate-float hover:scale-110 hover:shadow-2xl transition-all overflow-hidden ring-4 ring-white/30"
+          className="fixed z-50 bottom-20 right-4 lg:bottom-6 lg:right-6 w-14 h-14 rounded-full text-white flex items-center justify-center animate-float hover:scale-110 transition-all overflow-hidden bg-[#B3C3DA] shadow"
           aria-label="Abrir assistente MÔ SALO"
         >
-          <img src="/mosalito.png" alt="Mosalito" className="w-12 h-12 object-contain drop-shadow-lg" />
+          <img src="/mosalito.png" alt="Mosalito" className="w-full h-full object-cover" />
         </button>
       )}
 
@@ -88,8 +88,8 @@ export default function FloatingAssistant() {
         <div className="fixed z-50 bottom-20 right-4 lg:bottom-24 lg:right-6 w-[calc(100%-2rem)] max-w-sm bg-white rounded-2xl shadow-2xl border border-ms-border overflow-hidden flex flex-col max-h-[70vh]">
           <div className="bg-gradient-to-r from-ms-blue to-ms-purple p-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center overflow-hidden p-0.5">
-                <img src="/mosalito.png" alt="Mosalito" className="w-7 h-7 object-contain" />
+              <div className="w-9 h-9 rounded-full overflow-hidden bg-[#B3C3DA]">
+                <img src="/mosalito.png" alt="Mosalito" className="w-full h-full object-cover" />
               </div>
               <div>
                 <p className="text-sm font-bold text-white">Mosalito</p>
@@ -108,7 +108,9 @@ export default function FloatingAssistant() {
                   {m.role === 'user' ? (
                     currentUser ? <ProfileAvatar url={currentUser.avatar_url} name={currentUser.nome} size={28} className="rounded-full" /> : <User size={14} />
                   ) : (
-                    <img src="/mosalito.png" alt="Mosalito" className="w-6 h-6 object-contain" />
+                    <div className="w-full h-full rounded-full overflow-hidden bg-[#B3C3DA]">
+                      <img src="/mosalito.png" alt="Mosalito" className="w-full h-full object-cover" />
+                    </div>
                   )}
                 </div>
                 <div className={`text-xs leading-relaxed p-2.5 rounded-2xl whitespace-pre-wrap ${m.role === 'user' ? 'bg-ms-blue text-white rounded-br-none' : 'bg-white text-ms-dark border border-ms-border rounded-bl-none'}`}>
@@ -118,8 +120,8 @@ export default function FloatingAssistant() {
             ))}
             {loading && (
               <div className="flex gap-2">
-                <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center p-0.5">
-                  <img src="/mosalito.png" alt="Mosalito" className="w-6 h-6 object-contain" />
+                <div className="w-7 h-7 rounded-full overflow-hidden bg-[#B3C3DA]">
+                  <img src="/mosalito.png" alt="Mosalito" className="w-full h-full object-cover" />
                 </div>
                 <div className="text-xs p-2.5 bg-white border border-ms-border rounded-2xl rounded-bl-none animate-pulse">A pensar...</div>
               </div>
