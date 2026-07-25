@@ -8,12 +8,13 @@ import { sortByMatch } from '@/lib/match'
 import {
   Search, SlidersHorizontal, Heart, Bell, Menu, X, Briefcase, Home as HomeIcon, User, LogOut, FileText,
   Settings, Star, MapPin, Monitor, Banknote, Stethoscope, Megaphone, Scale, GraduationCap, HardHat, Wrench,
-  MessageSquare, Zap, Users, Clock, ChevronDown, Newspaper, BookOpen, HeartHandshake, MessageCircle,
-  Eye, MousePointerClick
+  MessageSquare, Zap, Users, Clock, ChevronDown, Newspaper, BookOpen, HeartHandshake, MessageCircle
 } from 'lucide-react'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import InstallPWA from '@/components/InstallPWA'
 import Logo from '@/components/Logo'
+import PaidAdsCarousel from '@/components/PaidAdsCarousel'
+import { useSiteConfig } from '@/components/SiteConfigProvider'
 
 const CATEGORIAS_HOME = [
   { key: 'TI', label: 'Tecnologia', icon: Monitor, match: 'Tecnologia' },
@@ -56,6 +57,7 @@ const getTimeAgo = (date?: string) => {
 const stripHtml = (html?: string) => (html || '').replace(/<[^>]*>/g, '').trim()
 
 export default function HomePage() {
+  const { config } = useSiteConfig()
   const router = useRouter()
   const pathname = usePathname()
   const [searchQuery, setSearchQuery] = useState('')
@@ -73,37 +75,6 @@ export default function HomePage() {
   const [activeFilter, setActiveFilter] = useState('Todas')
   const [favorites, setFavorites] = useState<string[]>([])
   const [noticias, setNoticias] = useState<any[]>([])
-  const [adStats, setAdStats] = useState({ impressions: 0, clicks: 0 })
-  const adTracked = useRef(false)
-
-  const AD_ID = 'curso-preparatorio'
-  const AD_WHATSAPP = `https://wa.me/244929914392?text=${encodeURIComponent('Olá! Vi o anúncio do Curso Preparatório 2ª Edição no MÔ SALO e quero inscrever-me.')}`
-
-  const loadAdStats = async () => {
-    try {
-      const res = await fetch(`/api/ad-analytics?ad=${AD_ID}`)
-      const data = await res.json()
-      if (data?.stats) setAdStats(data.stats)
-    } catch {}
-  }
-
-  const trackAdImpression = async () => {
-    if (adTracked.current) return
-    adTracked.current = true
-    try {
-      await fetch(`/api/ad-analytics?ad=${AD_ID}&event=impression`, { method: 'POST' })
-      await loadAdStats()
-    } catch {}
-  }
-
-  const handleAdClick = async (e: React.MouseEvent) => {
-    e.preventDefault()
-    try {
-      await fetch(`/api/ad-analytics?ad=${AD_ID}&event=click`, { method: 'POST' })
-      await loadAdStats()
-    } catch {}
-    window.open(AD_WHATSAPP, '_blank', 'noopener,noreferrer')
-  }
 
   const loadUserFromSession = async (session: any) => {
     if (!session?.user?.email) return null
@@ -184,7 +155,6 @@ export default function HomePage() {
         setNoticias([])
       }
 
-      trackAdImpression()
     }
     init()
 
@@ -422,6 +392,7 @@ export default function HomePage() {
               <Link href="/" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-ms-dark bg-ms-surface" onClick={() => setShowMenu(false)}><HomeIcon size={18} /> Início</Link>
               <Link href="/vagas/" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface" onClick={() => setShowMenu(false)}><Search size={18} /> Pesquisar Vagas</Link>
               <Link href="/trabalho-rapido/" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-orange-500 hover:bg-orange-50" onClick={() => setShowMenu(false)}><Zap size={18} /> Trabalho Rápido</Link>
+              <Link href="/anuncios/" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface" onClick={() => setShowMenu(false)}><Megaphone size={18} /> Anunciar</Link>
               {isLoggedIn ? (
                 <>
                   <Link href={`/dashboard/${userRole}/`} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface" onClick={() => setShowMenu(false)}><Briefcase size={18} /> Dashboard</Link>
@@ -486,14 +457,17 @@ export default function HomePage() {
 
         {/* Promotional banner */}
         <section className="mb-6">
-          <div className="rounded-3xl p-5 text-white relative overflow-hidden h-48 flex flex-col justify-center" style={{ backgroundImage: "url('/images/hero-destaque.jpg')", backgroundSize: 'cover', backgroundPosition: 'center' }}>
+          <div
+            className="rounded-3xl p-5 text-white relative overflow-hidden h-48 flex flex-col justify-center"
+            style={{ backgroundImage: `url('${config.hero_image_url || '/images/hero-destaque.jpg'}')`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+          >
             <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/50 to-black/30" />
             <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -translate-y-10 translate-x-10" />
             <div className="relative z-10 flex items-center justify-between">
               <div className="flex-1 pr-4">
                 <span className="inline-block text-[10px] font-bold uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-lg mb-2">Destaque</span>
-                <h2 className="text-lg font-bold leading-tight mb-1">Encontra o teu próximo emprego</h2>
-                <p className="text-xs text-white/80 mb-3">Vagas novas todos os dias das melhores empresas em Angola.</p>
+                <h2 className="text-lg font-bold leading-tight mb-1">{config.hero_title || 'Encontra o teu próximo emprego'}</h2>
+                <p className="text-xs text-white/80 mb-3">{config.hero_subtitle || 'Vagas novas todos os dias das melhores empresas em Angola.'}</p>
                 <Link href="/vagas/" className="inline-flex items-center gap-1 bg-white text-ms-blue text-xs font-bold px-4 py-2 rounded-xl hover:bg-ms-surface transition-colors">
                   Ver vagas <ChevronDown size={12} className="-rotate-90" />
                 </Link>
@@ -585,44 +559,8 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Anúncio pago — Curso Preparatório 2ª Edição */}
-        <section className="mb-6">
-          <div className="bg-white rounded-3xl overflow-hidden border border-ms-border shadow-xl hover:shadow-2xl transition-shadow">
-            <div
-              onClick={handleAdClick}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleAdClick(e as any) }}
-              className="block relative group cursor-pointer"
-            >
-              <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-white bg-gradient-to-r from-ms-blue to-ms-purple px-2.5 py-1 rounded-full shadow-sm">
-                Anúncio Pago
-              </span>
-              <img
-                src="/anuncios/curso-preparatorio-2edicao.png"
-                alt="Curso Preparatório 2ª Edição — Matemática e Física"
-                className="w-full h-auto object-cover object-top max-h-[260px] group-hover:scale-[1.01] transition-transform duration-500"
-              />
-              <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/70 to-transparent" />
-            </div>
-            <div className="p-4 bg-gradient-to-br from-ms-blue to-ms-purple flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="text-white">
-                <p className="text-sm font-bold">Curso Preparatório 2ª Edição</p>
-                <p className="text-[10px] text-white/80">Matemática e Física • Início 05.08.2026 • 25.000 Kzs</p>
-                <p className="text-[10px] text-white/70 mt-1 flex items-center gap-2">
-                  <span className="inline-flex items-center gap-0.5"><Eye size={11} /> {adStats.impressions}</span>
-                  <span className="inline-flex items-center gap-0.5"><MousePointerClick size={11} /> {adStats.clicks}</span>
-                </p>
-              </div>
-              <button
-                onClick={handleAdClick}
-                className="inline-flex items-center justify-center gap-1.5 bg-white text-ms-blue text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-ms-surface transition-colors whitespace-nowrap"
-              >
-                <MessageCircle size={16} /> Inscrever pelo WhatsApp
-              </button>
-            </div>
-          </div>
-        </section>
+        {/* Anúncios pagos — carrossel horizontal automático */}
+        <PaidAdsCarousel />
 
         {/* Recomendadas */}
         {recommendedJobs.length > 0 && (
@@ -823,6 +761,7 @@ export default function HomePage() {
           <Link href="/" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium bg-ms-purple-light text-ms-purple mb-1"><HomeIcon size={18} /> Início</Link>
           <Link href="/vagas/" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface mb-1"><Search size={18} /> Pesquisar</Link>
           <Link href="/trabalho-rapido/" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-orange-500 hover:bg-orange-50 mb-1"><Zap size={18} /> Trabalho Rápido</Link>
+          <Link href="/anuncios/" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface mb-1"><Megaphone size={18} /> Anunciar</Link>
           {isLoggedIn ? (
             <>
               <Link href={`/dashboard/${userRole}/`} className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface mb-1"><Briefcase size={18} /> Dashboard</Link>

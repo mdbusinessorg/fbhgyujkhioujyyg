@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
+import { useSiteConfig } from './SiteConfigProvider'
 
 export default function SplashScreen() {
   const pathname = usePathname()
+  const { config } = useSiteConfig()
   const [mounted, setMounted] = useState(false)
   const [show, setShow] = useState(true)
   const [fadeOut, setFadeOut] = useState(false)
@@ -30,20 +32,20 @@ export default function SplashScreen() {
   return (
     <div
       className={`fixed inset-0 z-[200] flex flex-col items-center justify-center px-6 transition-opacity duration-500 ${fadeOut ? 'opacity-0' : 'opacity-100'}`}
-      style={{ background: 'linear-gradient(135deg, #1A56FF 0%, #6C47FF 100%)' }}
+      style={{ background: `linear-gradient(135deg, ${config.primary_color || '#1A56FF'} 0%, ${config.secondary_color || '#6C47FF'} 100%)` }}
     >
       <div className="animate-scale-in flex flex-col items-center w-full max-w-xs">
         <div className="relative w-20 h-20 sm:w-24 sm:h-24 bg-white rounded-3xl p-4 shadow-2xl mb-5 flex items-center justify-center overflow-hidden max-w-[80vw] max-h-[35vh]">
           <img
-            src="/logo-icon.png"
-            alt="MÔ SALO"
+            src={config.logo_icon_url || '/logo-icon.png'}
+            alt={config.site_title || 'MÔ SALO'}
             width={96}
             height={96}
             className="w-full h-full object-contain"
           />
         </div>
-        <h1 className="text-white text-xl sm:text-2xl font-bold tracking-tight mb-1 animate-fade-up text-center">MÔ SALO</h1>
-        <p className="text-white/70 text-xs sm:text-sm animate-fade-up text-center" style={{ animationDelay: '0.15s' }}>Emprego Ideal em Angola</p>
+        <h1 className="text-white text-xl sm:text-2xl font-bold tracking-tight mb-1 animate-fade-up text-center">{config.site_title || 'MÔ SALO'}</h1>
+        <p className="text-white/70 text-xs sm:text-sm animate-fade-up text-center" style={{ animationDelay: '0.15s' }}>{config.site_description || 'Emprego Ideal em Angola'}</p>
         <div className="mt-6 animate-fade-up" style={{ animationDelay: '0.3s' }}>
           <div className="w-7 h-7 sm:w-8 sm:h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
         </div>

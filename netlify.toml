@@ -82,6 +82,16 @@
   status = 200
 
 [[redirects]]
+  from = "/api/site-config"
+  to = "/.netlify/functions/site-config"
+  status = 200
+
+[[redirects]]
+  from = "/api/paid-ads"
+  to = "/.netlify/functions/paid-ads"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

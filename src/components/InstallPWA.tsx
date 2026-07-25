@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSiteConfig } from './SiteConfigProvider'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -8,6 +9,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export default function InstallPWA() {
+  const { config } = useSiteConfig()
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [showBanner, setShowBanner] = useState(false)
   const [isIOS, setIsIOS] = useState(false)
@@ -70,7 +72,7 @@ export default function InstallPWA() {
       <div className="fixed bottom-20 left-4 right-4 md:left-auto md:right-4 md:bottom-4 md:w-80 z-50 animate-slide-up">
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-2.5 flex items-center gap-2.5 max-w-xs mx-auto">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#1A56FF] to-[#6C47FF] p-1.5 flex-shrink-0 flex items-center justify-center">
-            <img src="/logo-icon.png" alt="" className="w-full h-full object-contain" />
+            <img src={config.logo_icon_url || '/logo-icon.png'} alt="" className="w-full h-full object-contain" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-gray-900 text-xs">Instalar MÔ SALO</p>

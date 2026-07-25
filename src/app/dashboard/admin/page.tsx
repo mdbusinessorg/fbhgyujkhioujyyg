@@ -6,10 +6,10 @@ import Logo from '@/components/Logo'
 import BottomNav from '@/components/BottomNav'
 import { DashboardOverview, type AdminData } from '@/components/dashboard'
 import { ATS } from '@/components/ATS'
-import AdStatsPanel from '@/components/AdStatsPanel'
+import JarvisPanel from '@/components/JarvisPanel'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Search, Bell, Briefcase, Users, UserCheck, Shield, Settings, CreditCard, CheckCircle, XCircle, Eye, TrendingUp, Plus, AlertTriangle, LogOut, Menu, X, Download, Linkedin, ExternalLink, Trash2, Edit2, Wallet, Zap, Home as HomeIcon, Globe, GitBranch, Megaphone } from 'lucide-react'
+import { Search, Bell, Briefcase, Users, UserCheck, Shield, Settings, CreditCard, CheckCircle, XCircle, Eye, TrendingUp, Plus, AlertTriangle, LogOut, Menu, X, Download, Linkedin, ExternalLink, Trash2, Edit2, Wallet, Zap, Home as HomeIcon, Globe, GitBranch, Megaphone, Sparkles } from 'lucide-react'
 
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
@@ -33,6 +33,7 @@ export default function AdminDashboard() {
   const [externalJobs, setExternalJobs] = useState<any[]>([])
   const [externalFilter, setExternalFilter] = useState('all')
   const [externalSearch, setExternalSearch] = useState('')
+  const [pendingAds, setPendingAds] = useState<any[]>([])
   const router = useRouter()
 
   const LINKEDIN_CATEGORIAS = ['Tecnologia', 'Finanças', 'Engenharia', 'Saúde', 'Marketing', 'Direito', 'Petróleo & Gás', 'Educação', 'Administração', 'Logística', 'Hotelaria', 'Construção', 'RH', 'Design', 'Outro']
@@ -111,6 +112,15 @@ export default function AdminDashboard() {
     setLinkedinJobs(ljobs || [])
     setPendentes((users || []).filter(u => u.role === 'recrutador' && !u.aprovado))
     setVagasPendentes((vagas || []).filter(v => v.status === 'em_analise'))
+
+    // Paid ads pending
+    try {
+      const adsRes = await fetch('/api/paid-ads?admin=1', { headers: { Authorization: `Bearer ${session.access_token}` } })
+      const adsData = adsRes.ok ? await adsRes.json() : { ads: [] }
+      setPendingAds((adsData.ads || []).filter((a: any) => a.status === 'pending'))
+    } catch {
+      setPendingAds([])
+    }
 
     setStats({
       totalUsers: (users || []).length,
@@ -228,6 +238,7 @@ export default function AdminDashboard() {
     ...pendentes.map(u => ({ type: 'recrutador', tab: 'recrutadores', text: `${u.nome || u.email} quer ser recrutador`, time: 'Pendente' })),
     ...vagasPendentes.map(v => ({ type: 'vaga', tab: 'vagas', text: `Vaga "${v.titulo}" aguarda aprovação`, time: 'Pendente' })),
     ...paymentRequests.filter(p => p.status === 'pending').map(p => ({ type: 'pagamento', tab: 'pagamentos', text: `Pagamento ${p.plano || 'Premium'} pendente`, time: 'Pendente' })),
+    ...pendingAds.map(a => ({ type: 'anuncio', tab: 'jarvis', text: `Anúncio "${a.title}" pendente`, time: 'Pendente' })),
   ]
 
   const filteredUsers = allUsers.filter(u =>
@@ -268,7 +279,7 @@ export default function AdminDashboard() {
                 { key: 'vagas', icon: Briefcase, label: 'Aprovar Vagas' },
                 { key: 'pagamentos', icon: Wallet, label: 'Pagamentos' },
                 { key: 'ats', icon: GitBranch, label: 'ATS / Selecção' },
-                { key: 'anuncios', icon: Megaphone, label: 'Anúncios' },
+                { key: 'jarvis', icon: Sparkles, label: 'Jarvis', badge: pendingAds.length },
                 { key: 'linkedin', icon: Linkedin, label: 'LinkedIn Jobs' },
                 { key: 'externas', icon: Globe, label: 'Vagas Externas' },
                 { key: 'trabalho_rapido', icon: Zap, label: 'Trabalho Rápido' },
@@ -335,7 +346,7 @@ export default function AdminDashboard() {
             { key: 'vagas', icon: Briefcase, label: 'Aprovar Vagas', badge: vagasPendentes.length },
             { key: 'pagamentos', icon: Wallet, label: 'Pagamentos', badge: paymentRequests.filter(p => p.status === 'pending').length },
             { key: 'ats', icon: GitBranch, label: 'ATS / Selecção' },
-            { key: 'anuncios', icon: Megaphone, label: 'Anúncios' },
+            { key: 'jarvis', icon: Sparkles, label: 'Jarvis', badge: pendingAds.length },
             { key: 'linkedin', icon: Linkedin, label: 'LinkedIn Jobs', badge: linkedinJobs.length },
             { key: 'externas', icon: Globe, label: 'Vagas Externas', badge: externalJobs.length },
             { key: 'trabalho_rapido', icon: Zap, label: 'Trabalho Rápido', badge: 0 },
@@ -696,8 +707,8 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {activeTab === 'anuncios' && (
-          <AdStatsPanel />
+        {activeTab === 'jarvis' && (
+          <JarvisPanel />
         )}
 
         {activeTab === 'externas' && (

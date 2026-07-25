@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import SplashScreen from '@/components/SplashScreen'
 import FloatingAssistant from '@/components/FloatingAssistant'
+import Providers from '@/components/Providers'
 export const metadata: Metadata = {
   title: 'MÔ SALO — Encontre o Seu Emprego Ideal em Angola',
   description: 'Plataforma de recrutamento inteligente angolana. Conectamos talentos às melhores oportunidades.',
@@ -49,9 +50,11 @@ export default function RootLayout({
         <link rel="apple-touch-startup-image" href="/icons/icon-512x512.png" />
       </head>
       <body>
-        <SplashScreen />
-        {children}
-        <FloatingAssistant />
+        <Providers>
+          <SplashScreen />
+          {children}
+          <FloatingAssistant />
+        </Providers>
         <script
           dangerouslySetInnerHTML={{
             __html: `

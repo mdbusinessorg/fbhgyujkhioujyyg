@@ -1,3 +1,7 @@
+'use client'
+
+import { useSiteConfig } from './SiteConfigProvider'
+
 interface LogoProps {
   variant?: 'mark' | 'icon' | 'full'
   className?: string
@@ -13,11 +17,13 @@ export default function Logo({
   textClassName = '',
   showText = true,
 }: LogoProps) {
+  const { config } = useSiteConfig()
+
   if (variant === 'full') {
     return (
       <img
-        src="/logo.png"
-        alt="MÔ SALO"
+        src={config.logo_url || '/logo.png'}
+        alt={config.site_title || 'MÔ SALO'}
         className={`max-w-full max-h-8 h-8 w-auto object-contain ${className}`}
       />
     )
@@ -26,8 +32,8 @@ export default function Logo({
   if (variant === 'icon') {
     return (
       <img
-        src="/logo-icon.png"
-        alt="MÔ SALO"
+        src={config.logo_icon_url || '/logo-icon.png'}
+        alt={config.site_title || 'MÔ SALO'}
         className={`max-w-full max-h-full h-full w-full object-contain ${className}`}
       />
     )
@@ -36,11 +42,11 @@ export default function Logo({
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       <img
-        src="/logo-icon.png"
+        src={config.logo_icon_url || '/logo-icon.png'}
         alt=""
         className={`h-8 w-auto max-h-8 max-w-8 object-contain ${iconClassName}`}
       />
-      {showText && <span className={`font-bold text-lg whitespace-nowrap ${textClassName}`}>MÔ SALO</span>}
+      {showText && <span className={`font-bold text-lg whitespace-nowrap ${textClassName}`}>{config.site_title || 'MÔ SALO'}</span>}
     </div>
   )
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Home, Search, Briefcase, User, CreditCard, Eye, Users, Plus, Megaphone } from 'lucide-react'
+import { Home, Search, Briefcase, User, CreditCard, Eye, Users, Plus, Sparkles } from 'lucide-react'
 
 interface BottomNavProps {
   active: string
@@ -27,7 +27,7 @@ export default function BottomNav({ active, userRole, onTabChange }: BottomNavPr
   const adminItems: { key: string; icon: typeof Home; label: string; href?: string }[] = [
     { key: 'home', icon: Home, label: 'Início' },
     { key: 'vagas', icon: Briefcase, label: 'Vagas' },
-    { key: 'anuncios', icon: Megaphone, label: 'Anúncios' },
+    { key: 'jarvis', icon: Sparkles, label: 'Jarvis' },
     { key: 'pagamentos', icon: CreditCard, label: 'Pagamentos' },
   ]
 
