@@ -1,7 +1,7 @@
 const { createClient } = require('@supabase/supabase-js')
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://gwnjigmsuqasvotsksmk.supabase.co'
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_d0CD9GsxB4rDVh-SmQUikA_owJjXbAQ'
 
 async function verifyAdmin(event) {
   const authHeader = event.headers && (event.headers.authorization || event.headers.Authorization)
