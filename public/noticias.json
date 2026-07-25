@@ -1,6 +1,14 @@
 {
-  "updatedAt": "2026-07-25T05:19:36.094Z",
+  "updatedAt": "2026-07-25T11:34:53.064Z",
   "items": [
+    {
+      "id": "http://jornaldeangola.ao/noticias/4/economia/681708/bornito-de-sousa-visita-expositores-da-filda-2026",
+      "link": "http://jornaldeangola.ao/noticias/4/economia/681708/bornito-de-sousa-visita-expositores-da-filda-2026",
+      "source": "Jornal de Angola",
+      "title": "Bornito de Sousa visita expositores da FILDA 2026",
+      "excerpt": "O antigo Vice-Presidente da República, Bornito de Sousa, visita, neste momento, a 41.ª edição da Feira Internacional de Angola (FILDA 2026), que decorre na Zona Económica Especial (ZEE), na província do Icolo e Bengo.",
+      "date": "2026-07-25T12:00:00.000Z"
+    },
     {
       "id": "http://jornaldeangola.ao/noticias/4/economia/681677/filda-2026:-unicef-defende-maior-di%C3%A1logo-entre-sector-privado-e-juventude",
       "link": "http://jornaldeangola.ao/noticias/4/economia/681677/filda-2026:-unicef-defende-maior-di%C3%A1logo-entre-sector-privado-e-juventude",
@@ -10,19 +18,35 @@
       "date": "2026-07-25T12:00:00.000Z"
     },
     {
-      "id": "http://jornaldeangola.ao/noticias/6/desporto/681679/gest%C3%A3o-do-girabola-entregue-%C3%A0-associa%C3%A7%C3%A3o-nacional-de-clubes-angolanos-de-futebol-",
-      "link": "http://jornaldeangola.ao/noticias/6/desporto/681679/gest%C3%A3o-do-girabola-entregue-%C3%A0-associa%C3%A7%C3%A3o-nacional-de-clubes-angolanos-de-futebol-",
+      "id": "http://jornaldeangola.ao/noticias/3/sociedade/681705/especialistas-debatem-domingo-abordagem-ao-paciente-queimado",
+      "link": "http://jornaldeangola.ao/noticias/3/sociedade/681705/especialistas-debatem-domingo-abordagem-ao-paciente-queimado",
       "source": "Jornal de Angola",
-      "title": "Gestão do Girabola entregue à Associação Nacional de Clubes Angolanos de Futebol",
-      "excerpt": "A Federação Angolana de Futebol (FAF) oficializou, esta sexta-feira, em Luanda, a transferência da gestão da Liga UNITEL Girabola para a Associação Nacional de Clubes Angolanos de Futebol (ANCAF), num acto considerado histórico para o futebol nacional.",
+      "title": "Especialistas debatem domingo abordagem ao paciente queimado",
+      "excerpt": "O Ministério da Saúde realiza, domingo, em Luanda, um Seminário Nacional de Abordagem ao Paciente Queimado, uma iniciativa que reunirá especialistas angolanos e brasileiros.",
       "date": "2026-07-25T12:00:00.000Z"
     },
     {
-      "id": "http://jornaldeangola.ao/noticias/1/pol%C3%ADtica/681678/embaixador-luvualu-de-carvalho-refor%C3%A7a-coopera%C3%A7%C3%A3o-com-new-south-wales",
-      "link": "http://jornaldeangola.ao/noticias/1/pol%C3%ADtica/681678/embaixador-luvualu-de-carvalho-refor%C3%A7a-coopera%C3%A7%C3%A3o-com-new-south-wales",
+      "id": "http://jornaldeangola.ao/noticias/1/pol%C3%ADtica/681690/governo-considera-economia-azul-instrumento-de-diversifica%C3%A7%C3%A3o-da-economia-e-inclus%C3%A3o-social",
+      "link": "http://jornaldeangola.ao/noticias/1/pol%C3%ADtica/681690/governo-considera-economia-azul-instrumento-de-diversifica%C3%A7%C3%A3o-da-economia-e-inclus%C3%A3o-social",
       "source": "Jornal de Angola",
-      "title": "Embaixador Luvualu de Carvalho reforça cooperação com New South Wales",
-      "excerpt": "O embaixador de Angola na Austrália, António Luvualu de Carvalho, foi recebido em audiência pela governadora do Estado de New South Wales, Margaret Beazley, no Government House, em Sydney, no âmbito do programa oficial da visita ao Estado australiano.",
+      "title": "Governo considera Economia Azul instrumento de diversificação da economia e inclusão social",
+      "excerpt": "O Governo angolano assume a Economia Azul como um instrumento estratégico para a diversificação económica, inclusão social, segurança alimentar e criação de emprego digno para os jovens.",
+      "date": "2026-07-25T12:00:00.000Z"
+    },
+    {
+      "id": "http://jornaldeangola.ao/noticias/1/pol%C3%ADtica/681689/coreia-reitera-compromisso-com-a-forma%C3%A7%C3%A3o-de-quadros-",
+      "link": "http://jornaldeangola.ao/noticias/1/pol%C3%ADtica/681689/coreia-reitera-compromisso-com-a-forma%C3%A7%C3%A3o-de-quadros-",
+      "source": "Jornal de Angola",
+      "title": "Coreia reitera compromisso com a formação de quadros",
+      "excerpt": "O encarregado de Negócios da República da Coreia, Yeong Wheen Kim, reafirmou ontem o compromisso do seu país com a formação de quadros angolanos em áreas estratégicas.",
+      "date": "2026-07-25T12:00:00.000Z"
+    },
+    {
+      "id": "http://jornaldeangola.ao/noticias/1/pol%C3%ADtica/681688/unidos-por-angola-incentiva-cidad%C3%A3os-ao-registo-eleitoral-",
+      "link": "http://jornaldeangola.ao/noticias/1/pol%C3%ADtica/681688/unidos-por-angola-incentiva-cidad%C3%A3os-ao-registo-eleitoral-",
+      "source": "Jornal de Angola",
+      "title": "Unidos por Angola incentiva cidadãos ao registo eleitoral",
+      "excerpt": "O Projecto Patriótico “Unidos por Angola” foi lançado ontem, no município de Belas, em Luanda, com o objectivo de mobilizar a população para a obtenção do Bilhete de Identidade e para o Registo Eleitoral Oficioso.",
       "date": "2026-07-25T12:00:00.000Z"
     }
   ]
