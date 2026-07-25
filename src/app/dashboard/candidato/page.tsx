@@ -675,6 +675,19 @@ function CandidatoDashboard() {
               <p className={`text-xs mb-4 text-center ${parseCvMessage.includes('Erro') || parseCvMessage.includes('Carrega') || parseCvMessage.includes('indisponível') ? 'text-red-500' : 'text-green-600'}`}>{parseCvMessage}</p>
             )}
 
+            <Link href="/modelos-cv/" className="block w-full mb-5 bg-white border border-ms-border rounded-2xl p-4 flex items-center justify-between hover:shadow-sm transition-shadow">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-ms-purple-light text-ms-purple flex items-center justify-center">
+                  <FileText size={18} />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-ms-dark">Gerar CV em Word / PDF</p>
+                  <p className="text-xs text-ms-gray">4 modelos prontos com os teus dados</p>
+                </div>
+              </div>
+              <ArrowRight size={18} className="text-ms-gray" />
+            </Link>
+
             {/* Profile header preview */}
             <div className="bg-gradient-to-br from-ms-blue to-ms-purple rounded-2xl p-5 mb-5 text-white">
               <div className="flex items-center gap-3">

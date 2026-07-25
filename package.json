@@ -13,7 +13,11 @@
     "@netlify/blobs": "^10.7.9",
     "@supabase/ssr": "^0.5.1",
     "@supabase/supabase-js": "^2.45.0",
+    "docx": "^9.0.0",
     "fast-xml-parser": "^5.10.1",
+    "file-saver": "^2.0.5",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^2.5.2",
     "lucide-react": "^0.453.0",
     "mammoth": "^1.12.0",
     "next": "^14.2.15",
@@ -26,6 +30,7 @@
     "ws": "^8.21.1"
   },
   "devDependencies": {
+    "@types/file-saver": "^2.0.7",
     "@types/node": "^22.9.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",

@@ -56,12 +56,22 @@ jobs:
           node scripts/ingest-rss.mjs
 
       - name: Recolher vagas do CareerJet (opcional)
+        continue-on-error: true
         env:
           CAREERJET_API_KEY: ${{ secrets.CAREERJET_API_KEY }}
           CAREERJET_REFERER: 'https://mosalo.eu.cc/'
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
           node scripts/ingest-careerjet.mjs
+
+      - name: Recolher vagas do Jobartis
+        continue-on-error: true
+        env:
+          MAX_PAGES: '5'
+          CONCURRENCY: '2'
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          node scripts/ingest-jobartis.mjs --json
 
       - name: Commit se houver alterações
         run: |

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import SplashScreen from '@/components/SplashScreen'
 import FloatingAssistant from '@/components/FloatingAssistant'
+import ToastNotifications from '@/components/ToastNotifications'
 import Providers from '@/components/Providers'
 export const metadata: Metadata = {
   title: 'MÔ SALO — Encontre o Seu Emprego Ideal em Angola',
@@ -54,6 +55,7 @@ export default function RootLayout({
           <SplashScreen />
           {children}
           <FloatingAssistant />
+          <ToastNotifications />
         </Providers>
         <script
           dangerouslySetInnerHTML={{

@@ -135,7 +135,7 @@ function ExternaContent() {
         )}
 
         <p className="text-[11px] text-ms-gray text-center mb-2">
-          Vaga recolhida de fontes públicas. A candidatura é feita diretamente na fonte oficial.
+          Candidatura no site oficial da empresa / recrutador.
         </p>
       </main>
 
