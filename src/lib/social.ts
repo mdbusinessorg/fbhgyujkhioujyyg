@@ -159,4 +159,13 @@ export const social = {
 
   getRecruiterVerification: (user_id: string): Promise<any> =>
     api(`/recruiter-verification?user_id=${user_id}`),
+
+  getCommunityMemberships: (user_id?: string): Promise<{ user_id: string; area: string; created_at: string }[]> =>
+    api(user_id ? `/community-memberships?user_id=${user_id}` : '/community-memberships'),
+
+  joinCommunity: (user_id: string, area: string): Promise<{ ok: boolean }> =>
+    api('/community-memberships', { method: 'POST', body: JSON.stringify({ user_id, area }) }),
+
+  leaveCommunity: (user_id: string, area: string): Promise<{ ok: boolean }> =>
+    api(`/community-memberships?user_id=${user_id}&area=${encodeURIComponent(area)}`, { method: 'DELETE' }),
 }

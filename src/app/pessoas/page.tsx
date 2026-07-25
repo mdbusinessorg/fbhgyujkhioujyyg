@@ -67,6 +67,8 @@ function PessoasPageContent() {
 
   const [requests, setRequests] = useState<ConnectionRequest[]>([])
   const [follows, setFollows] = useState<{ following_id: string }[]>([])
+  const [memberships, setMemberships] = useState<{ area: string; created_at: string }[]>([])
+  const [allMemberships, setAllMemberships] = useState<{ user_id: string; area: string; created_at: string }[]>([])
 
   const [searchQuery, setSearchQuery] = useState('')
   const [filterRole, setFilterRole] = useState('todos')
@@ -104,6 +106,20 @@ function PessoasPageContent() {
     } catch { setFollows([]) }
   }, [])
 
+  const loadMyMemberships = useCallback(async (userId: string) => {
+    try {
+      const data = await social.getCommunityMemberships(userId)
+      setMemberships(data)
+    } catch { setMemberships([]) }
+  }, [])
+
+  const loadAllMemberships = useCallback(async () => {
+    try {
+      const data = await social.getCommunityMemberships()
+      setAllMemberships(data)
+    } catch { setAllMemberships([]) }
+  }, [])
+
   const loadFeed = useCallback(async (tab: FeedTab, userId?: string) => {
     setLoadingFeed(true)
     try {
@@ -127,15 +143,18 @@ function PessoasPageContent() {
         loadPeople(u.id)
         loadRequests(u.id)
         loadFollows(u.id)
+        loadMyMemberships(u.id)
+        loadAllMemberships()
         checkPostedToday(u.id)
         loadFeed('para-ti', u.id)
       } else {
         loadPeople()
+        loadAllMemberships()
         loadFeed('para-ti')
       }
     }
     init()
-  }, [loadPeople, loadRequests, loadFollows, loadFeed])
+  }, [loadPeople, loadRequests, loadFollows, loadMyMemberships, loadAllMemberships, loadFeed])
 
   useEffect(() => {
     if (currentUser) loadFeed(activeTab, currentUser.id)
@@ -195,6 +214,25 @@ function PessoasPageContent() {
   }
 
   const isFollowing = (personId: string) => follows.some(f => f.following_id === personId)
+  const isCommunityMember = (area: string) => memberships.some(m => m.area === area)
+
+  const handleJoinCommunity = async (area: string) => {
+    if (!currentUser) { router.push('/auth/login/'); return }
+    try {
+      await social.joinCommunity(currentUser.id, area)
+      loadMyMemberships(currentUser.id)
+      loadAllMemberships()
+    } catch {}
+  }
+
+  const handleLeaveCommunity = async (area: string) => {
+    if (!currentUser) return
+    try {
+      await social.leaveCommunity(currentUser.id, area)
+      loadMyMemberships(currentUser.id)
+      loadAllMemberships()
+    } catch {}
+  }
 
   const StoryAvatar = ({ person, isMe = false }: { person?: PersonResult; isMe?: boolean }) => (
     <div className="flex-shrink-0 flex flex-col items-center gap-2 w-16">
@@ -359,12 +397,16 @@ function PessoasPageContent() {
   )
 
   const communities = useMemo(() => {
-    const map: Record<string, { area: string; members: number; posts: number }> = {}
+    const map: Record<string, { area: string; members: number; posts: number; memberIds: Set<string> }> = {}
     people.forEach(p => {
       const a = p.profile?.area
       if (!a) return
-      if (!map[a]) map[a] = { area: a, members: 0, posts: 0 }
-      map[a].members += 1
+      if (!map[a]) map[a] = { area: a, members: 0, posts: 0, memberIds: new Set<string>() }
+      map[a].memberIds.add(p.id)
+    })
+    allMemberships.forEach(m => {
+      if (!map[m.area]) map[m.area] = { area: m.area, members: 0, posts: 0, memberIds: new Set<string>() }
+      map[m.area].memberIds.add(m.user_id)
     })
     feed.forEach(p => {
       const a = p.area || p.author?.area
@@ -373,21 +415,39 @@ function PessoasPageContent() {
     })
     const extras = ['Dicas de CV', 'Entrevistas', 'Empreendedorismo', 'Freelance']
     extras.forEach(name => {
-      if (!map[name]) map[name] = { area: name, members: people.length ? Math.floor(people.length / 3) : 0, posts: feed.filter(p => (p.content || '').toLowerCase().includes(name.toLowerCase().split(' ')[0])).length }
+      if (!map[name]) {
+        const extraMembers = new Set<string>()
+        const extraCount = people.length ? Math.floor(people.length / 3) : 0
+        for (let i = 0; i < Math.min(extraCount, people.length); i++) extraMembers.add(people[i].id)
+        map[name] = { area: name, members: 0, posts: 0, memberIds: extraMembers }
+      }
+      map[name].posts = feed.filter(p => (p.content || '').toLowerCase().includes(name.toLowerCase().split(' ')[0])).length
     })
-    return Object.values(map).sort((a, b) => b.members - a.members)
-  }, [people, feed])
+    return Object.values(map).map(c => ({ ...c, members: c.memberIds.size })).sort((a, b) => b.members - a.members)
+  }, [people, feed, allMemberships])
 
   const renderCommunities = () => {
+    const isMember = (area: string) => memberships.some(m => m.area === area)
+
     if (communityArea) {
       const community = communities.find(c => c.area === communityArea)
       const communityFeed = feed.filter(p => (p.area || p.author?.area) === communityArea)
+      const member = isMember(communityArea)
       return (
         <div className="space-y-4">
           <button onClick={() => setCommunityArea(null)} className="text-xs font-bold text-ms-blue flex items-center gap-1"><X size={14} /> Voltar às comunidades</button>
           <div className="bg-gradient-to-r from-ms-blue to-ms-purple rounded-2xl p-5 text-white shadow-md">
-            <h2 className="text-lg font-bold">{communityArea}</h2>
-            <p className="text-xs text-white/90 mt-1">{community?.members || 0} {community?.members === 1 ? 'membro' : 'membros'} • {community?.posts || communityFeed.length || 0} {community?.posts === 1 || (communityFeed.length === 1 && (community?.posts || 0) === 0) ? 'publicação' : 'publicações'}</p>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-bold">{communityArea}</h2>
+                <p className="text-xs text-white/90 mt-1">{community?.members || 0} {community?.members === 1 ? 'membro' : 'membros'} • {community?.posts || communityFeed.length || 0} {community?.posts === 1 || (communityFeed.length === 1 && (community?.posts || 0) === 0) ? 'publicação' : 'publicações'}</p>
+              </div>
+              {member ? (
+                <button onClick={() => handleLeaveCommunity(communityArea)} className="flex-shrink-0 text-[11px] font-bold px-3 py-1.5 bg-white/20 text-white rounded-full hover:bg-white/30">Membro ✓</button>
+              ) : (
+                <button onClick={() => handleJoinCommunity(communityArea)} className="flex-shrink-0 text-[11px] font-bold px-3 py-1.5 bg-white text-ms-blue rounded-full hover:bg-ms-surface">Aderir</button>
+              )}
+            </div>
           </div>
           {loadingFeed ? (
             <div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-ms-blue border-t-transparent rounded-full animate-spin" /></div>
@@ -418,15 +478,26 @@ function PessoasPageContent() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {communities.map(c => (
-              <button key={c.area} onClick={() => { setCommunityArea(c.area); if (currentUser) loadFeed('para-ti', currentUser.id); else loadFeed('para-ti') }} className="text-left bg-white rounded-2xl p-4 border border-ms-border shadow-sm hover:border-ms-blue/40 hover:shadow-md transition-all">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-bold text-ms-dark">{c.area}</h4>
-                  <span className="bg-ms-surface text-ms-blue text-[10px] font-bold px-2 py-0.5 rounded-full">{c.members} {c.members === 1 ? 'membro' : 'membros'}</span>
+            {communities.map(c => {
+              const member = isMember(c.area)
+              return (
+                <div key={c.area} className="text-left bg-white rounded-2xl p-4 border border-ms-border shadow-sm hover:border-ms-blue/40 hover:shadow-md transition-all">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-bold text-ms-dark">{c.area}</h4>
+                    <span className="bg-ms-surface text-ms-blue text-[10px] font-bold px-2 py-0.5 rounded-full">{c.members} {c.members === 1 ? 'membro' : 'membros'}</span>
+                  </div>
+                  <p className="text-[11px] text-ms-gray mt-1">{c.posts} {c.posts === 1 ? 'publicação' : 'publicações'} recentes</p>
+                  <div className="flex items-center gap-2 mt-3">
+                    <button onClick={() => { setCommunityArea(c.area); if (currentUser) loadFeed('para-ti', currentUser.id); else loadFeed('para-ti') }} className="flex-1 text-center text-[11px] font-bold py-2 bg-ms-surface text-ms-dark rounded-xl hover:bg-ms-border">Ver grupo</button>
+                    {member ? (
+                      <button onClick={() => handleLeaveCommunity(c.area)} className="flex-1 text-center text-[11px] font-bold py-2 bg-green-500 text-white rounded-xl hover:bg-green-600">Membro ✓</button>
+                    ) : (
+                      <button onClick={() => handleJoinCommunity(c.area)} className="flex-1 text-center text-[11px] font-bold py-2 bg-ms-blue text-white rounded-xl hover:bg-blue-700">Aderir</button>
+                    )}
+                  </div>
                 </div>
-                <p className="text-[11px] text-ms-gray mt-1">{c.posts} {c.posts === 1 ? 'publicação' : 'publicações'} recentes</p>
-              </button>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
