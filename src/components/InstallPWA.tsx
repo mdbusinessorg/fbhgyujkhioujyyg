@@ -68,23 +68,23 @@ export default function InstallPWA() {
   return (
     <>
       {/* Install Banner */}
-      <div className="fixed bottom-20 left-4 right-4 md:left-auto md:right-6 md:bottom-6 md:w-80 z-50 animate-slide-up">
-        <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 flex items-center gap-3">
-          <Logo variant="icon" className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#1A56FF] to-[#6C47FF] p-2.5 flex-shrink-0" />
+      <div className="fixed bottom-20 left-3 right-3 md:left-auto md:right-4 md:bottom-4 md:w-72 max-w-sm z-50 animate-slide-up">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-3 flex items-center gap-3">
+          <Logo variant="icon" className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#1A56FF] to-[#6C47FF] p-1.5 flex-shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-gray-900 text-sm">Instalar MÔ SALO</p>
-            <p className="text-xs text-gray-500">Acesso rápido no ecrã inicial</p>
+            <p className="text-[11px] text-gray-500">Acesso rápido no ecrã inicial</p>
           </div>
           <div className="flex flex-col gap-1">
             <button
               onClick={handleInstall}
-              className="px-3 py-1.5 bg-[#1A56FF] text-white text-xs font-medium rounded-lg hover:bg-[#1445DD] transition-colors"
+              className="px-2.5 py-1 bg-[#1A56FF] text-white text-xs font-medium rounded-lg hover:bg-[#1445DD] transition-colors"
             >
               Instalar
             </button>
             <button
               onClick={handleDismiss}
-              className="px-3 py-1 text-gray-400 text-xs hover:text-gray-600 transition-colors"
+              className="px-2.5 py-0.5 text-gray-400 text-[11px] hover:text-gray-600 transition-colors"
             >
               Agora não
             </button>
