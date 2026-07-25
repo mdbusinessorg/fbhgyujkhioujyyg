@@ -11,6 +11,7 @@ import NotificationsBell from '@/components/NotificationsBell'
 import Logo from '@/components/Logo'
 import FeedCard from '@/components/FeedCard'
 import PostComposer from '@/components/PostComposer'
+import StoryBar from '@/components/StoryBar'
 import {
   MessageSquare, Users, User, Home, Search, Bell, Hash, Globe,
   Sparkles, TrendingUp, Building2, UserPlus, Check, X, MapPin, Briefcase,
@@ -237,31 +238,6 @@ function PessoasPageContent() {
       loadAllMemberships()
     } catch {}
   }
-
-  const StoryAvatar = ({ person, isMe = false }: { person?: PersonResult; isMe?: boolean }) => (
-    <div className="flex-shrink-0 flex flex-col items-center gap-2 w-16">
-      <div className="relative w-16 h-16 rounded-full p-[3px] overflow-hidden" style={{ background: isMe ? '#E5E7EB' : 'linear-gradient(135deg, #1A56FF 0%, #6C47FF 100%)' }}>
-        <ProfileAvatar url={isMe ? currentUser?.avatar_url : person?.avatar_url} name={isMe ? currentUser?.nome : person?.nome} size={58} className="rounded-full border-2 border-white bg-white" />
-        {!isMe && person && connectionState(person.id) === 'none' && (
-          <button onClick={() => handleConnect(person)} className="absolute bottom-0 right-0 w-5 h-5 bg-ms-blue text-white rounded-full flex items-center justify-center border-2 border-white">
-            <UserPlus size={10} />
-          </button>
-        )}
-      </div>
-      <span className="text-[10px] font-medium text-ms-dark text-center leading-tight max-w-[60px] truncate">{isMe ? 'Eu' : (person?.nome || '').split(' ')[0]}</span>
-    </div>
-  )
-
-  const renderStories = () => (
-    <div className="flex gap-4 overflow-x-auto no-scrollbar pb-3 -mx-4 px-4 pt-1">
-      <Link href={currentUser ? `/pessoas/perfil/?id=${currentUser.id}` : '/auth/login/'} className="flex-shrink-0"><StoryAvatar isMe /></Link>
-      {people.slice(0, 12).map(person => (
-        <Link key={person.id} href={`/pessoas/perfil/?id=${person.id}`} className="flex-shrink-0">
-          <StoryAvatar person={person} />
-        </Link>
-      ))}
-    </div>
-  )
 
   const connectedIds = useMemo(() => new Set(requests.filter(r => r.status === 'accepted').flatMap(r => [r.requester_id, r.recipient_id])), [requests])
   const pendingReceived = requests.filter(r => r.status === 'pending' && r.recipient_id === currentUser?.id)
@@ -551,7 +527,7 @@ function PessoasPageContent() {
       </header>
 
       <main className="max-w-3xl mx-auto px-4 pt-4">
-        {activeTab === 'para-ti' && renderStories()}
+        {activeTab === 'para-ti' && <StoryBar currentUser={currentUser} people={people} />}
 
         <div className="bg-white border border-ms-border rounded-2xl p-1.5 mb-4 shadow-sm sticky top-[60px] z-40">
           <div className="flex items-center overflow-x-auto no-scrollbar">

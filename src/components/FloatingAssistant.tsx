@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { askSupport } from '@/lib/ai'
 import { X, Send, Bot, User } from 'lucide-react'
+import ProfileAvatar from '@/components/ProfileAvatar'
 
 const WELCOME = 'Olá! Sou o Mosalito, o assistente do MÔ SALO. Posso ajudar-te a encontrar emprego, melhorar o CV ou esclarecer dúvidas. Em que posso ajudar?'
 
@@ -18,6 +19,7 @@ export default function FloatingAssistant() {
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const [profile, setProfile] = useState<any>(null)
+  const [currentUser, setCurrentUser] = useState<{ id: string; nome: string; avatar_url?: string | null } | null>(null)
   const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([{ role: 'assistant', content: WELCOME }])
   const endRef = useRef<HTMLDivElement>(null)
 
@@ -33,8 +35,9 @@ export default function FloatingAssistant() {
 
   const loadProfile = async (email: string) => {
     try {
-      const { data: user } = await supabase.from('users').select('id').eq('email', email).single()
+      const { data: user } = await supabase.from('users').select('id, nome, avatar_url').eq('email', email).single()
       if (user?.id) {
+        setCurrentUser(user)
         const { data: prof } = await supabase.from('profiles').select('*').eq('user_id', user.id).single()
         if (prof) setProfile(prof)
       }
@@ -74,10 +77,14 @@ export default function FloatingAssistant() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed z-50 bottom-20 right-4 lg:bottom-6 lg:right-6 w-14 h-14 rounded-full bg-gradient-to-r from-ms-blue to-ms-purple text-white shadow-2xl flex items-center justify-center animate-float hover:scale-110 hover:shadow-2xl transition-all"
+          className="fixed z-50 bottom-20 right-4 lg:bottom-6 lg:right-6 w-14 h-14 rounded-full bg-gradient-to-r from-ms-blue to-ms-purple text-white shadow-2xl flex items-center justify-center animate-float hover:scale-110 hover:shadow-2xl transition-all overflow-hidden ring-4 ring-white/30"
           aria-label="Abrir assistente MÔ SALO"
         >
-          <Bot size={28} />
+          {currentUser ? (
+            <ProfileAvatar url={currentUser.avatar_url} name={currentUser.nome} size={48} className="rounded-full" />
+          ) : (
+            <Bot size={28} />
+          )}
         </button>
       )}
 
@@ -85,8 +92,12 @@ export default function FloatingAssistant() {
         <div className="fixed z-50 bottom-20 right-4 lg:bottom-24 lg:right-6 w-[calc(100%-2rem)] max-w-sm bg-white rounded-2xl shadow-2xl border border-ms-border overflow-hidden flex flex-col max-h-[70vh]">
           <div className="bg-gradient-to-r from-ms-blue to-ms-purple p-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center">
-                <Bot size={18} className="text-white" />
+              <div className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center overflow-hidden">
+                {currentUser ? (
+                  <ProfileAvatar url={currentUser.avatar_url} name={currentUser.nome} size={36} className="rounded-full" />
+                ) : (
+                  <Bot size={18} className="text-white" />
+                )}
               </div>
               <div>
                 <p className="text-sm font-bold text-white">Mosalito</p>
@@ -101,8 +112,12 @@ export default function FloatingAssistant() {
           <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-ms-surface min-h-[260px]">
             {messages.map((m, i) => (
               <div key={i} className={`flex gap-2 ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${m.role === 'user' ? 'bg-ms-blue text-white' : 'bg-ms-purple-light text-ms-purple'}`}>
-                  {m.role === 'user' ? <User size={14} /> : <Bot size={14} />}
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden ${m.role === 'user' ? 'bg-ms-blue text-white' : 'bg-ms-purple-light text-ms-purple'}`}>
+                  {m.role === 'user' ? (
+                    currentUser ? <ProfileAvatar url={currentUser.avatar_url} name={currentUser.nome} size={28} className="rounded-full" /> : <User size={14} />
+                  ) : (
+                    <Bot size={14} />
+                  )}
                 </div>
                 <div className={`text-xs leading-relaxed p-2.5 rounded-2xl whitespace-pre-wrap ${m.role === 'user' ? 'bg-ms-blue text-white rounded-br-none' : 'bg-white text-ms-dark border border-ms-border rounded-bl-none'}`}>
                   {m.content}

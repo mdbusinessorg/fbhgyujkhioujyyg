@@ -168,4 +168,22 @@ export const social = {
 
   leaveCommunity: (user_id: string, area: string): Promise<{ ok: boolean }> =>
     api(`/community-memberships?user_id=${user_id}&area=${encodeURIComponent(area)}`, { method: 'DELETE' }),
+
+  getUserPhotos: (user_id: string): Promise<{ avatar_url?: string | null; cover_url?: string | null }> =>
+    api(`/user-photos?user_id=${user_id}`),
+
+  setUserPhoto: (payload: { user_id: string; type: 'avatar' | 'cover'; url: string }): Promise<{ avatar_url?: string | null; cover_url?: string | null }> =>
+    api('/user-photos', { method: 'POST', body: JSON.stringify(payload) }),
+
+  getStatuses: (user_id?: string): Promise<any[]> =>
+    api(user_id ? `/statuses?user_id=${user_id}` : '/statuses'),
+
+  createStatus: (payload: { user_id: string; content?: string; media_url?: string | null; author: any }): Promise<any> =>
+    api('/statuses', { method: 'POST', body: JSON.stringify(payload) }),
+
+  viewStatus: (payload: { status_id: string; user_id: string; nome?: string; avatar_url?: string | null }): Promise<{ ok: boolean }> =>
+    api('/statuses', { method: 'PUT', body: JSON.stringify(payload) }),
+
+  deleteStatus: (status_id: string, user_id: string): Promise<{ ok: boolean }> =>
+    api(`/statuses?status_id=${status_id}&user_id=${user_id}`, { method: 'DELETE' }),
 }

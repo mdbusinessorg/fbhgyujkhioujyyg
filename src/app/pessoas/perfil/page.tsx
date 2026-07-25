@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
@@ -13,9 +13,10 @@ import VerifiedBadge from '@/components/VerifiedBadge'
 import FeedCard from '@/components/FeedCard'
 import {
   ArrowLeft, MapPin, MessageSquare, Bookmark, Users, UserPlus, UserCheck,
-  Check, X, ShieldCheck, Briefcase, Building2
+  Check, X, ShieldCheck, Briefcase, Building2, Camera
 } from 'lucide-react'
 import { AreaIcon } from '@/lib/area-icons'
+import { STORAGE_BUCKET } from '@/lib/supabase'
 
 interface PersonProfile {
   id: string
@@ -73,6 +74,11 @@ function PerfilContent() {
   const [verifyRequested, setVerifyRequested] = useState(false)
   const [verifyLoading, setVerifyLoading] = useState(false)
 
+  const [coverUrl, setCoverUrl] = useState<string | null>(null)
+  const [uploading, setUploading] = useState<'avatar' | 'cover' | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [uploadType, setUploadType] = useState<'avatar' | 'cover' | null>(null)
+
   useEffect(() => {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession()
@@ -86,7 +92,12 @@ function PerfilContent() {
       const { data: u } = await supabase.from('users').select('id, nome, email, role, telefone, avatar_url, created_at').eq('id', id).single()
       if (!u) { setLoading(false); return }
       const { data: p } = await supabase.from('profiles').select('area, localizacao, competencias, bio, nivel_academico, experiencias').eq('user_id', id).single()
-      const personData: PersonProfile = { ...u, profile: p || undefined }
+      let personData: PersonProfile = { ...u, profile: p || undefined }
+      try {
+        const photos = await social.getUserPhotos(id)
+        if (photos.avatar_url) personData = { ...personData, avatar_url: photos.avatar_url }
+        if (photos.cover_url) setCoverUrl(photos.cover_url)
+      } catch {}
       setPerson(personData)
 
       if (loggedUserId) {
@@ -201,6 +212,39 @@ function PerfilContent() {
     } catch {}
   }
 
+  const triggerUpload = (type: 'avatar' | 'cover') => {
+    setUploadType(type)
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !currentUser || !person || !uploadType) return
+    if (file.size > 5 * 1024 * 1024) { alert('Imagem demasiado grande. Máx. 5 MB.'); return }
+    setUploading(uploadType)
+    try {
+      const ext = file.name.split('.').pop() || 'jpg'
+      const path = `${uploadType}s/${currentUser.id}/${Date.now()}.${ext}`
+      const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(path, file, { upsert: true })
+      if (error) throw error
+      const { data: { publicUrl } } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path)
+      await social.setUserPhoto({ user_id: currentUser.id, type: uploadType, url: publicUrl })
+      if (uploadType === 'avatar') {
+        await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', currentUser.id)
+        setPerson(prev => prev ? { ...prev, avatar_url: publicUrl } : prev)
+        setCurrentUser(prev => prev ? { ...prev, avatar_url: publicUrl } : prev)
+      } else {
+        setCoverUrl(publicUrl)
+      }
+    } catch (err: any) {
+      alert('Erro ao carregar foto: ' + (err.message || 'tenta de novo'))
+    } finally {
+      setUploading(null)
+      setUploadType(null)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
   const requestVerification = async () => {
     if (!currentUser || !person) return
     setVerifyLoading(true)
@@ -273,12 +317,30 @@ function PerfilContent() {
       </header>
 
       <main className="max-w-3xl mx-auto px-4 pt-6 pb-24">
-        <div className="relative z-0 h-32 sm:h-40 rounded-t-2xl overflow-hidden bg-gradient-to-r from-ms-blue to-ms-purple">
+        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+        <div className="relative z-0 h-32 sm:h-40 rounded-t-2xl overflow-hidden group">
+          {coverUrl ? (
+            <img src={coverUrl} alt="Capa" className="absolute inset-0 w-full h-full object-cover" />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-r from-ms-blue to-ms-purple" />
+          )}
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.2),transparent_60%)]" />
+          {isMe && (
+            <button onClick={() => triggerUpload('cover')} disabled={uploading === 'cover'} className="absolute top-2 right-2 bg-black/40 hover:bg-black/60 text-white text-xs px-2.5 py-1.5 rounded-full flex items-center gap-1.5 transition backdrop-blur-sm">
+              <Camera size={12} /> {uploading === 'cover' ? 'A carregar...' : 'Alterar capa'}
+            </button>
+          )}
         </div>
         <div className="relative z-10 bg-white rounded-b-2xl border-x border-b border-ms-border shadow-sm p-6 -mt-10 text-center mb-4">
           <div className="relative z-20 w-24 h-24 mx-auto -mt-14 rounded-full p-[3px] bg-gradient-to-br from-ms-blue to-ms-purple shadow-xl ring-4 ring-white">
-            <ProfileAvatar url={person.avatar_url} name={person.nome} size={86} className="rounded-full border-2 border-white" />
+            <div className="relative">
+              <ProfileAvatar url={person.avatar_url} name={person.nome} size={86} className="rounded-full border-2 border-white" />
+              {isMe && (
+                <button onClick={() => triggerUpload('avatar')} disabled={uploading === 'avatar'} className="absolute bottom-0 right-0 bg-ms-blue text-white p-1.5 rounded-full border-2 border-white shadow hover:bg-blue-700 transition">
+                  <Camera size={12} />
+                </button>
+              )}
+            </div>
           </div>
           <div className="mt-3 flex items-center justify-center gap-1">
             <h1 className="text-xl font-bold text-ms-dark">{person.nome}</h1>

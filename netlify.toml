@@ -72,6 +72,16 @@
   status = 200
 
 [[redirects]]
+  from = "/api/user-photos"
+  to = "/.netlify/functions/user-photos"
+  status = 200
+
+[[redirects]]
+  from = "/api/statuses"
+  to = "/.netlify/functions/statuses"
+  status = 200
+
+[[redirects]]
   from = "/api/post-reactions"
   to = "/.netlify/functions/post-reactions"
   status = 200
