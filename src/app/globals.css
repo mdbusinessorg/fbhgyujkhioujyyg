@@ -66,3 +66,8 @@
 .animate-float-delayed {
   animation: float 3s ease-in-out 0.5s infinite;
 }
+
+@keyframes floatUp {
+  0% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -28px) scale(1.4); }
+}

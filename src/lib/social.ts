@@ -20,11 +20,10 @@ export interface Post {
   area?: string
   created_at: string
   author: PostAuthor
-  gosto_count?: number
-  parabens_count?: number
   comments_count?: number
-  liked_by_me?: boolean
   reactions?: { user_id: string; type: string; created_at: string }[]
+  reaction_counts?: Record<string, number>
+  my_reaction?: string | null
   comments?: PostComment[]
   is_connected?: boolean
   is_followed?: boolean
@@ -104,7 +103,7 @@ export const social = {
   getReactions: (post_id: string): Promise<{ post_id: string; reactions: { user_id: string; type: string; created_at: string }[] }> =>
     api(`/post-reactions?post_id=${post_id}`),
 
-  reactPost: (post_id: string, user_id: string, type: 'gosto' | 'parabens' = 'gosto'): Promise<{ post_id: string; reactions: any[] }> =>
+  reactPost: (post_id: string, user_id: string, type: string = 'gosto'): Promise<{ post_id: string; reactions: any[] }> =>
     api('/post-reactions', { method: 'POST', body: JSON.stringify({ post_id, user_id, type }) }),
 
   unreactPost: (post_id: string, user_id: string): Promise<{ post_id: string; reactions: any[] }> =>

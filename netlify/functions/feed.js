@@ -17,9 +17,13 @@ function rankScore(post, context) {
   const timeScore = 1 / Math.pow(hours + 2, 1.5)
   const reactions = post.reactions || []
   const comments = post.comments || []
-  const gosto = reactions.filter(r => r.type === 'gosto').length
-  const parabens = reactions.filter(r => r.type === 'parabens').length
-  const engagement = gosto + parabens + comments.length * 2
+  const counts = post.reaction_counts || {}
+  const gosto = counts.gosto || 0
+  const mood = counts.mood || 0
+  const suporte = counts.suporte || 0
+  const adoro = counts.adoro || 0
+  // algoritmo benéfico: suporte e adoro pesam mais para promover conteúdo que ajuda
+  const engagement = gosto + mood + suporte * 2 + adoro * 2 + comments.length * 2
   const engagementScore = Math.log1p(engagement + 1)
   const isConnected = connectedIds.has(post.user_id)
   const isFollowing = followingIds.has(post.user_id)
@@ -27,7 +31,10 @@ function rankScore(post, context) {
   const authorArea = post.area || post.author?.area || ''
   const areaBoost = userArea && authorArea && userArea.toLowerCase() === authorArea.toLowerCase() ? 2 : 1
   const typeBoost = post.type === 'job' || post.is_featured_job ? 1.2 : 1
-  return timeScore * (1 + engagementScore) * networkBoost * areaBoost * typeBoost
+  // boost benéfico para publicações que pedem ajuda/oferecem apoio
+  const helpful = /ajuda|oportunidade|apoio|voluntariado|mentoria|dica/i.test(post.content || '')
+  const helpfulBoost = helpful ? 1.3 : 1
+  return timeScore * (1 + engagementScore) * networkBoost * areaBoost * typeBoost * helpfulBoost
 }
 
 function ensureDiversity(sorted) {
@@ -145,14 +152,19 @@ exports.handler = async (event) => {
 
     const vaga = post.vaga_id ? vagasMap[post.vaga_id] : null
 
+    const reaction_counts = {}
+    for (const type of ['gosto', 'mood', 'suporte', 'adoro']) {
+      reaction_counts[type] = reactionsData.filter(r => r.type === type).length
+    }
+
     return {
       ...post,
       author,
       area: author.area,
       reactions: reactionsData,
       comments: commentsData,
-      gosto_count: reactionsData.filter(r => r.type === 'gosto').length,
-      parabens_count: reactionsData.filter(r => r.type === 'parabens').length,
+      reaction_counts: reaction_counts,
+      my_reaction: userId ? (reactionsData.find(r => r.user_id === userId)?.type || null) : null,
       comments_count: commentsData.length,
       is_connected: userId ? connectedIds.has(post.user_id) : false,
       is_followed: userId ? followingIds.has(post.user_id) : false,

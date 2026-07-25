@@ -7,7 +7,7 @@ const headers = {
   'Content-Type': 'application/json',
 }
 
-const VALID_REACTIONS = ['gosto', 'parabens']
+const VALID_REACTIONS = ['gosto', 'mood', 'suporte', 'adoro']
 
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' }

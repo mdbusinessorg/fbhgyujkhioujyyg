@@ -8,7 +8,7 @@ import ProfileAvatar from '@/components/ProfileAvatar'
 import VerifiedBadge from '@/components/VerifiedBadge'
 import ShareMenu from '@/components/ShareMenu'
 import { timeAgo } from '@/lib/date'
-import { ThumbsUp, PartyPopper, MessageCircle, Share2, Bookmark, Send, MapPin, Briefcase, MoreHorizontal, Trash2, X } from 'lucide-react'
+import { ThumbsUp, Smile, HeartHandshake, Heart, MessageCircle, Share2, Bookmark, Send, MapPin, Briefcase, Trash2, X } from 'lucide-react'
 
 interface FeedCardProps {
   post: Post
@@ -16,6 +16,13 @@ interface FeedCardProps {
   onDelete?: (id: string) => void
   onUpdate?: (post: Post) => void
 }
+
+const REACTIONS = [
+  { type: 'gosto', label: 'Gosto', icon: ThumbsUp, color: 'text-ms-blue', bg: 'bg-blue-50', fill: 'fill-ms-blue/20', emoji: '👍' },
+  { type: 'mood', label: 'Mood', icon: Smile, color: 'text-amber-500', bg: 'bg-amber-50', fill: 'fill-amber-500/20', emoji: '😄' },
+  { type: 'suporte', label: 'Suporte', icon: HeartHandshake, color: 'text-green-600', bg: 'bg-green-50', fill: 'fill-green-600/20', emoji: '🤝' },
+  { type: 'adoro', label: 'Adoro', icon: Heart, color: 'text-purple-500', bg: 'bg-purple-50', fill: 'fill-purple-500/20', emoji: '❤️' },
+]
 
 function AuthorLine({ author, isVerified, timestamp }: { author: PostAuthor; isVerified?: boolean; timestamp: string }) {
   return (
@@ -36,6 +43,50 @@ function AuthorLine({ author, isVerified, timestamp }: { author: PostAuthor; isV
   )
 }
 
+function ReactionButton({
+  type,
+  label,
+  icon: Icon,
+  color,
+  bg,
+  fill,
+  emoji,
+  count,
+  active,
+  onClick,
+}: typeof REACTIONS[0] & { count: number; active: boolean; onClick: () => void }) {
+  const [particles, setParticles] = useState<{ id: number }[]>([])
+
+  const handleClick = () => {
+    onClick()
+    const id = Date.now()
+    setParticles(p => [...p, { id }])
+    setTimeout(() => setParticles(p => p.filter(x => x.id !== id)), 900)
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      className={`relative flex items-center gap-1 text-xs font-medium transition-all px-2 py-1.5 rounded-full ${active ? `${color} ${bg}` : 'text-ms-gray hover:text-ms-dark hover:bg-ms-surface'}`}
+    >
+      <span className="relative">
+        <Icon size={18} className={active ? fill : ''} />
+        {particles.map(p => (
+          <span
+            key={p.id}
+            className="absolute -top-5 left-1/2 -translate-x-1/2 text-base pointer-events-none"
+            style={{ animation: 'floatUp 0.8s ease-out forwards' }}
+          >
+            {emoji}
+          </span>
+        ))}
+      </span>
+      <span>{count || 0}</span>
+      <span className="sr-only">{label}</span>
+    </button>
+  )
+}
+
 export default function FeedCard({ post, currentUser, onDelete, onUpdate }: FeedCardProps) {
   const router = useRouter()
   const [commentsOpen, setCommentsOpen] = useState(false)
@@ -43,23 +94,14 @@ export default function FeedCard({ post, currentUser, onDelete, onUpdate }: Feed
   const [commentText, setCommentText] = useState('')
   const [postingComment, setPostingComment] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [reactions, setReactions] = useState(post.reactions || [])
-  const [gostoCount, setGostoCount] = useState(post.gosto_count || 0)
-  const [parabensCount, setParabensCount] = useState(post.parabens_count || 0)
-  const [myGosto, setMyGosto] = useState(false)
-  const [myParabens, setMyParabens] = useState(false)
+  const [reactionCounts, setReactionCounts] = useState<Record<string, number>>(post.reaction_counts || {})
+  const [myReaction, setMyReaction] = useState<string | null>(post.my_reaction || null)
 
   useEffect(() => {
-    setReactions(post.reactions || [])
-    setGostoCount(post.gosto_count || 0)
-    setParabensCount(post.parabens_count || 0)
     setComments(post.comments || [])
-    if (currentUser) {
-      const myReactions = (post.reactions || []).filter(r => r.user_id === currentUser.id)
-      setMyGosto(myReactions.some(r => r.type === 'gosto'))
-      setMyParabens(myReactions.some(r => r.type === 'parabens'))
-    }
-  }, [post, currentUser])
+    setReactionCounts(post.reaction_counts || {})
+    setMyReaction(post.my_reaction || null)
+  }, [post])
 
   const openComments = async () => {
     setCommentsOpen(true)
@@ -70,21 +112,23 @@ export default function FeedCard({ post, currentUser, onDelete, onUpdate }: Feed
     } catch {}
   }
 
-  const handleReaction = async (type: 'gosto' | 'parabens') => {
+  const handleReaction = async (type: string) => {
     if (!currentUser) { router.push('/auth/login/'); return }
-    const isActive = type === 'gosto' ? myGosto : myParabens
+    const isActive = myReaction === type
     try {
       if (isActive) {
         await social.unreactPost(post.id, currentUser.id)
-        if (type === 'gosto') setGostoCount(c => Math.max(0, c - 1))
-        else setParabensCount(c => Math.max(0, c - 1))
+        setReactionCounts(prev => ({ ...prev, [type]: Math.max(0, (prev[type] || 0) - 1) }))
+        setMyReaction(null)
       } else {
         await social.reactPost(post.id, currentUser.id, type)
-        if (type === 'gosto') { setGostoCount(c => c + 1); if (myParabens) { setParabensCount(c => Math.max(0, c - 1)); setMyParabens(false) } }
-        else { setParabensCount(c => c + 1); if (myGosto) { setGostoCount(c => Math.max(0, c - 1)); setMyGosto(false) } }
+        setReactionCounts(prev => {
+          const next = { ...prev, [type]: (prev[type] || 0) + 1 }
+          if (myReaction) next[myReaction] = Math.max(0, (next[myReaction] || 0) - 1)
+          return next
+        })
+        setMyReaction(type)
       }
-      if (type === 'gosto') setMyGosto(!isActive)
-      else setMyParabens(!isActive)
     } catch {}
   }
 
@@ -152,14 +196,17 @@ export default function FeedCard({ post, currentUser, onDelete, onUpdate }: Feed
       )}
 
       <div className="px-4 py-3 border-t border-ms-border flex items-center justify-between text-ms-gray">
-        <div className="flex items-center gap-4">
-          <button onClick={() => handleReaction('gosto')} className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${myGosto ? 'text-ms-blue' : 'hover:text-ms-dark'}`}>
-            <ThumbsUp size={18} className={myGosto ? 'fill-ms-blue/20' : ''} /> {gostoCount}
-          </button>
-          <button onClick={() => handleReaction('parabens')} className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${myParabens ? 'text-ms-purple' : 'hover:text-ms-dark'}`}>
-            <PartyPopper size={18} className={myParabens ? 'fill-ms-purple/20' : ''} /> {parabensCount}
-          </button>
-          <button onClick={openComments} className="flex items-center gap-1.5 text-xs font-medium hover:text-ms-dark">
+        <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+          {REACTIONS.map(r => (
+            <ReactionButton
+              key={r.type}
+              {...r}
+              count={reactionCounts[r.type] || 0}
+              active={myReaction === r.type}
+              onClick={() => handleReaction(r.type)}
+            />
+          ))}
+          <button onClick={openComments} className="flex items-center gap-1.5 text-xs font-medium hover:text-ms-dark px-2 py-1.5 rounded-full hover:bg-ms-surface transition-colors">
             <MessageCircle size={18} /> {comments.length || post.comments_count || 0}
           </button>
         </div>
