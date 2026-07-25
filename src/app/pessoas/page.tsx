@@ -177,8 +177,12 @@ function PessoasPageContent() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!currentUser || !confirm('Apagar publicação?')) return
-    try { await social.deletePost(id, currentUser.id); setFeed(prev => prev.filter(p => p.id !== id)) } catch {}
+    if (!currentUser) return
+    try {
+      await social.deletePost(id, currentUser.id)
+      setFeed(prev => prev.filter(p => p.id !== id))
+      checkPostedToday(currentUser.id)
+    } catch {}
   }
 
   const handleUpdatePost = (updated: Post) => {

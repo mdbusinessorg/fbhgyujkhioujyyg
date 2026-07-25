@@ -8,7 +8,7 @@ import ProfileAvatar from '@/components/ProfileAvatar'
 import VerifiedBadge from '@/components/VerifiedBadge'
 import ShareMenu from '@/components/ShareMenu'
 import { timeAgo } from '@/lib/date'
-import { ThumbsUp, Smile, HeartHandshake, Heart, MessageCircle, Share2, Bookmark, Send, MapPin, Briefcase, Trash2, X } from 'lucide-react'
+import { ThumbsUp, Smile, HeartHandshake, Heart, MessageCircle, Share2, Bookmark, Send, MapPin, Briefcase, Trash2, X, MoreHorizontal } from 'lucide-react'
 
 interface FeedCardProps {
   post: Post
@@ -96,6 +96,7 @@ export default function FeedCard({ post, currentUser, onDelete, onUpdate }: Feed
   const [saved, setSaved] = useState(false)
   const [reactionCounts, setReactionCounts] = useState<Record<string, number>>(post.reaction_counts || {})
   const [myReaction, setMyReaction] = useState<string | null>(post.my_reaction || null)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
     setComments(post.comments || [])
@@ -160,7 +161,16 @@ export default function FeedCard({ post, currentUser, onDelete, onUpdate }: Feed
             <AuthorLine author={post.author} isVerified={post.is_verified} timestamp={post.created_at} />
           </Link>
           {currentUser?.id === post.user_id && onDelete && (
-            <button onClick={() => onDelete(post.id)} className="text-ms-gray hover:text-red-500 p-1"><Trash2 size={16} /></button>
+            <div className="relative">
+              <button onClick={() => setMenuOpen(v => !v)} className="text-ms-gray hover:text-ms-dark p-1"><MoreHorizontal size={18} /></button>
+              {menuOpen && (
+                <div className="absolute right-0 top-7 bg-white rounded-xl border border-ms-border shadow-lg p-1.5 z-10 min-w-[160px]">
+                  <button onClick={() => { setMenuOpen(false); if (confirm('Apagar publicação?')) onDelete(post.id) }} className="w-full text-left text-xs font-medium text-red-500 hover:bg-red-50 px-3 py-2 rounded-lg flex items-center gap-2">
+                    <Trash2 size={14} /> Apagar publicação
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
 

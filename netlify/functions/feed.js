@@ -107,8 +107,8 @@ exports.handler = async (event) => {
   let allProfiles = []
   let vagasMap = {}
 
-  const supabase = getAdminClient()
   try {
+    const supabase = getAdminClient()
     const { data: users } = await supabase.from('users').select('id, nome, email, role, avatar_url').limit(1000)
     const { data: profiles } = await supabase.from('profiles').select('user_id, area, localizacao, bio, nivel_academico, experiencias, competencias').limit(1000)
     allUsers = users || []
