@@ -3,7 +3,7 @@ export interface ProfileForMatch {
   localizacao?: string | null
   nivel_academico?: string | null
   experiencias?: string | null
-  competencias?: string | null
+  competencias?: string | string[] | null
   bio?: string | null
   jobTitles?: string[]
 }
@@ -42,7 +42,8 @@ export function computeJobMatchScore(job: JobForMatch, profile?: ProfileForMatch
   }
 
   if (profile.competencias) {
-    const comps = profile.competencias.split(/[,;]+/).map((c) => c.trim().toLowerCase()).filter(Boolean)
+    const raw = Array.isArray(profile.competencias) ? profile.competencias : profile.competencias.split(/[,;]+/)
+    const comps = raw.map((c: string) => c.trim().toLowerCase()).filter(Boolean)
     let compHits = 0
     for (const c of comps) {
       if (c.length > 2 && text.includes(c)) compHits++

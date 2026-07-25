@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mosalo-v5';
+const CACHE_NAME = 'mosalo-v6';
 const STATIC_ASSETS = [
   '/',
   '/offline.html',
@@ -43,7 +43,23 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Stale-while-revalidate for pages
+  // Navigation pages: network-first with no HTTP-cache, to avoid stale 301/redirects
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request, { cache: 'no-store' }).then((response) => {
+        if (response && response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return response;
+      }).catch(() => {
+        return caches.match(event.request).then((cached) => cached || caches.match('/offline.html'));
+      })
+    );
+    return;
+  }
+
+  // Stale-while-revalidate for static assets
   event.respondWith(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.match(event.request).then((cached) => {
@@ -52,12 +68,7 @@ self.addEventListener('fetch', (event) => {
             cache.put(event.request, response.clone());
           }
           return response;
-        }).catch(() => {
-          if (event.request.mode === 'navigate') {
-            return caches.match('/offline.html');
-          }
-          return cached;
-        });
+        }).catch(() => cached);
 
         return cached || fetched;
       });
