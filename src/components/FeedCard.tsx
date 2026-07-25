@@ -1,0 +1,204 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { social, type Post, type PostAuthor, type PostComment } from '@/lib/social'
+import ProfileAvatar from '@/components/ProfileAvatar'
+import VerifiedBadge from '@/components/VerifiedBadge'
+import ShareMenu from '@/components/ShareMenu'
+import { timeAgo } from '@/lib/date'
+import { ThumbsUp, PartyPopper, MessageCircle, Share2, Bookmark, Send, MapPin, Briefcase, MoreHorizontal, Trash2, X } from 'lucide-react'
+
+interface FeedCardProps {
+  post: Post
+  currentUser?: { id: string; nome: string; role: string; avatar_url?: string | null } | null
+  onDelete?: (id: string) => void
+  onUpdate?: (post: Post) => void
+}
+
+function AuthorLine({ author, isVerified, timestamp }: { author: PostAuthor; isVerified?: boolean; timestamp: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <div>
+        <div className="flex items-center gap-1">
+          <span className="text-sm font-bold text-ms-dark leading-tight">{author.nome || 'Utilizador'}</span>
+          {isVerified && <VerifiedBadge size={14} />}
+        </div>
+        <p className="text-[11px] text-ms-gray leading-tight truncate">
+          {author.role === 'recrutador' ? 'Recrutador' : 'Talento'}
+          {author.area ? ` • ${author.area}` : ''}
+          {author.localizacao ? ` • ${author.localizacao}` : ''}
+        </p>
+        <p className="text-[10px] text-ms-gray/80">{timeAgo(timestamp)}</p>
+      </div>
+    </div>
+  )
+}
+
+export default function FeedCard({ post, currentUser, onDelete, onUpdate }: FeedCardProps) {
+  const router = useRouter()
+  const [commentsOpen, setCommentsOpen] = useState(false)
+  const [comments, setComments] = useState<PostComment[]>(post.comments || [])
+  const [commentText, setCommentText] = useState('')
+  const [postingComment, setPostingComment] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [reactions, setReactions] = useState(post.reactions || [])
+  const [gostoCount, setGostoCount] = useState(post.gosto_count || 0)
+  const [parabensCount, setParabensCount] = useState(post.parabens_count || 0)
+  const [myGosto, setMyGosto] = useState(false)
+  const [myParabens, setMyParabens] = useState(false)
+
+  useEffect(() => {
+    setReactions(post.reactions || [])
+    setGostoCount(post.gosto_count || 0)
+    setParabensCount(post.parabens_count || 0)
+    setComments(post.comments || [])
+    if (currentUser) {
+      const myReactions = (post.reactions || []).filter(r => r.user_id === currentUser.id)
+      setMyGosto(myReactions.some(r => r.type === 'gosto'))
+      setMyParabens(myReactions.some(r => r.type === 'parabens'))
+    }
+  }, [post, currentUser])
+
+  const openComments = async () => {
+    setCommentsOpen(true)
+    try {
+      const data = await social.getComments(post.id)
+      setComments(data.comments)
+      if (onUpdate) onUpdate({ ...post, comments: data.comments, comments_count: data.comments.length })
+    } catch {}
+  }
+
+  const handleReaction = async (type: 'gosto' | 'parabens') => {
+    if (!currentUser) { router.push('/auth/login/'); return }
+    const isActive = type === 'gosto' ? myGosto : myParabens
+    try {
+      if (isActive) {
+        await social.unreactPost(post.id, currentUser.id)
+        if (type === 'gosto') setGostoCount(c => Math.max(0, c - 1))
+        else setParabensCount(c => Math.max(0, c - 1))
+      } else {
+        await social.reactPost(post.id, currentUser.id, type)
+        if (type === 'gosto') { setGostoCount(c => c + 1); if (myParabens) { setParabensCount(c => Math.max(0, c - 1)); setMyParabens(false) } }
+        else { setParabensCount(c => c + 1); if (myGosto) { setGostoCount(c => Math.max(0, c - 1)); setMyGosto(false) } }
+      }
+      if (type === 'gosto') setMyGosto(!isActive)
+      else setMyParabens(!isActive)
+    } catch {}
+  }
+
+  const handleComment = async () => {
+    if (!currentUser || !commentText.trim()) return
+    setPostingComment(true)
+    try {
+      const data = await social.createComment({
+        post_id: post.id,
+        user_id: currentUser.id,
+        content: commentText.trim(),
+        author: { id: currentUser.id, nome: currentUser.nome, avatar_url: currentUser.avatar_url, role: currentUser.role },
+      })
+      setComments(data.comments)
+      setCommentText('')
+      if (onUpdate) onUpdate({ ...post, comments: data.comments, comments_count: data.comments.length })
+    } catch {}
+    setPostingComment(false)
+  }
+
+  const vaga = post.vaga
+
+  return (
+    <article className="bg-white rounded-2xl border border-ms-border shadow-sm overflow-hidden">
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <Link href={`/pessoas/perfil/?id=${post.user_id}`} className="flex items-center gap-3 min-w-0">
+            <ProfileAvatar url={post.author.avatar_url} name={post.author.nome} size={48} />
+            <AuthorLine author={post.author} isVerified={post.is_verified} timestamp={post.created_at} />
+          </Link>
+          {currentUser?.id === post.user_id && onDelete && (
+            <button onClick={() => onDelete(post.id)} className="text-ms-gray hover:text-red-500 p-1"><Trash2 size={16} /></button>
+          )}
+        </div>
+
+        {post.content && (
+          <p className="text-sm text-ms-dark whitespace-pre-wrap mt-3 leading-relaxed">{post.content}</p>
+        )}
+
+        {post.is_featured_job && (
+          <span className="inline-block mt-2 text-[10px] px-2 py-0.5 bg-gradient-to-r from-ms-blue/10 to-ms-purple/10 text-ms-blue rounded-full font-semibold">Vaga em destaque</span>
+        )}
+      </div>
+
+      {post.media_url && (
+        <div className="px-4 pb-4">
+          <img src={post.media_url} alt="" className="w-full max-h-[420px] object-cover rounded-xl select-none" draggable={false} />
+        </div>
+      )}
+
+      {vaga && (
+        <div className="mx-4 mb-4 p-3 rounded-xl bg-ms-surface border border-ms-border">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <h4 className="text-sm font-bold text-ms-dark">{vaga.titulo || vaga.title || 'Vaga'}</h4>
+              <p className="text-[11px] text-ms-gray flex items-center gap-2 mt-0.5 flex-wrap">
+                {vaga.empresa_nome || vaga.company ? <span className="flex items-center gap-1"><Briefcase size={11} /> {vaga.empresa_nome || vaga.company}</span> : null}
+                {vaga.localizacao || vaga.location ? <span className="flex items-center gap-1"><MapPin size={11} /> {vaga.localizacao || vaga.location}</span> : null}
+                {vaga.area ? <span>{vaga.area}</span> : null}
+              </p>
+            </div>
+            <Link href={`/vagas/detalhe/?id=${vaga.id}`} className="flex-shrink-0 text-xs font-semibold px-3 py-1.5 bg-ms-blue text-white rounded-lg hover:bg-blue-700 transition-colors">Ver vaga</Link>
+          </div>
+        </div>
+      )}
+
+      <div className="px-4 py-3 border-t border-ms-border flex items-center justify-between text-ms-gray">
+        <div className="flex items-center gap-4">
+          <button onClick={() => handleReaction('gosto')} className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${myGosto ? 'text-ms-blue' : 'hover:text-ms-dark'}`}>
+            <ThumbsUp size={18} className={myGosto ? 'fill-ms-blue/20' : ''} /> {gostoCount}
+          </button>
+          <button onClick={() => handleReaction('parabens')} className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${myParabens ? 'text-ms-purple' : 'hover:text-ms-dark'}`}>
+            <PartyPopper size={18} className={myParabens ? 'fill-ms-purple/20' : ''} /> {parabensCount}
+          </button>
+          <button onClick={openComments} className="flex items-center gap-1.5 text-xs font-medium hover:text-ms-dark">
+            <MessageCircle size={18} /> {comments.length || post.comments_count || 0}
+          </button>
+        </div>
+        <div className="flex items-center gap-3">
+          <ShareMenu url={`${typeof window !== 'undefined' ? window.location.origin : ''}/pessoas/?post=${post.id}`} text={`Publicação de ${post.author.nome} no MÔ SALO`} size={18} className="text-ms-gray hover:text-ms-dark" />
+          <button onClick={() => setSaved(v => !v)} className={`transition-colors ${saved ? 'text-ms-blue' : 'text-ms-gray hover:text-ms-dark'}`}>
+            <Bookmark size={18} className={saved ? 'fill-ms-blue/20' : ''} />
+          </button>
+        </div>
+      </div>
+
+      {commentsOpen && (
+        <div className="px-4 pb-4 border-t border-ms-border">
+          <div className="flex items-center justify-between py-2">
+            <h4 className="text-xs font-bold text-ms-dark">Comentários</h4>
+            <button onClick={() => setCommentsOpen(false)} className="text-ms-gray hover:text-ms-dark"><X size={16} /></button>
+          </div>
+          <div className="space-y-3 max-h-60 overflow-y-auto mb-3">
+            {comments.length === 0 ? <p className="text-xs text-ms-gray">Sem comentários ainda.</p> : comments.map(c => (
+              <div key={c.id} className="flex gap-2">
+                <ProfileAvatar url={c.author.avatar_url} name={c.author.nome} size={28} />
+                <div className="flex-1 bg-ms-surface rounded-xl rounded-tl-none px-3 py-2">
+                  <p className="text-xs font-bold text-ms-dark">{c.author.nome}</p>
+                  <p className="text-xs text-ms-dark mt-0.5">{c.content}</p>
+                  <p className="text-[10px] text-ms-gray mt-1">{timeAgo(c.created_at)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          {currentUser ? (
+            <div className="flex items-center gap-2">
+              <input value={commentText} onChange={e => setCommentText(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleComment()} placeholder="Escreve um comentário..." className="flex-1 bg-ms-surface rounded-full px-4 py-2 text-xs text-ms-dark placeholder:text-ms-gray outline-none focus:ring-2 focus:ring-ms-blue/20" />
+              <button onClick={handleComment} disabled={postingComment || !commentText.trim()} className="p-2 bg-ms-blue text-white rounded-full disabled:opacity-50"><Send size={14} /></button>
+            </div>
+          ) : (
+            <button onClick={() => router.push('/auth/login/')} className="text-xs text-ms-blue font-medium">Inicia sessão para comentar</button>
+          )}
+        </div>
+      )}
+    </article>
+  )
+}

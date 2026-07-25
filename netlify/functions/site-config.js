@@ -1,4 +1,4 @@
-const { getStore } = require('@netlify/blobs')
+const { getStoreWithFallback } = require('../lib/store')
 const { verifyAdmin } = require('../lib/admin')
 
 const headers = {
@@ -8,10 +8,7 @@ const headers = {
 }
 
 function getStoreInstance() {
-  return getStore('site-config', {
-    siteID: process.env.NETLIFY_BLOBS_SITE_ID,
-    token: process.env.NETLIFY_BLOBS_TOKEN,
-  })
+  return getStoreWithFallback('site-config')
 }
 
 const defaultConfig = {

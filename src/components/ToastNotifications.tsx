@@ -84,14 +84,14 @@ export default function ToastNotifications() {
       if (otherId && userId) {
         const { data: existing } = await supabase.from('conversations').select('id').or(`and(participant_1_id.eq.${otherId},participant_2_id.eq.${userId}),and(participant_1_id.eq.${userId},participant_2_id.eq.${otherId})`).maybeSingle()
         if (existing?.id) router.push(`/mensagens/?conv=${existing.id}`)
-        else router.push('/pessoas/?tab=network')
+        else router.push('/mensagens/')
       }
     } else if (n.type === 'message' && n.data?.conversation_id) {
       router.push(`/mensagens/?conv=${n.data.conversation_id}`)
     } else if (n.type === 'job_match') {
       router.push('/vagas/?recentes=1')
     } else if (n.type === 'network_request') {
-      router.push('/pessoas/?tab=network')
+      router.push('/mensagens/')
     } else if (n.data?.href) {
       router.push(n.data.href)
     }

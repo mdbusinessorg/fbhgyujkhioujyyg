@@ -1,4 +1,5 @@
-const { getStore } = require('@netlify/blobs')
+const { getStoreWithFallback } = require('../lib/store')
+const { getAuthenticatedUser } = require('../lib/auth')
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -15,10 +16,7 @@ function startOfDay(date) {
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' }
 
-  const store = getStore('posts', {
-    siteID: process.env.NETLIFY_BLOBS_SITE_ID,
-    token: process.env.NETLIFY_BLOBS_TOKEN,
-  })
+  const store = getStoreWithFallback('posts')
 
   if (event.httpMethod === 'GET') {
     const data = (await store.get('all')) || '[]'
@@ -29,11 +27,30 @@ exports.handler = async (event) => {
   if (event.httpMethod === 'POST') {
     let payload = {}
     try { payload = JSON.parse(event.body || '{}') } catch {}
-    const { user_id, content, media_url, author } = payload
+    const {
+      user_id,
+      content,
+      media_url,
+      author,
+      type = 'post',
+      vaga_id,
+      is_featured_job,
+      area,
+    } = payload
+
+    if (!user_id) {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: 'user_id obrigatório' }) }
+    }
+
+    const authUser = await getAuthenticatedUser(event)
+    if (!authUser || authUser.id !== user_id) {
+      return { statusCode: 401, headers, body: JSON.stringify({ error: 'Não autenticado' }) }
+    }
+
     const hasContent = content && content.trim()
     const hasMedia = media_url && typeof media_url === 'string'
-    if (!user_id || (!hasContent && !hasMedia)) {
-      return { statusCode: 400, headers, body: JSON.stringify({ error: 'user_id e content/media_url obrigatórios' }) }
+    if (!hasContent && !hasMedia) {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: 'Conteúdo ou imagem obrigatórios' }) }
     }
 
     const data = (await store.get('all')) || '[]'
@@ -49,6 +66,10 @@ exports.handler = async (event) => {
       user_id,
       content: (content || '').trim(),
       media_url: media_url || null,
+      type: type === 'job' ? 'job' : 'post',
+      vaga_id: vaga_id || null,
+      is_featured_job: !!is_featured_job,
+      area: area || author?.area || '',
       created_at: new Date().toISOString(),
       author: author || { id: user_id, nome: 'Utilizador', role: 'candidato' },
     }
@@ -62,6 +83,11 @@ exports.handler = async (event) => {
     const user_id = event.queryStringParameters?.user_id
     if (!id) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'id obrigatório' }) }
+    }
+
+    const authUser = await getAuthenticatedUser(event)
+    if (!authUser || authUser.id !== user_id) {
+      return { statusCode: 401, headers, body: JSON.stringify({ error: 'Não autenticado' }) }
     }
 
     const data = (await store.get('all')) || '[]'

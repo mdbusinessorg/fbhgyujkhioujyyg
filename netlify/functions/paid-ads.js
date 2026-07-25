@@ -1,4 +1,4 @@
-const { getStore } = require('@netlify/blobs')
+const { getStoreWithFallback } = require('../lib/store')
 const { randomUUID } = require('crypto')
 const { verifyAdmin } = require('../lib/admin')
 const { getConfig } = require('../lib/site-config')
@@ -10,10 +10,7 @@ const headers = {
 }
 
 function getStoreInstance() {
-  return getStore('paid-ads', {
-    siteID: process.env.NETLIFY_BLOBS_SITE_ID,
-    token: process.env.NETLIFY_BLOBS_TOKEN,
-  })
+  return getStoreWithFallback('paid-ads')
 }
 
 async function getAds(store) {

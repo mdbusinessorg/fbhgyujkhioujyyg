@@ -25,43 +25,39 @@ export async function startOrRequestConversation(
   otherId: string,
   router: AppRouterInstance,
 ) {
-  // 1. Conversa já existe?
   const existingConv = await findOrCreateConversation(currentUserId, otherId)
   if (existingConv) {
     router.push(`/mensagens/?conv=${existingConv.id}`)
     return
   }
 
-  // 2. Ver pedidos em ambas as direcções
-  const request = await social.getRequestBetween(currentUserId, otherId)
+  const connection = await social.getConnectionBetween(currentUserId, otherId)
 
-  if (request) {
-    if (request.status === 'pending') {
-      if (request.requester_id === currentUserId) {
+  if (connection) {
+    if (connection.status === 'pending') {
+      if (connection.requester_id === currentUserId) {
         alert('Já enviaste um pedido de network. Aguarda aceitação.')
         return
       }
-      // Pedido entrante pendente: aceitar e criar conversa
       try {
-        await social.updateRequest(request.id, 'accepted')
+        const result = await social.updateConnection(connection.id, 'accepted')
+        const conv = await findOrCreateConversation(currentUserId, otherId)
+        if (conv) router.push(`/mensagens/?conv=${conv.id}`)
+        if (result.conversation_id) router.push(`/mensagens/?conv=${result.conversation_id}`)
       } catch {}
-      const conv = await findOrCreateConversation(currentUserId, otherId)
-      if (conv) router.push(`/mensagens/?conv=${conv.id}`)
       return
     }
 
-    if (request.status === 'rejected') {
+    if (connection.status === 'rejected') {
       alert('O utilizador recusou o teu pedido de network anteriormente.')
       return
     }
 
-    // accepted
     const conv = await findOrCreateConversation(currentUserId, otherId)
     if (conv) router.push(`/mensagens/?conv=${conv.id}`)
     return
   }
 
-  // 3. Criar novo pedido
   try {
     const { data: u } = await supabase
       .from('users')
@@ -69,7 +65,7 @@ export async function startOrRequestConversation(
       .eq('id', currentUserId)
       .single()
 
-    await social.createRequest({
+    await social.createConnection({
       requester_id: currentUserId,
       recipient_id: otherId,
       requester: u || { id: currentUserId, nome: 'Utilizador', role: 'candidato' },

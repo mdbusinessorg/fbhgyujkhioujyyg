@@ -62,6 +62,36 @@
   status = 200
 
 [[redirects]]
+  from = "/api/connections"
+  to = "/.netlify/functions/connections"
+  status = 200
+
+[[redirects]]
+  from = "/api/follows"
+  to = "/.netlify/functions/follows"
+  status = 200
+
+[[redirects]]
+  from = "/api/post-reactions"
+  to = "/.netlify/functions/post-reactions"
+  status = 200
+
+[[redirects]]
+  from = "/api/post-comments"
+  to = "/.netlify/functions/post-comments"
+  status = 200
+
+[[redirects]]
+  from = "/api/feed"
+  to = "/.netlify/functions/feed"
+  status = 200
+
+[[redirects]]
+  from = "/api/recruiter-verification"
+  to = "/.netlify/functions/recruiter-verification"
+  status = 200
+
+[[redirects]]
   from = "/api/parse-cv"
   to = "/.netlify/functions/parse-cv"
   status = 200

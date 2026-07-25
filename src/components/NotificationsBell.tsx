@@ -53,7 +53,7 @@ export default function NotificationsBell() {
     if (!requestId || !requesterId || !userId) return
 
     try {
-      await social.updateRequest(requestId, 'accepted')
+      await social.updateConnection(requestId, 'accepted')
       const { data: existing } = await supabase.from('conversations').select('id').or(`and(participant_1_id.eq.${requesterId},participant_2_id.eq.${userId}),and(participant_1_id.eq.${userId},participant_2_id.eq.${requesterId})`).maybeSingle()
       let convId = existing?.id
       if (!convId) {
@@ -69,7 +69,7 @@ export default function NotificationsBell() {
   const handleReject = async (n: Notification) => {
     const requestId = n.data?.request_id
     if (!requestId) return
-    try { await social.updateRequest(requestId, 'rejected') } catch {}
+    try { await social.updateConnection(requestId, 'rejected') } catch {}
     await markRead(n.id)
   }
 
@@ -87,7 +87,7 @@ export default function NotificationsBell() {
     } else if (n.type === 'job_match') {
       router.push('/vagas/?recentes=1')
     } else {
-      router.push('/pessoas/?tab=network')
+      router.push('/mensagens/')
     }
   }
 

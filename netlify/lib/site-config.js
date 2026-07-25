@@ -1,4 +1,4 @@
-const { getStore } = require('@netlify/blobs')
+const { getStoreWithFallback } = require('./store')
 
 const defaultConfig = {
   logo_url: '/logo.png',
@@ -24,10 +24,7 @@ async function getConfig(force = false) {
   const now = Date.now()
   if (!force && cachedConfig && now - cachedAt < 60_000) return cachedConfig
   try {
-    const store = getStore('site-config', {
-      siteID: process.env.NETLIFY_BLOBS_SITE_ID,
-      token: process.env.NETLIFY_BLOBS_TOKEN,
-    })
+    const store = getStoreWithFallback('site-config')
     const raw = await store.get('config')
     if (raw) {
       cachedConfig = { ...defaultConfig, ...JSON.parse(raw) }

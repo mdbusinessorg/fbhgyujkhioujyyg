@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { social, MessageRequest as ApiMessageRequest } from '@/lib/social'
+import { social, type Connection } from '@/lib/social'
 import { ArrowLeft, Send, MessageSquare, User, Search, Check, X, Users, ImagePlus, UserPlus } from 'lucide-react'
 import NotificationsBell from '@/components/NotificationsBell'
 
@@ -17,14 +17,7 @@ interface Conversation {
   lastMessage?: string
 }
 
-interface MessageRequest {
-  id: string
-  requester_id: string
-  recipient_id: string
-  status: string
-  created_at: string
-  requester?: { id: string; nome: string; email: string; avatar_url?: string | null }
-}
+interface MessageRequest extends Connection {}
 
 interface Message {
   id: string
@@ -123,13 +116,14 @@ function MensagensContent() {
 
   const loadRequests = async (userId: string) => {
     try {
-      const reqs: ApiMessageRequest[] = await social.getRequestsByRecipient(userId)
-      const requesterIds = reqs.map(r => r.requester_id)
+      const reqs = await social.getConnections(userId)
+      const pending = reqs.filter(r => r.status === 'pending' && r.recipient_id === userId)
+      const requesterIds = pending.map(r => r.requester_id)
       const { data: users } = await supabase.from('users').select('id, nome, email, avatar_url').in('id', requesterIds)
       const usersMap: Record<string, any> = {}
       ;(users || []).forEach(u => { usersMap[u.id] = u })
 
-      const enriched: MessageRequest[] = reqs.map(r => ({
+      const enriched: MessageRequest[] = pending.map(r => ({
         ...r,
         requester: usersMap[r.requester_id] || (r.requester ? { ...r.requester, email: '' } : { id: r.requester_id, nome: 'Utilizador', email: '' }),
       }))
@@ -159,7 +153,7 @@ function MensagensContent() {
     }
 
     if (convId) {
-      try { await social.updateRequest(req.id, 'accepted') } catch {}
+      try { await social.updateConnection(req.id, 'accepted') } catch {}
       setRequests(prev => prev.filter(r => r.id !== req.id))
       await loadConversations(currentUserId)
       setActiveConv(convId)
@@ -168,7 +162,7 @@ function MensagensContent() {
   }
 
   const rejectRequest = async (reqId: string) => {
-    try { await social.updateRequest(reqId, 'rejected') } catch {}
+    try { await social.updateConnection(reqId, 'rejected') } catch {}
     setRequests(prev => prev.filter(r => r.id !== reqId))
   }
 
