@@ -73,12 +73,21 @@ function PerfilContent() {
 
       if (loggedUserId && loggedUserId !== id) {
         try {
-          const req = await social.getRequestBetween(loggedUserId, id)
-          setRequest(req)
-          if (!req) setRelationship('none')
-          else if (req.status === 'accepted') setRelationship('connected')
-          else if (req.status === 'rejected') setRelationship('rejected')
-          else setRelationship(req.requester_id === loggedUserId ? 'sent' : 'received')
+          let req: any = await social.getRequestBetween(loggedUserId, id)
+          if (Array.isArray(req) && req.length === 0) req = null
+          if (!req || !req.id) {
+            setRequest(null)
+            setRelationship('none')
+          } else if (req.status === 'accepted') {
+            setRequest(req)
+            setRelationship('connected')
+          } else if (req.status === 'rejected') {
+            setRequest(req)
+            setRelationship('rejected')
+          } else {
+            setRequest(req)
+            setRelationship(req.requester_id === loggedUserId ? 'sent' : 'received')
+          }
         } catch { setRelationship('none') }
       }
 

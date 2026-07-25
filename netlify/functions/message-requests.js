@@ -43,6 +43,15 @@ exports.handler = async (event) => {
     const params = event.queryStringParameters || {}
     const requests = await all()
 
+    // Pair lookup must come before recipient-only filter
+    if (params.requester_id && params.recipient_id) {
+      const found = requests.find(r =>
+        (r.requester_id === params.requester_id && r.recipient_id === params.recipient_id) ||
+        (r.requester_id === params.recipient_id && r.recipient_id === params.requester_id)
+      )
+      return { statusCode: 200, headers, body: JSON.stringify(found || null) }
+    }
+
     if (params.user_id) {
       const filtered = requests.filter(r => r.requester_id === params.user_id || r.recipient_id === params.user_id)
       return { statusCode: 200, headers, body: JSON.stringify(filtered) }
@@ -52,14 +61,6 @@ exports.handler = async (event) => {
       const status = params.status || 'pending'
       const filtered = requests.filter(r => r.recipient_id === params.recipient_id && r.status === status)
       return { statusCode: 200, headers, body: JSON.stringify(filtered) }
-    }
-
-    if (params.requester_id && params.recipient_id) {
-      const found = requests.find(r =>
-        (r.requester_id === params.requester_id && r.recipient_id === params.recipient_id) ||
-        (r.requester_id === params.recipient_id && r.recipient_id === params.requester_id)
-      )
-      return { statusCode: 200, headers, body: JSON.stringify(found || null) }
     }
 
     return { statusCode: 200, headers, body: JSON.stringify(requests) }
