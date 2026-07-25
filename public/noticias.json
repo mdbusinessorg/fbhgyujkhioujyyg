@@ -1,20 +1,20 @@
 {
-  "updatedAt": "2026-07-25T22:04:08.429Z",
+  "updatedAt": "2026-07-25T22:30:44.295Z",
   "items": [
-    {
-      "id": "http://jornaldeangola.ao/noticias/4/economia/681759/decorre-gala-le%C3%B5es-de-ouro-da-filda-2026",
-      "link": "http://jornaldeangola.ao/noticias/4/economia/681759/decorre-gala-le%C3%B5es-de-ouro-da-filda-2026",
-      "source": "Jornal de Angola",
-      "title": "Decorre Gala Leões de Ouro da FILDA 2026",
-      "excerpt": "A Gala de Premiação Leões de Ouro, integrada na 41.ª edição da Feira Internacional de Angola (FILDA 2026), decorre, neste momento, na Tenda do Porto de Luanda, assinalando o encerramento da maior montra de negócios do país.",
-      "date": "2026-07-25T12:00:00.000Z"
-    },
     {
       "id": "http://jornaldeangola.ao/noticias/10/mundo/681756/unesco-inclui-no-patrim%C3%B3nio-mundial-mais-de-uma-dezena-de-locais",
       "link": "http://jornaldeangola.ao/noticias/10/mundo/681756/unesco-inclui-no-patrim%C3%B3nio-mundial-mais-de-uma-dezena-de-locais",
       "source": "Jornal de Angola",
       "title": "UNESCO inclui no Património Mundial mais de uma dezena de locais",
       "excerpt": "A UNESCO declarou hoje como Património Mundial mais de uma dezena de locais, a maioria dos quais no continente asiático, durante a reunião anual do comité que decorre na cidade sul-coreana de Busan.",
+      "date": "2026-07-25T12:00:00.000Z"
+    },
+    {
+      "id": "http://jornaldeangola.ao/noticias/4/economia/681759/decorre-gala-le%C3%B5es-de-ouro-da-filda-2026",
+      "link": "http://jornaldeangola.ao/noticias/4/economia/681759/decorre-gala-le%C3%B5es-de-ouro-da-filda-2026",
+      "source": "Jornal de Angola",
+      "title": "Decorre Gala Leões de Ouro da FILDA 2026",
+      "excerpt": "A Gala de Premiação Leões de Ouro, integrada na 41.ª edição da Feira Internacional de Angola (FILDA 2026), decorre, neste momento, na Tenda do Porto de Luanda, assinalando o encerramento da maior montra de negócios do país.",
       "date": "2026-07-25T12:00:00.000Z"
     },
     {
