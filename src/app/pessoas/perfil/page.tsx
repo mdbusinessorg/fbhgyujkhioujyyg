@@ -273,12 +273,12 @@ function PerfilContent() {
       </header>
 
       <main className="max-w-3xl mx-auto px-4 pt-6 pb-24">
-        <div className="relative h-32 sm:h-40 rounded-t-2xl overflow-hidden bg-gradient-to-r from-ms-blue to-ms-purple">
+        <div className="relative z-0 h-32 sm:h-40 rounded-t-2xl overflow-hidden bg-gradient-to-r from-ms-blue to-ms-purple">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.2),transparent_60%)]" />
         </div>
-        <div className="bg-white rounded-b-2xl border-x border-b border-ms-border shadow-sm p-6 -mt-10 text-center mb-4">
-          <div className="w-24 h-24 mx-auto -mt-14 rounded-full p-1 bg-white" style={{ background: 'linear-gradient(135deg, #1A56FF 0%, #6C47FF 100%)', padding: '3px' }}>
-            <ProfileAvatar url={person.avatar_url} name={person.nome} size={86} className="rounded-full border-2 border-white bg-white" />
+        <div className="relative z-10 bg-white rounded-b-2xl border-x border-b border-ms-border shadow-sm p-6 -mt-10 text-center mb-4">
+          <div className="relative z-20 w-24 h-24 mx-auto -mt-14 rounded-full p-[3px] bg-gradient-to-br from-ms-blue to-ms-purple shadow-xl ring-4 ring-white">
+            <ProfileAvatar url={person.avatar_url} name={person.nome} size={86} className="rounded-full border-2 border-white" />
           </div>
           <div className="mt-3 flex items-center justify-center gap-1">
             <h1 className="text-xl font-bold text-ms-dark">{person.nome}</h1>

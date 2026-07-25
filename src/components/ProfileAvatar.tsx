@@ -33,7 +33,7 @@ export default function ProfileAvatar({
   }
   return (
     <div
-      className={`rounded-full bg-slate-100 text-slate-400 flex items-center justify-center overflow-hidden ${className}`}
+      className={`rounded-full bg-ms-surface text-ms-blue flex items-center justify-center overflow-hidden ${className}`}
       style={{ width: size, height: size }}
     >
       <User size={Math.max(14, Math.floor(size * 0.45))} strokeWidth={1.5} />
