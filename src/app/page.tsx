@@ -17,6 +17,7 @@ import InstallPWA from '@/components/InstallPWA'
 import Logo from '@/components/Logo'
 import PaidAdsCarousel from '@/components/PaidAdsCarousel'
 import { useSiteConfig } from '@/components/SiteConfigProvider'
+import RewardsHub from '@/components/RewardsHub'
 
 const CATEGORIAS_HOME = [
   { key: 'TI', label: 'Tecnologia', icon: Monitor, match: 'Tecnologia' },
@@ -63,6 +64,24 @@ const getTimeAgo = (date?: string) => {
   return `${days}d`
 }
 const stripHtml = (html?: string) => (html || '').replace(/<[^>]*>/g, '').trim()
+
+function CountUp({ value }: { value: number }) {
+  const [display, setDisplay] = useState(0)
+  useEffect(() => {
+    if (!value) { setDisplay(0); return }
+    let frame: number
+    const start = performance.now()
+    const duration = 1200
+    const tick = (now: number) => {
+      const p = Math.min((now - start) / duration, 1)
+      setDisplay(Math.round(value * (1 - Math.pow(1 - p, 3))))
+      if (p < 1) frame = requestAnimationFrame(tick)
+    }
+    frame = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frame)
+  }, [value])
+  return <>{display}</>
+}
 
 export default function HomePage() {
   const { config } = useSiteConfig()
@@ -347,7 +366,7 @@ export default function HomePage() {
     const category = job.area || job.category
     return (
       <Link key={job.favId} href={jobHref(job)} className="block">
-        <div className={`bg-white rounded-2xl p-4 border ${featured || recommended ? 'border-ms-blue/20 shadow-md' : 'border-ms-border'} hover:shadow-md hover:border-ms-blue/30 transition-all relative`}>
+        <div className={`bg-white rounded-2xl p-4 border ${featured || recommended ? 'border-ms-blue/20 shadow-md' : 'border-ms-border'} card-tilt relative`}>
           {recommended && (
             <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-1 text-[10px] font-bold text-white bg-gradient-to-r from-ms-blue to-ms-purple px-2 py-0.5 rounded-full">
               <Star size={10} className="fill-white" /> Recomendada
@@ -544,7 +563,7 @@ export default function HomePage() {
                 </Link>
                 <button
                   onClick={() => searchQuery.trim() && router.push(`/vagas/?q=${encodeURIComponent(searchQuery.trim())}`)}
-                  className="hidden sm:flex items-center gap-1 bg-ms-blue text-white text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors flex-shrink-0"
+                  className="hidden sm:flex items-center gap-1 bg-ms-blue text-white text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors flex-shrink-0 btn-shine"
                 >
                   Procurar
                 </button>
@@ -553,17 +572,17 @@ export default function HomePage() {
               <div className="flex items-center gap-4 sm:gap-6 mt-4">
                 <div className="flex items-center gap-1.5">
                   <Briefcase size={14} className="text-white/70" />
-                  <span className="text-sm font-bold">{heroStats.vagas}</span>
+                  <span className="text-sm font-bold"><CountUp value={heroStats.vagas} /></span>
                   <span className="text-[11px] text-white/70">vagas ativas</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Building2 size={14} className="text-white/70" />
-                  <span className="text-sm font-bold">{heroStats.empresas}</span>
+                  <span className="text-sm font-bold"><CountUp value={heroStats.empresas} /></span>
                   <span className="text-[11px] text-white/70">empresas</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <TrendingUp size={14} className="text-white/70" />
-                  <span className="text-sm font-bold">{heroStats.novas}</span>
+                  <span className="text-sm font-bold"><CountUp value={heroStats.novas} /></span>
                   <span className="text-[11px] text-white/70">novas esta semana</span>
                 </div>
               </div>
@@ -597,6 +616,22 @@ export default function HomePage() {
             })}
           </div>
         </section>
+
+        {/* Vagas guardadas para aplicar */}
+        {favorites.length > 0 && (
+          <Link href="/vagas/guardadas/" className="flex items-center justify-between bg-white border border-ms-border rounded-2xl px-4 py-3 mb-4 card-tilt animate-fade-up">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center">
+                <Heart size={16} className="text-red-500 fill-red-500" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-ms-dark">Vagas Guardadas</p>
+                <p className="text-[10px] text-ms-gray">Vagas que selecionaste para te candidatares</p>
+              </div>
+            </div>
+            <span className="text-[10px] font-bold text-white bg-gradient-to-r from-ms-blue to-ms-purple px-2.5 py-1 rounded-full">{favorites.length}</span>
+          </Link>
+        )}
 
         {/* Quick filter chips */}
         <div className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-hide">
@@ -682,7 +717,7 @@ export default function HomePage() {
         {todayJobs.length > 0 && (
           <section className="mb-6">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-bold text-ms-dark flex items-center gap-1.5">Vagas de Hoje <span className="text-[10px] font-bold text-white bg-green-500 px-2 py-0.5 rounded-full">{todayJobs.length}</span></h2>
+              <h2 className="text-sm font-bold text-ms-dark flex items-center gap-1.5">Vagas de Hoje <span className="text-[10px] font-bold text-white bg-green-500 badge-pulse px-2 py-0.5 rounded-full">{todayJobs.length}</span></h2>
               <Link href="/vagas/" className="text-xs text-ms-blue font-medium">Ver todas</Link>
             </div>
             <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
@@ -883,6 +918,7 @@ export default function HomePage() {
       </aside>
 
       <InstallPWA />
+      {isLoggedIn && userId && <RewardsHub userId={userId} />}
     </div>
   )
 }

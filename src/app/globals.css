@@ -76,3 +76,97 @@
   0% { transform: translateX(-100%); }
   100% { transform: translateX(0); }
 }
+
+/* --- Micro-animações --- */
+@keyframes fadeUp {
+  0% { opacity: 0; transform: translateY(14px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up {
+  animation: fadeUp 0.45s ease-out both;
+}
+
+@keyframes shine {
+  0% { transform: translateX(-150%) skewX(-20deg); }
+  100% { transform: translateX(350%) skewX(-20deg); }
+}
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+}
+.btn-shine::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+  animation: shine 2.6s ease-in-out infinite;
+}
+
+@keyframes badgePulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16,185,129,0.5); }
+  50% { transform: scale(1.06); box-shadow: 0 0 0 6px rgba(16,185,129,0); }
+}
+.badge-pulse {
+  animation: badgePulse 1.8s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #f0f2f5 25%, #e4e8ee 37%, #f0f2f5 63%);
+  background-size: 400px 100%;
+  animation: shimmer 1.3s linear infinite;
+}
+
+.card-tilt {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.card-tilt:hover {
+  transform: translateY(-3px) scale(1.01);
+  box-shadow: 0 10px 24px -8px rgba(26,86,255,0.18);
+}
+
+@keyframes confettiFall {
+  0% { opacity: 1; transform: translateY(-10px) rotate(0deg); }
+  100% { opacity: 0; transform: translateY(220px) rotate(540deg); }
+}
+.confetti-piece {
+  position: absolute;
+  top: 0;
+  width: 8px;
+  height: 12px;
+  border-radius: 2px;
+  animation: confettiFall 1.6s ease-in forwards;
+}
+
+@keyframes wheelGlow {
+  0%, 100% { box-shadow: 0 0 18px rgba(108,71,255,0.35); }
+  50% { box-shadow: 0 0 34px rgba(26,86,255,0.55); }
+}
+.wheel-glow {
+  animation: wheelGlow 2s ease-in-out infinite;
+}
+
+@keyframes popIn {
+  0% { opacity: 0; transform: scale(0.6); }
+  70% { transform: scale(1.08); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.animate-pop-in {
+  animation: popIn 0.4s ease-out both;
+}
+
+@keyframes giftBounce {
+  0%, 100% { transform: translateY(0); }
+  20% { transform: translateY(-6px) rotate(-6deg); }
+  40% { transform: translateY(0) rotate(4deg); }
+  60% { transform: translateY(-3px) rotate(0deg); }
+}
+.gift-bounce {
+  animation: giftBounce 2.4s ease-in-out infinite;
+}
