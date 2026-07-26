@@ -37,6 +37,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/ai-apply"
+  to = "/.netlify/functions/ai-apply"
+  status = 200
+
+[[redirects]]
   from = "/api/ai-match"
   to = "/.netlify/functions/ai-match"
   status = 200

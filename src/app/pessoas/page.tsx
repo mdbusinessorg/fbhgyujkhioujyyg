@@ -16,7 +16,7 @@ import {
   MessageSquare, Users, User, Home, Search, Bell, Hash, Globe,
   Sparkles, TrendingUp, Building2, UserPlus, Check, X, MapPin, Briefcase,
   Filter, SlidersHorizontal, Eye, Zap, BookOpen, ChevronRight,
-  Menu, LogOut, LayoutDashboard, Megaphone, Crown, LifeBuoy
+  Menu, LayoutDashboard, Megaphone, Crown, LifeBuoy
 } from 'lucide-react'
 
 interface PersonResult {
@@ -532,13 +532,8 @@ function PessoasPageContent() {
 
   const trendingCommunities = useMemo(() => communities.slice(0, 4), [communities])
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    setDrawerOpen(false)
-    router.push('/')
-  }
-
   const drawerLinks = [
+    { href: '/', label: 'Página Inicial', icon: Home, cls: 'text-ms-blue font-semibold' },
     { href: '/vagas/', label: 'Vagas de emprego', icon: Briefcase, cls: 'text-ms-gray' },
     { href: '/trabalho-rapido/', label: 'Trabalho Rápido', icon: Zap, cls: 'text-orange-500' },
     { href: '/modelos-cv/', label: 'Modelos de CV', icon: BookOpen, cls: 'text-ms-gray' },
@@ -608,11 +603,9 @@ function PessoasPageContent() {
             </div>
           )}
 
-          {currentUser && (
-            <div className="px-3 pb-6 pt-2 border-t border-ms-border mx-2 mt-2">
-              <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50"><LogOut size={17} /> Terminar Sessão</button>
-            </div>
-          )}
+          <div className="px-3 pb-6 pt-2 border-t border-ms-border mx-2 mt-2">
+            <Link href="/" onClick={() => setDrawerOpen(false)} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold text-white bg-ms-blue hover:bg-blue-700"><Home size={16} /> Voltar ao Início</Link>
+          </div>
         </div>
       </div>
     )

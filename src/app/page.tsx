@@ -45,6 +45,12 @@ const HOURS_60 = 60 * 60 * 60 * 1000
 const DAYS_7 = 7 * 24 * 60 * 60 * 1000
 const isRecent = (date?: string) => !!date && (Date.now() - new Date(date).getTime()) <= HOURS_60
 const isThisWeek = (date?: string) => !!date && (Date.now() - new Date(date).getTime()) <= DAYS_7
+const isToday = (date?: string) => {
+  if (!date) return false
+  const d = new Date(date)
+  const now = new Date()
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate()
+}
 const getTimeAgo = (date?: string) => {
   if (!date) return ''
   const diff = Date.now() - new Date(date).getTime()
@@ -248,17 +254,13 @@ export default function HomePage() {
     })
   }, [allJobs, searchQuery, activeFilter, favorites])
 
-  const weeklyJobIds = useMemo(() => {
-    const list = baseFiltered.filter((job: any) => {
-      const isDestaque = job.is_prioritaria === true || (job.score || 0) >= 20
-      const isWeek = isThisWeek(job.created_at || job.first_seen_at || job.posted_at)
-      return isWeek && !isDestaque
-    })
+  const todayJobIds = useMemo(() => {
+    const list = baseFiltered.filter((job: any) => isToday(job.created_at || job.first_seen_at || job.posted_at))
     return new Set(list.map((j: any) => j.favId))
   }, [baseFiltered])
 
-  const weeklyJobs = baseFiltered.filter((job: any) => weeklyJobIds.has(job.favId))
-  const mainJobs = baseFiltered.filter((job: any) => !weeklyJobIds.has(job.favId))
+  const todayJobs = baseFiltered.filter((job: any) => todayJobIds.has(job.favId))
+  const mainJobs = baseFiltered.filter((job: any) => !todayJobIds.has(job.favId))
 
   const estagioJobs = useMemo(() => {
     const kw = /estágio|estagio|internship|trainee|recém[- ]formados|recémformados|jovem|jovens/i
@@ -619,15 +621,15 @@ export default function HomePage() {
           </section>
         )}
 
-        {/* Vagas da Semana */}
-        {weeklyJobs.length > 0 && (
+        {/* Vagas de Hoje */}
+        {todayJobs.length > 0 && (
           <section className="mb-6">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-bold text-ms-dark">Vagas da Semana</h2>
+              <h2 className="text-sm font-bold text-ms-dark flex items-center gap-1.5">Vagas de Hoje <span className="text-[10px] font-bold text-white bg-green-500 px-2 py-0.5 rounded-full">{todayJobs.length}</span></h2>
               <Link href="/vagas/" className="text-xs text-ms-blue font-medium">Ver todas</Link>
             </div>
             <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-              {weeklyJobs.slice(0, 8).map((job: any) => (
+              {todayJobs.slice(0, 8).map((job: any) => (
                 <div key={job.favId} className="flex-shrink-0 w-72">
                   <JobCard job={job} />
                 </div>
