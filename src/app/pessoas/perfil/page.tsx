@@ -11,6 +11,7 @@ import ShareMenu from '@/components/ShareMenu'
 import ProfileAvatar from '@/components/ProfileAvatar'
 import VerifiedBadge from '@/components/VerifiedBadge'
 import FeedCard from '@/components/FeedCard'
+import { ProfileRoulette } from '@/components/ProfileRoulette'
 import {
   ArrowLeft, MapPin, MessageSquare, Bookmark, Users, UserPlus, UserCheck,
   Check, X, ShieldCheck, Briefcase, Building2, Camera
@@ -318,6 +319,7 @@ function PerfilContent() {
 
       <main className="max-w-3xl mx-auto px-4 pt-6 pb-24">
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+        <div className="animate-fade-in">
         <div className="relative z-0 h-32 sm:h-40 rounded-t-2xl overflow-hidden group">
           {coverUrl ? (
             <img src={coverUrl} alt="Capa" className="absolute inset-0 w-full h-full object-cover" />
@@ -392,8 +394,9 @@ function PerfilContent() {
             </div>
           </div>
         </div>
+        </div>
 
-        <div className="bg-white rounded-2xl p-5 border border-ms-border shadow-sm mb-4">
+        <div className="bg-white rounded-2xl p-5 border border-ms-border shadow-sm mb-4 animate-fade-in" style={{ animationDelay: '0.1s' }}>
           {person.profile?.bio && (
             <div className="mb-4">
               <h2 className="text-sm font-bold text-ms-dark mb-1">Sobre</h2>
@@ -423,7 +426,7 @@ function PerfilContent() {
         </div>
 
         {isMe && person.role === 'recrutador' && (
-          <div className="bg-white rounded-2xl p-5 border border-ms-border shadow-sm mb-4">
+          <div className="bg-white rounded-2xl p-5 border border-ms-border shadow-sm mb-4 animate-fade-in" style={{ animationDelay: '0.2s' }}>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-bold text-ms-dark flex items-center gap-2"><ShieldCheck size={16} className="text-ms-blue" /> Verificação de Recrutador</h2>
               {isVerified ? (
@@ -457,7 +460,13 @@ function PerfilContent() {
           </div>
         )}
 
-        <div className="mb-4">
+        {currentUser && person && (
+          <div className="mb-4 animate-fade-in" style={{ animationDelay: '0.25s' }}>
+            <ProfileRoulette userId={currentUser.id} personName={isMe ? undefined : person.nome} inline />
+          </div>
+        )}
+
+        <div className="mb-4 animate-fade-in" style={{ animationDelay: '0.3s' }}>
           <h2 className="text-sm font-bold text-ms-dark mb-3">Mural de publicações</h2>
           {loadingPosts ? (
             <div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-ms-blue border-t-transparent rounded-full animate-spin" /></div>

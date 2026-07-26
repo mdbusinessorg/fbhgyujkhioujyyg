@@ -347,7 +347,7 @@ export default function HomePage() {
     const category = job.area || job.category
     return (
       <Link key={job.favId} href={jobHref(job)} className="block">
-        <div className={`bg-white rounded-2xl p-4 border ${featured || recommended ? 'border-ms-blue/20 shadow-md' : 'border-ms-border'} hover:shadow-md hover:border-ms-blue/30 transition-all relative`}>
+        <div className={`bg-white rounded-2xl p-4 border ${featured || recommended ? 'border-ms-blue/20 shadow-md' : 'border-ms-border'} hover:shadow-md hover:border-ms-blue/30 hover:-translate-y-0.5 transition-all relative`}>
           {recommended && (
             <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-1 text-[10px] font-bold text-white bg-gradient-to-r from-ms-blue to-ms-purple px-2 py-0.5 rounded-full">
               <Star size={10} className="fill-white" /> Recomendada
@@ -490,13 +490,13 @@ export default function HomePage() {
 
       <main className="max-w-3xl mx-auto px-4 pt-4 lg:pt-6">
         {/* Greeting / Desktop header */}
-        <div className="hidden lg:flex items-center justify-between mb-6">
+        <div className="hidden lg:flex items-center justify-between mb-6 animate-fade-in">
           <div>
             <h1 className="text-2xl font-bold text-ms-dark">Olá{userName ? `, ${userName.split(' ')[0]}` : ''}!</h1>
             <p className="text-sm text-ms-gray">Encontra as melhores oportunidades em Angola.</p>
           </div>
           <div className="relative">
-            <button onClick={() => setShowNotif(!showNotif)} className="w-10 h-10 bg-white border border-ms-border rounded-full flex items-center justify-center relative hover:bg-ms-surface">
+            <button onClick={() => setShowNotif(!showNotif)} className="w-10 h-10 bg-white border border-ms-border rounded-full flex items-center justify-center relative hover:bg-ms-surface hover:shadow-md transition-all">
               <Bell size={20} className="text-ms-dark" />
               {notifications.length > 0 && <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full" />}
             </button>
@@ -510,9 +510,9 @@ export default function HomePage() {
         </div>
 
         {/* Hero */}
-        <section className="mb-6">
+        <section className="mb-6 animate-fade-in" style={{ animationDelay: '0.05s' }}>
           <div
-            className="rounded-3xl text-white relative overflow-hidden"
+            className="rounded-3xl text-white relative overflow-hidden shadow-lg"
             style={{ backgroundImage: `url('${config.hero_image_url || '/images/hero-destaque.jpg'}')`, backgroundSize: 'cover', backgroundPosition: 'center' }}
           >
             <div className="absolute inset-0 bg-gradient-to-br from-ms-dark/90 via-ms-blue/70 to-ms-purple/60" />
@@ -544,7 +544,7 @@ export default function HomePage() {
                 </Link>
                 <button
                   onClick={() => searchQuery.trim() && router.push(`/vagas/?q=${encodeURIComponent(searchQuery.trim())}`)}
-                  className="hidden sm:flex items-center gap-1 bg-ms-blue text-white text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors flex-shrink-0"
+                  className="hidden sm:flex items-center gap-1 bg-ms-blue text-white text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-blue-700 hover:shadow-md active:scale-[0.97] transition-all flex-shrink-0"
                 >
                   Procurar
                 </button>
@@ -572,7 +572,7 @@ export default function HomePage() {
         </section>
 
         {/* Atalhos rápidos */}
-        <section className="mb-6">
+        <section className="mb-6 animate-fade-in" style={{ animationDelay: '0.1s' }}>
           <h2 className="text-sm font-bold text-ms-dark mb-3">Acesso Rápido</h2>
           <div className="grid grid-cols-4 gap-2 sm:gap-3">
             {[
@@ -587,8 +587,8 @@ export default function HomePage() {
             ].map(item => {
               const Icon = item.icon
               return (
-                <Link key={item.label} href={item.href} className="flex flex-col items-center gap-1.5 bg-white border border-ms-border rounded-2xl py-3 px-1 hover:shadow-md hover:border-ms-blue/30 transition-all">
-                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${item.grad} flex items-center justify-center shadow-sm`}>
+                <Link key={item.label} href={item.href} className="flex flex-col items-center gap-1.5 bg-white border border-ms-border rounded-2xl py-3 px-1 hover:shadow-md hover:border-ms-blue/30 hover:-translate-y-0.5 active:scale-[0.97] transition-all">
+                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${item.grad} flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform`}>
                     <Icon size={18} className="text-white" />
                   </div>
                   <span className="text-[10px] font-semibold text-ms-dark text-center leading-tight">{item.label}</span>
@@ -614,7 +614,7 @@ export default function HomePage() {
         </div>
 
         {/* Categories */}
-        <section className="mb-6">
+        <section className="mb-6 animate-fade-in" style={{ animationDelay: '0.15s' }}>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-bold text-ms-dark">Áreas Populares</h2>
             <Link href="/vagas/" className="text-xs text-ms-blue font-medium">Ver todas</Link>
@@ -626,7 +626,7 @@ export default function HomePage() {
                 <Link
                   key={cat.key}
                   href={`/vagas/?area=${encodeURIComponent(cat.label)}`}
-                  className="flex-shrink-0 flex flex-col items-center gap-2 p-3 rounded-2xl min-w-[76px] bg-white text-ms-dark border border-ms-border hover:bg-ms-surface hover:border-ms-blue/30 transition-colors"
+                  className="flex-shrink-0 flex flex-col items-center gap-2 p-3 rounded-2xl min-w-[76px] bg-white text-ms-dark border border-ms-border hover:bg-ms-surface hover:border-ms-blue/30 hover:-translate-y-0.5 active:scale-[0.97] transition-all"
                 >
                   <div className="w-10 h-10 rounded-full flex items-center justify-center bg-ms-purple-light">
                     <Icon size={20} className="text-ms-blue" />
@@ -639,16 +639,16 @@ export default function HomePage() {
         </section>
 
         {/* Info cards: Trabalho Rápido + Perfil */}
-        <section className="mb-6">
+        <section className="mb-6 animate-fade-in" style={{ animationDelay: '0.2s' }}>
           <div className="grid grid-cols-2 gap-3">
-            <Link href="/trabalho-rapido/" className="bg-gradient-to-br from-orange-400 to-orange-500 rounded-2xl p-4 text-white relative overflow-hidden hover:shadow-md transition-shadow">
+            <Link href="/trabalho-rapido/" className="bg-gradient-to-br from-orange-400 to-orange-500 rounded-2xl p-4 text-white relative overflow-hidden hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98] transition-all">
               <div className="absolute -bottom-4 -right-4 w-20 h-20 bg-white/10 rounded-full" />
               <Zap size={24} className="mb-3" />
               <h3 className="text-sm font-bold mb-1">Trabalho Rápido</h3>
               <p className="text-[10px] text-white/80 mb-3">Empregos diretos. Paga uma taxa mensal e acede aos contactos.</p>
               <span className="inline-flex items-center text-[10px] font-bold bg-white/20 px-2 py-1 rounded-lg">Saber mais</span>
             </Link>
-            <Link href={isLoggedIn ? `/dashboard/${userRole}/?tab=perfil` : '/auth/registar/'} className="bg-gradient-to-br from-ms-blue to-ms-purple rounded-2xl p-4 text-white relative overflow-hidden hover:shadow-md transition-shadow">
+            <Link href={isLoggedIn ? `/dashboard/${userRole}/?tab=perfil` : '/auth/registar/'} className="bg-gradient-to-br from-ms-blue to-ms-purple rounded-2xl p-4 text-white relative overflow-hidden hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98] transition-all">
               <div className="absolute -bottom-4 -right-4 w-20 h-20 bg-white/10 rounded-full" />
               <User size={24} className="mb-3" />
               <h3 className="text-sm font-bold mb-1">Perfil de Candidato</h3>
@@ -663,7 +663,7 @@ export default function HomePage() {
 
         {/* Recomendadas */}
         {recommendedJobs.length > 0 && (
-          <section className="mb-6">
+          <section className="mb-6 animate-fade-in" style={{ animationDelay: '0.25s' }}>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-bold text-ms-dark">Nossas Recomendações</h2>
               <Link href="/vagas/" className="text-xs text-ms-blue font-medium">Ver todas</Link>
@@ -680,7 +680,7 @@ export default function HomePage() {
 
         {/* Vagas de Hoje */}
         {todayJobs.length > 0 && (
-          <section className="mb-6">
+          <section className="mb-6 animate-fade-in" style={{ animationDelay: '0.3s' }}>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-bold text-ms-dark flex items-center gap-1.5">Vagas de Hoje <span className="text-[10px] font-bold text-white bg-green-500 px-2 py-0.5 rounded-full">{todayJobs.length}</span></h2>
               <Link href="/vagas/" className="text-xs text-ms-blue font-medium">Ver todas</Link>
@@ -697,7 +697,7 @@ export default function HomePage() {
 
         {/* Últimas Notícias */}
         {noticias.length > 0 && (
-          <section className="mb-8">
+          <section className="mb-8 animate-fade-in" style={{ animationDelay: '0.35s' }}>
             <div className="flex items-center justify-between mb-3">
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
@@ -734,7 +734,7 @@ export default function HomePage() {
 
         {/* Programas de Estágio */}
         {estagioJobs.length > 0 && (
-          <section className="mb-8">
+          <section className="mb-8 animate-fade-in" style={{ animationDelay: '0.4s' }}>
             <div className="flex items-start justify-between mb-3">
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
@@ -759,7 +759,7 @@ export default function HomePage() {
 
         {/* Voluntariado */}
         {volunteerJobs.length > 0 && (
-          <section className="mb-8">
+          <section className="mb-8 animate-fade-in" style={{ animationDelay: '0.45s' }}>
             <div className="flex items-start justify-between mb-3">
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
@@ -783,7 +783,7 @@ export default function HomePage() {
         )}
 
         {/* Job listings */}
-        <section className="mb-6">
+        <section className="mb-6 animate-fade-in" style={{ animationDelay: '0.5s' }}>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-bold text-ms-dark">
               {activeFilter === 'Favoritos' ? 'Favoritos' : activeFilter === 'Todas' ? 'Vagas Disponíveis' : activeFilter}
@@ -806,7 +806,7 @@ export default function HomePage() {
 
         {/* LinkedIn jobs (horizontal) */}
         {linkedinJobs.length > 0 && (
-          <section className="mb-8">
+          <section className="mb-8 animate-fade-in" style={{ animationDelay: '0.55s' }}>
             <h2 className="text-sm font-bold text-ms-dark mb-3">Vagas LinkedIn</h2>
             <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
               {linkedinJobs.map((job: any) => (
