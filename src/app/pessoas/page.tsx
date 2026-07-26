@@ -15,7 +15,8 @@ import StoryBar from '@/components/StoryBar'
 import {
   MessageSquare, Users, User, Home, Search, Bell, Hash, Globe,
   Sparkles, TrendingUp, Building2, UserPlus, Check, X, MapPin, Briefcase,
-  Filter, SlidersHorizontal, Eye, Zap, BookOpen, ChevronRight
+  Filter, SlidersHorizontal, Eye, Zap, BookOpen, ChevronRight,
+  Menu, LogOut, LayoutDashboard, Megaphone, Crown, LifeBuoy
 } from 'lucide-react'
 
 interface PersonResult {
@@ -77,6 +78,7 @@ function PessoasPageContent() {
   const [filterLocation, setFilterLocation] = useState('todas')
 
   const [communityArea, setCommunityArea] = useState<string | null>(initialArea || null)
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
   const loadPeople = useCallback(async (currentUserId?: string) => {
     setLoadingPeople(true)
@@ -530,6 +532,92 @@ function PessoasPageContent() {
 
   const trendingCommunities = useMemo(() => communities.slice(0, 4), [communities])
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    setDrawerOpen(false)
+    router.push('/')
+  }
+
+  const drawerLinks = [
+    { href: '/vagas/', label: 'Vagas de emprego', icon: Briefcase, cls: 'text-ms-gray' },
+    { href: '/trabalho-rapido/', label: 'Trabalho Rápido', icon: Zap, cls: 'text-orange-500' },
+    { href: '/modelos-cv/', label: 'Modelos de CV', icon: BookOpen, cls: 'text-ms-gray' },
+    { href: '/mensagens/', label: 'Mensagens', icon: MessageSquare, cls: 'text-ms-gray' },
+    { href: '/anuncios/', label: 'Anunciar', icon: Megaphone, cls: 'text-ms-gray' },
+    { href: '/premium/', label: 'MÔ SALO PRO', icon: Crown, cls: 'text-amber-500' },
+    { href: '/suporte/', label: 'Suporte', icon: LifeBuoy, cls: 'text-ms-gray' },
+  ]
+
+  const renderMobileDrawer = () => {
+    if (!drawerOpen) return null
+    return (
+      <div className="fixed inset-0 z-[70] lg:hidden">
+        <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" onClick={() => setDrawerOpen(false)} />
+        <div className="absolute left-0 top-0 h-full w-[300px] max-w-[85vw] bg-white shadow-2xl overflow-y-auto animate-[slideIn_0.2s_ease-out]">
+          <div className="relative bg-gradient-to-br from-ms-blue to-ms-purple px-5 pt-5 pb-10">
+            <button onClick={() => setDrawerOpen(false)} className="absolute top-4 right-4 w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-white"><X size={16} /></button>
+            <Logo variant="full" className="h-7 w-auto brightness-0 invert" />
+          </div>
+          <div className="px-5 -mt-7">
+            <Link href={currentUser ? `/pessoas/perfil/?id=${currentUser.id}` : '/auth/login/'} onClick={() => setDrawerOpen(false)} className="inline-block ring-4 ring-white rounded-full">
+              <ProfileAvatar url={currentUser?.avatar_url} name={currentUser?.nome || 'Visitante'} size={56} />
+            </Link>
+            <h3 className="text-base font-bold text-ms-dark mt-2 truncate">{currentUser?.nome || 'Bem-vindo ao MÔ SALO'}</h3>
+            <p className="text-xs text-ms-gray truncate">
+              {currentUser
+                ? `${currentUser.role === 'recrutador' ? 'Recrutador' : 'Talento'}${currentProfile?.area ? ` • ${currentProfile.area}` : ''}`
+                : 'Cria o teu perfil profissional e conecta-te.'}
+            </p>
+            {currentUser ? (
+              <>
+                <div className="grid grid-cols-3 gap-1 mt-3 py-3 border-y border-ms-border text-center">
+                  <div><p className="text-sm font-bold text-ms-dark">{connectionsCount}</p><p className="text-[10px] text-ms-gray">Conexões</p></div>
+                  <div><p className="text-sm font-bold text-ms-dark">{follows.length}</p><p className="text-[10px] text-ms-gray">A seguir</p></div>
+                  <div><p className="text-sm font-bold text-ms-dark">{memberships.length}</p><p className="text-[10px] text-ms-gray">Grupos</p></div>
+                </div>
+                <Link href={`/pessoas/perfil/?id=${currentUser.id}`} onClick={() => setDrawerOpen(false)} className="mt-3 block text-center text-xs font-bold py-2.5 bg-ms-blue text-white rounded-xl hover:bg-blue-700">Ver o meu perfil</Link>
+              </>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 mt-3">
+                <Link href="/auth/login/" onClick={() => setDrawerOpen(false)} className="text-center text-xs font-bold py-2.5 bg-white border border-ms-blue text-ms-blue rounded-xl">Entrar</Link>
+                <Link href="/auth/registar/" onClick={() => setDrawerOpen(false)} className="text-center text-xs font-bold py-2.5 bg-ms-blue text-white rounded-xl">Criar conta</Link>
+              </div>
+            )}
+          </div>
+
+          <nav className="px-3 py-4 space-y-0.5">
+            {currentUser && (
+              <Link href={`/dashboard/${currentUser.role}/`} onClick={() => setDrawerOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface hover:text-ms-dark"><LayoutDashboard size={17} /> Dashboard</Link>
+            )}
+            {drawerLinks.map(l => {
+              const Icon = l.icon
+              return (
+                <Link key={l.href} href={l.href} onClick={() => setDrawerOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-ms-surface ${l.cls}`}><Icon size={17} /> {l.label}</Link>
+              )
+            })}
+          </nav>
+
+          {currentUser && memberships.length > 0 && (
+            <div className="px-5 pb-2">
+              <h4 className="text-[11px] font-bold text-ms-gray uppercase tracking-wider mb-1.5 flex items-center gap-1.5"><Hash size={12} className="text-ms-blue" /> Os meus grupos</h4>
+              <div className="space-y-0.5">
+                {memberships.slice(0, 5).map(m => (
+                  <button key={m.area} onClick={() => { setActiveTab('comunidades'); setCommunityArea(m.area); setDrawerOpen(false) }} className="w-full text-left text-xs text-ms-gray hover:text-ms-blue hover:bg-ms-surface rounded-lg px-2 py-1.5 truncate">{m.area}</button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {currentUser && (
+            <div className="px-3 pb-6 pt-2 border-t border-ms-border mx-2 mt-2">
+              <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50"><LogOut size={17} /> Terminar Sessão</button>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   const renderLeftSidebar = () => (
     <aside className="hidden lg:block space-y-4 sticky top-[80px] self-start">
       <div className="bg-white rounded-2xl border border-ms-border shadow-sm overflow-hidden">
@@ -644,7 +732,8 @@ function PessoasPageContent() {
     <div className="min-h-screen bg-ms-surface pb-24 lg:pb-0">
       <header className="sticky top-0 bg-white z-50 px-4 py-3 shadow-sm">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <button onClick={() => setDrawerOpen(true)} className="lg:hidden p-1.5 -ml-1 text-ms-dark rounded-lg hover:bg-ms-surface flex-shrink-0" aria-label="Abrir menu"><Menu size={22} /></button>
             <Link href="/" className="flex items-center max-w-[120px] flex-shrink-0"><Logo variant="full" className="h-7 w-auto max-w-full" /></Link>
             <div className="hidden md:flex items-center relative w-64">
               <Search className="absolute left-3 text-ms-gray" size={15} />
@@ -666,6 +755,8 @@ function PessoasPageContent() {
           </div>
         </div>
       </header>
+
+      {renderMobileDrawer()}
 
       <main className="max-w-6xl mx-auto px-4 pt-4 lg:grid lg:grid-cols-[240px_minmax(0,1fr)_280px] lg:gap-5 lg:items-start">
         {renderLeftSidebar()}
