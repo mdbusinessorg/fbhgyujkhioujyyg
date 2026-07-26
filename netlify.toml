@@ -9,6 +9,9 @@
 [functions."notify-new-jobs"]
   schedule = "*/30 * * * *"
 
+[functions."daily-triggers"]
+  schedule = "0 7 * * *"
+
 [[headers]]
   for = "/external-jobs.json"
   [headers.values]
