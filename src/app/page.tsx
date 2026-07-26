@@ -527,19 +527,32 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Pessoas / rede CTA */}
-        <Link href="/pessoas/" className="flex items-center justify-between gap-3 bg-white border border-ms-border rounded-2xl px-4 py-3 mb-4 hover:border-ms-blue/40 hover:shadow-md transition-all group">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-ms-blue to-ms-purple flex items-center justify-center flex-shrink-0">
-              <Users size={20} className="text-white" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-ms-dark group-hover:text-ms-blue transition-colors">Rede de Pessoas</p>
-              <p className="text-[11px] text-ms-gray truncate">Conecta-te com profissionais, partilha e descobre comunidades.</p>
-            </div>
+        {/* Atalhos rápidos */}
+        <section className="mb-6">
+          <h2 className="text-sm font-bold text-ms-dark mb-3">Acesso Rápido</h2>
+          <div className="grid grid-cols-4 gap-2 sm:gap-3">
+            {[
+              { href: '/vagas/', label: 'Ver Vagas', icon: Briefcase, grad: 'from-ms-blue to-blue-400' },
+              { href: '/trabalho-rapido/', label: 'Trabalho Rápido', icon: Zap, grad: 'from-orange-400 to-amber-400' },
+              { href: '/pessoas/', label: 'Rede', icon: Users, grad: 'from-ms-purple to-fuchsia-400' },
+              { href: '/modelos-cv/', label: 'Modelos CV', icon: FileText, grad: 'from-emerald-500 to-teal-400' },
+              { href: '/mensagens/', label: 'Mensagens', icon: MessageSquare, grad: 'from-sky-500 to-cyan-400' },
+              { href: '/anuncios/', label: 'Anunciar', icon: Megaphone, grad: 'from-rose-500 to-pink-400' },
+              { href: isLoggedIn ? `/dashboard/${userRole}/?tab=candidaturas` : '/auth/login/', label: 'Candidaturas', icon: BookOpen, grad: 'from-indigo-500 to-violet-400' },
+              { href: '/premium/', label: 'MÔ SALO PRO', icon: Star, grad: 'from-amber-500 to-yellow-400' },
+            ].map(item => {
+              const Icon = item.icon
+              return (
+                <Link key={item.label} href={item.href} className="flex flex-col items-center gap-1.5 bg-white border border-ms-border rounded-2xl py-3 px-1 hover:shadow-md hover:border-ms-blue/30 transition-all">
+                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${item.grad} flex items-center justify-center shadow-sm`}>
+                    <Icon size={18} className="text-white" />
+                  </div>
+                  <span className="text-[10px] font-semibold text-ms-dark text-center leading-tight">{item.label}</span>
+                </Link>
+              )
+            })}
           </div>
-          <ChevronDown size={16} className="-rotate-90 text-ms-gray group-hover:text-ms-blue flex-shrink-0" />
-        </Link>
+        </section>
 
         {/* Quick filter chips */}
         <div className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-hide">
