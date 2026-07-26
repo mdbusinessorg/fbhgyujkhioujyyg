@@ -61,7 +61,7 @@ export interface Follow {
 export interface Notification {
   id: string
   user_id: string
-  type: 'network_request' | 'network_accepted' | 'message' | 'job_match'
+  type: 'network_request' | 'network_accepted' | 'message' | 'job_match' | 'welcome' | 'profile_reminder' | 'vaga_expiring'
   title: string
   body: string
   data?: Record<string, any>

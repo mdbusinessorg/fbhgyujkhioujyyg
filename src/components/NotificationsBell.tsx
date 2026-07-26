@@ -21,6 +21,7 @@ export default function NotificationsBell() {
   const modalRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | null = null
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user) { setLoading(false); return }
@@ -29,14 +30,40 @@ export default function NotificationsBell() {
       setUserId(u.id)
       await load(u.id)
       setLoading(false)
+      interval = setInterval(() => load(u.id), 60000)
     }
     init()
+    return () => { if (interval) clearInterval(interval) }
   }, [])
+
+  const showBrowserNotifications = (items: Notification[]) => {
+    if (typeof window === 'undefined' || typeof Notification === 'undefined' || Notification.permission !== 'granted') return
+    let shown: string[] = []
+    try { shown = JSON.parse(localStorage.getItem('mosalo_notified_ids') || '[]') } catch {}
+    const shownSet = new Set(shown)
+    const fresh = items
+      .filter(n => !n.read && !shownSet.has(n.id))
+      .filter(n => n.type !== 'job_match' || (Math.max(0, ...((n.data?.scores as number[]) || [0]))) >= 40)
+      .slice(0, 3)
+    fresh.forEach(n => {
+      try {
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.ready.then(reg => reg.showNotification(n.title, { body: n.body || '', icon: '/icons/icon-192x192.png', badge: '/icons/icon-192x192.png', tag: n.id }))
+        } else {
+          new Notification(n.title, { body: n.body || '', icon: '/icons/icon-192x192.png' })
+        }
+      } catch {}
+      shownSet.add(n.id)
+    })
+    if (fresh.length > 0) localStorage.setItem('mosalo_notified_ids', JSON.stringify(Array.from(shownSet).slice(-200)))
+  }
 
   const load = async (uid: string) => {
     try {
       const items = await social.getNotifications(uid)
-      setNotifications(items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))
+      const sorted = items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      setNotifications(sorted)
+      showBrowserNotifications(sorted)
     } catch { setNotifications([]) }
   }
 
@@ -86,6 +113,10 @@ export default function NotificationsBell() {
       router.push(`/mensagens/?conv=${n.data.conversation_id}`)
     } else if (n.type === 'job_match') {
       router.push('/vagas/?recentes=1')
+    } else if (n.type === 'welcome' || n.type === 'profile_reminder') {
+      router.push(n.data?.url || '/dashboard/candidato/?tab=perfil')
+    } else if (n.type === 'vaga_expiring') {
+      router.push('/dashboard/recrutador/?tab=vagas')
     } else {
       router.push('/mensagens/')
     }
@@ -95,7 +126,7 @@ export default function NotificationsBell() {
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="relative p-2 text-ms-dark hover:text-ms-blue rounded-full bg-ms-surface transition-colors">
+      <button onClick={() => { setOpen(true); if (typeof Notification !== 'undefined' && Notification.permission === 'default') { try { Notification.requestPermission() } catch {} } }} className="relative p-2 text-ms-dark hover:text-ms-blue rounded-full bg-ms-surface transition-colors">
         <Bell size={20} />
         {unreadCount > 0 && (
           <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border border-white">{unreadCount > 9 ? '9+' : unreadCount}</span>

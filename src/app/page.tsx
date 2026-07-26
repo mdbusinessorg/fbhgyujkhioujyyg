@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { sortByMatch } from '@/lib/match'
+import { social } from '@/lib/social'
 import {
   Search, SlidersHorizontal, Heart, Bell, Menu, X, Briefcase, Home as HomeIcon, User, LogOut, FileText,
   Settings, Star, MapPin, Monitor, Banknote, Stethoscope, Megaphone, Scale, GraduationCap, HardHat, Wrench,
@@ -116,6 +117,48 @@ export default function HomePage() {
     setNotifications(notifs)
   }
 
+  const runEngagementTriggers = async (user: any) => {
+    if (user.role !== 'candidato') return
+    const bot = { id: 'mosalo-bot', nome: 'MÔ SALO', role: 'admin' }
+    const key = `mosalo_triggers_${user.id}`
+    let state: any = {}
+    try { state = JSON.parse(localStorage.getItem(key) || '{}') } catch {}
+    const now = Date.now()
+    try {
+      if (!state.welcomed) {
+        const existing = await social.getNotifications(user.id)
+        if (!existing.some(n => n.type === 'welcome')) {
+          await social.createNotification({
+            user_id: user.id,
+            type: 'welcome',
+            title: `Bem-vindo(a) ao MÔ SALO, ${user.nome}! 🎉`,
+            body: 'Primeiros passos: completa o teu perfil, adiciona as tuas competências, cria o teu CV e explora as vagas de hoje. Conecta-te com profissionais na aba Pessoas!',
+            data: { url: '/dashboard/candidato/?tab=perfil' },
+            sender: bot,
+          })
+        }
+        state.welcomed = true
+        localStorage.setItem(key, JSON.stringify(state))
+      }
+      const p = user.profile
+      const fields = [p?.area, p?.localizacao, p?.competencias, p?.experiencias, p?.nivel_academico, p?.bio]
+      const filled = fields.filter(f => f && String(f).trim().length > 0).length
+      const completeness = Math.round((filled / fields.length) * 100)
+      if (completeness < 60 && (!state.lastProfileReminder || now - state.lastProfileReminder > 7 * 86400000)) {
+        await social.createNotification({
+          user_id: user.id,
+          type: 'profile_reminder',
+          title: 'O teu perfil está incompleto',
+          body: `O teu perfil está a ${completeness}%. Completa a tua área, competências e experiência para receberes melhores recomendações de vagas.`,
+          data: { url: '/dashboard/candidato/?tab=perfil', completeness },
+          sender: bot,
+        })
+        state.lastProfileReminder = now
+        localStorage.setItem(key, JSON.stringify(state))
+      }
+    } catch {}
+  }
+
   useEffect(() => {
     const fav = typeof window !== 'undefined' ? localStorage.getItem('mosalo_favorites') : null
     if (fav) {
@@ -132,6 +175,7 @@ export default function HomePage() {
         setUserId(user.id)
         setProfile(user.profile)
         loadNotifications(user.id, user.role)
+        runEngagementTriggers(user)
       } else {
         setIsLoggedIn(false)
       }
