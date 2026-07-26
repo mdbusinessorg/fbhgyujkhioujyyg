@@ -140,6 +140,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/rewards"
+  to = "/.netlify/functions/rewards"
+  status = 200
+
+[[redirects]]
   from = "/api/community-memberships"
   to = "/.netlify/functions/community-memberships"
   status = 200

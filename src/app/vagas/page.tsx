@@ -58,7 +58,22 @@ export default function VagasPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userRole, setUserRole] = useState('candidato')
   const [profile, setProfile] = useState<any>(null)
+  const [favorites, setFavorites] = useState<string[]>([])
   const recentesRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    try { setFavorites(JSON.parse(localStorage.getItem('mosalo_favorites') || '[]')) } catch {}
+  }, [])
+
+  const toggleFavorite = (e: React.MouseEvent, favId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setFavorites(prev => {
+      const next = prev.includes(favId) ? prev.filter(id => id !== favId) : [...prev, favId]
+      localStorage.setItem('mosalo_favorites', JSON.stringify(next))
+      return next
+    })
+  }
 
   const syncUserFromSession = async (session: any) => {
     if (session?.user?.email) {
@@ -226,9 +241,18 @@ export default function VagasPage() {
     const iconColor = isDestaque ? 'text-amber-600' : isRecent ? 'text-green-600' : 'text-ms-blue'
     const iconBg = isDestaque ? 'bg-white border-amber-200' : isRecent ? 'bg-white border-green-200' : 'bg-white border-ms-border'
 
+    const favId = `internal:${v.id}`
+    const fav = favorites.includes(favId)
     return (
       <Link key={v.id} href={`/vagas/detalhe/?id=${v.id}`} className="block">
-        <div className={`${baseBg} ${borderClass} rounded-xl p-4 hover:shadow-md transition-shadow relative overflow-hidden`}>
+        <div className={`${baseBg} ${borderClass} rounded-xl p-4 card-tilt relative overflow-hidden`}>
+          <button
+            onClick={(e) => toggleFavorite(e, favId)}
+            className={`absolute bottom-3 right-3 z-10 p-1.5 rounded-full bg-white/90 shadow-sm ${fav ? 'text-red-500' : 'text-ms-gray'}`}
+            aria-label="Guardar vaga"
+          >
+            <Heart size={15} className={fav ? 'fill-red-500' : ''} />
+          </button>
           {isDestaque && (
             <div className="absolute top-2 right-2">
               <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
@@ -277,12 +301,21 @@ export default function VagasPage() {
 
   const ExternalJobCard = ({ j, variant }: { j: any; variant: 'recent' | 'normal' }) => {
     const isRecent = variant === 'recent'
+    const favId = `external:${j.id}`
+    const fav = favorites.includes(favId)
     return (
       <Link key={j.id} href={`/vagas/externa/?id=${j.id}`} className="block">
-        <div className={`bg-white border ${isRecent ? 'border-green-200' : 'border-ms-border'} rounded-xl p-4 hover:shadow-md hover:border-ms-blue/30 transition-all relative overflow-hidden`}>
+        <div className={`bg-white border ${isRecent ? 'border-green-200' : 'border-ms-border'} rounded-xl p-4 card-tilt relative overflow-hidden`}>
+          <button
+            onClick={(e) => toggleFavorite(e, favId)}
+            className={`absolute bottom-3 right-3 z-10 p-1.5 rounded-full bg-white/90 shadow-sm ${fav ? 'text-red-500' : 'text-ms-gray'}`}
+            aria-label="Guardar vaga"
+          >
+            <Heart size={15} className={fav ? 'fill-red-500' : ''} />
+          </button>
           {isRecent && (
             <div className="absolute top-2 right-2">
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">NOVA</span>
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-green-700 bg-green-100 badge-pulse px-2 py-0.5 rounded-full">NOVA</span>
             </div>
           )}
           <div className="flex items-start gap-3">
@@ -321,9 +354,12 @@ export default function VagasPage() {
             <ArrowLeft size={20} className="text-ms-dark" />
           </Link>
           <Logo variant="full" className="h-8 w-auto" />
-          <button>
-            <Heart size={20} className="text-ms-gray" />
-          </button>
+          <Link href="/vagas/guardadas/" className="relative" aria-label="Vagas guardadas">
+            <Heart size={20} className={favorites.length > 0 ? 'text-red-500 fill-red-500' : 'text-ms-gray'} />
+            {favorites.length > 0 && (
+              <span className="absolute -top-1.5 -right-2 w-4 h-4 bg-ms-blue text-white text-[9px] font-bold flex items-center justify-center rounded-full">{favorites.length > 9 ? '9+' : favorites.length}</span>
+            )}
+          </Link>
         </div>
       </header>
 
