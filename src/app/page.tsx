@@ -8,7 +8,8 @@ import { sortByMatch } from '@/lib/match'
 import {
   Search, SlidersHorizontal, Heart, Bell, Menu, X, Briefcase, Home as HomeIcon, User, LogOut, FileText,
   Settings, Star, MapPin, Monitor, Banknote, Stethoscope, Megaphone, Scale, GraduationCap, HardHat, Wrench,
-  MessageSquare, Zap, Users, Clock, ChevronDown, Newspaper, BookOpen, HeartHandshake, MessageCircle
+  MessageSquare, Zap, Users, Clock, ChevronDown, Newspaper, BookOpen, HeartHandshake, MessageCircle,
+  Building2, Sparkles, TrendingUp
 } from 'lucide-react'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import InstallPWA from '@/components/InstallPWA'
@@ -283,6 +284,13 @@ export default function HomePage() {
 
   const jobHref = (job: any) => job.source === 'external' ? `/vagas/externa/?id=${encodeURIComponent(job.id)}` : `/vagas/detalhe/?id=${job.id}`
 
+  const heroStats = useMemo(() => {
+    const companies = new Set<string>()
+    allJobs.forEach((j: any) => { const c = (j.empresa_nome || j.company || '').trim().toLowerCase(); if (c) companies.add(c) })
+    const newThisWeek = allJobs.filter((j: any) => isThisWeek(j.created_at || j.first_seen_at || j.posted_at)).length
+    return { vagas: allJobs.length, empresas: companies.size, novas: newThisWeek }
+  }, [allJobs])
+
   const JobCard = ({ job, featured, recommended }: { job: any; featured?: boolean; recommended?: boolean }) => {
     const fav = favorites.includes(job.favId)
     const title = job.titulo || job.title
@@ -455,49 +463,81 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Promotional banner */}
+        {/* Hero */}
         <section className="mb-6">
           <div
-            className="rounded-3xl p-5 text-white relative overflow-hidden h-48 flex flex-col justify-center"
+            className="rounded-3xl text-white relative overflow-hidden"
             style={{ backgroundImage: `url('${config.hero_image_url || '/images/hero-destaque.jpg'}')`, backgroundSize: 'cover', backgroundPosition: 'center' }}
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/50 to-black/30" />
-            <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -translate-y-10 translate-x-10" />
-            <div className="relative z-10 flex items-center justify-between">
-              <div className="flex-1 pr-4">
-                <span className="inline-block text-[10px] font-bold uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-lg mb-2">Destaque</span>
-                <h2 className="text-lg font-bold leading-tight mb-1">{config.hero_title || 'Encontra o teu próximo emprego'}</h2>
-                <p className="text-xs text-white/80 mb-3">{config.hero_subtitle || 'Vagas novas todos os dias das melhores empresas em Angola.'}</p>
-                <Link href="/vagas/" className="inline-flex items-center gap-1 bg-white text-ms-blue text-xs font-bold px-4 py-2 rounded-xl hover:bg-ms-surface transition-colors">
-                  Ver vagas <ChevronDown size={12} className="-rotate-90" />
+            <div className="absolute inset-0 bg-gradient-to-br from-ms-dark/90 via-ms-blue/70 to-ms-purple/60" />
+            <div className="absolute top-0 right-0 w-56 h-56 bg-white/5 rounded-full -translate-y-20 translate-x-16" />
+            <div className="absolute bottom-0 left-1/3 w-32 h-32 bg-ms-purple/20 rounded-full translate-y-16 blur-2xl" />
+            <div className="relative z-10 p-5 sm:p-7">
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-white/15 backdrop-blur px-2.5 py-1 rounded-full mb-3">
+                <Sparkles size={11} /> A rede profissional de Angola
+              </span>
+              <h2 className="text-xl sm:text-2xl font-extrabold leading-tight mb-1.5 max-w-md">{config.hero_title || 'Encontra o teu próximo emprego'}</h2>
+              <p className="text-xs sm:text-sm text-white/85 mb-4 max-w-md">{config.hero_subtitle || 'Vagas novas todos os dias das melhores empresas em Angola.'}</p>
+
+              <div className="bg-white rounded-2xl px-3 py-2 shadow-lg flex items-center gap-2 max-w-xl">
+                <Search size={18} className="text-ms-gray flex-shrink-0 ml-1" />
+                <input
+                  type="text"
+                  placeholder="Título da vaga, empresa ou área"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && searchQuery.trim()) {
+                      router.push(`/vagas/?q=${encodeURIComponent(searchQuery.trim())}`)
+                    }
+                  }}
+                  className="flex-1 bg-transparent outline-none text-sm text-ms-dark placeholder:text-ms-gray min-w-0"
+                />
+                <Link href="/vagas/?showFilters=1" className="w-9 h-9 bg-ms-surface rounded-xl flex items-center justify-center flex-shrink-0 hover:bg-ms-border transition-colors">
+                  <SlidersHorizontal size={16} className="text-ms-blue" />
                 </Link>
+                <button
+                  onClick={() => searchQuery.trim() && router.push(`/vagas/?q=${encodeURIComponent(searchQuery.trim())}`)}
+                  className="hidden sm:flex items-center gap-1 bg-ms-blue text-white text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors flex-shrink-0"
+                >
+                  Procurar
+                </button>
               </div>
-              <div className="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center flex-shrink-0">
-                <Briefcase size={40} className="text-white" />
+
+              <div className="flex items-center gap-4 sm:gap-6 mt-4">
+                <div className="flex items-center gap-1.5">
+                  <Briefcase size={14} className="text-white/70" />
+                  <span className="text-sm font-bold">{heroStats.vagas}</span>
+                  <span className="text-[11px] text-white/70">vagas ativas</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Building2 size={14} className="text-white/70" />
+                  <span className="text-sm font-bold">{heroStats.empresas}</span>
+                  <span className="text-[11px] text-white/70">empresas</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <TrendingUp size={14} className="text-white/70" />
+                  <span className="text-sm font-bold">{heroStats.novas}</span>
+                  <span className="text-[11px] text-white/70">novas esta semana</span>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Search */}
-        <div className="bg-white rounded-full px-4 py-3 shadow-sm flex items-center gap-3 mb-4">
-          <Search size={20} className="text-ms-gray flex-shrink-0" />
-          <input
-            type="text"
-            placeholder="Título da vaga, empresa ou área"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && searchQuery.trim()) {
-                router.push(`/vagas/?q=${encodeURIComponent(searchQuery.trim())}`)
-              }
-            }}
-            className="flex-1 bg-transparent outline-none text-sm text-ms-dark placeholder:text-ms-gray"
-          />
-          <Link href="/vagas/?showFilters=1" className="w-9 h-9 bg-ms-blue rounded-xl flex items-center justify-center flex-shrink-0">
-            <SlidersHorizontal size={16} className="text-white" />
-          </Link>
-        </div>
+        {/* Pessoas / rede CTA */}
+        <Link href="/pessoas/" className="flex items-center justify-between gap-3 bg-white border border-ms-border rounded-2xl px-4 py-3 mb-4 hover:border-ms-blue/40 hover:shadow-md transition-all group">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-ms-blue to-ms-purple flex items-center justify-center flex-shrink-0">
+              <Users size={20} className="text-white" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-ms-dark group-hover:text-ms-blue transition-colors">Rede de Pessoas</p>
+              <p className="text-[11px] text-ms-gray truncate">Conecta-te com profissionais, partilha e descobre comunidades.</p>
+            </div>
+          </div>
+          <ChevronDown size={16} className="-rotate-90 text-ms-gray group-hover:text-ms-blue flex-shrink-0" />
+        </Link>
 
         {/* Quick filter chips */}
         <div className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-hide">
