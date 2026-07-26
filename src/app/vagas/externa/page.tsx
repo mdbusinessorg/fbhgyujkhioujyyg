@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { ArrowLeft, Heart, MapPin, Clock, Linkedin, Send, MessageCircle, LogIn } from 'lucide-react'
+import { ArrowLeft, Heart, MapPin, Clock, Linkedin, Send, MessageCircle, LogIn, Mail, Sparkles } from 'lucide-react'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import Logo from '@/components/Logo'
 
@@ -15,6 +15,8 @@ function ExternaContent() {
   const [job, setJob] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [candidate, setCandidate] = useState<any>(null)
+  const [preparingEmail, setPreparingEmail] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -27,10 +29,54 @@ function ExternaContent() {
       }
       const { data: { session } } = await supabase.auth.getSession()
       setIsLoggedIn(!!session)
+      if (session?.user?.email) {
+        try {
+          const { data: u } = await supabase.from('users').select('id, nome, email, telefone').eq('email', session.user.email).single()
+          if (u) {
+            const { data: prof } = await supabase.from('profiles').select('area, localizacao, competencias, experiencias, nivel_academico').eq('user_id', u.id).single()
+            setCandidate({ ...u, ...(prof || {}) })
+          }
+        } catch {}
+      }
       setLoading(false)
     }
     load()
   }, [jobId])
+
+  const isMailtoApply = typeof job?.apply_url === 'string' && job.apply_url.toLowerCase().startsWith('mailto:')
+
+  const buildFallbackEmail = () => {
+    const nome = candidate?.nome || ''
+    const area = candidate?.area ? ` da área de ${candidate.area}` : ''
+    const comp = candidate?.competencias ? `\n\nPrincipais competências: ${candidate.competencias}.` : ''
+    return {
+      subject: `Candidatura — ${job.title}`,
+      body: `Exmos. Senhores,\n\nO meu nome é ${nome}, sou profissional${area} e venho por este meio candidatar-me à posição de ${job.title}${job.company ? ` na ${job.company}` : ''}.${comp}\n\nO meu CV segue em anexo. Fico disponível para uma entrevista.\n\nCom os melhores cumprimentos,\n${nome}${candidate?.telefone ? `\n${candidate.telefone}` : ''}${candidate?.email ? `\n${candidate.email}` : ''}`,
+    }
+  }
+
+  const handleEmailApply = async () => {
+    if (!isLoggedIn) { router.push('/auth/login/'); return }
+    setPreparingEmail(true)
+    let email = buildFallbackEmail()
+    try {
+      const res = await fetch('/api/ai-apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          job: { title: job.title, company: job.company, location: job.location, description: job.description || job.excerpt },
+          candidate,
+        }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.subject && data.body) email = data
+      }
+    } catch {}
+    setPreparingEmail(false)
+    const address = job.apply_url.replace(/^mailto:/i, '').split('?')[0]
+    window.location.href = `mailto:${address}?subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(email.body)}`
+  }
 
   const getTimeAgo = (date: string) => {
     if (!date) return ''
@@ -135,14 +181,26 @@ function ExternaContent() {
         )}
 
         <p className="text-[11px] text-ms-gray text-center mb-2">
-          Candidatura no site oficial da empresa / recrutador.
+          {isMailtoApply ? 'Candidatura por email diretamente ao recrutador.' : 'Candidatura no site oficial da empresa / recrutador.'}
         </p>
       </main>
 
       {/* Sticky bottom apply bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-ms-border p-4 z-50">
         <div className="max-w-3xl mx-auto flex flex-col sm:flex-row gap-3">
-          {job.apply_url && (
+          {job.apply_url && isMailtoApply ? (
+            <button
+              onClick={handleEmailApply}
+              disabled={preparingEmail}
+              className="flex-1 bg-gradient-to-r from-ms-blue to-ms-purple text-white font-semibold py-3 rounded-xl hover:opacity-95 transition-opacity flex items-center justify-center gap-2 disabled:opacity-60"
+            >
+              {preparingEmail ? (
+                <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> A preparar a tua candidatura...</>
+              ) : (
+                <><Mail size={16} /> Candidatar por Email <span className="inline-flex items-center gap-0.5 text-[10px] font-bold bg-white/20 px-1.5 py-0.5 rounded-md"><Sparkles size={10} /> IA</span></>
+              )}
+            </button>
+          ) : job.apply_url ? (
             <a
               href={job.apply_url}
               target="_blank"
@@ -151,7 +209,7 @@ function ExternaContent() {
             >
               <Send size={16} /> Candidatar no site oficial
             </a>
-          )}
+          ) : null}
           <a
             href={linkedinUrl}
             target="_blank"
@@ -163,6 +221,9 @@ function ExternaContent() {
         </div>
         {!job.apply_url && (
           <p className="text-[11px] text-ms-gray text-center mt-2">Link oficial indisponível — procura a vaga no LinkedIn.</p>
+        )}
+        {isMailtoApply && (
+          <p className="text-[11px] text-ms-gray text-center mt-2">A IA escreve a mensagem com base no teu perfil (em inglês se a empresa for estrangeira) — revê e anexa o CV antes de enviar.</p>
         )}
       </div>
     </div>
