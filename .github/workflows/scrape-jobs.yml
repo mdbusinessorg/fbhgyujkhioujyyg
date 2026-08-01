@@ -73,6 +73,13 @@ jobs:
         run: |
           node scripts/ingest-jobartis.mjs --json
 
+      - name: Sincronizar novas vagas com Supabase
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          node scripts/sync-external-jobs-to-supabase.mjs
+
       - name: Commit se houver alterações
         run: |
           git config user.name "mosalo-bot"

@@ -12,6 +12,9 @@
 [functions."daily-triggers"]
   schedule = "0 7 * * *"
 
+[functions."retry-pending-jobs"]
+  schedule = "0 8 * * *"
+
 [[headers]]
   for = "/external-jobs.json"
   [headers.values]
@@ -142,6 +145,16 @@
 [[redirects]]
   from = "/api/community-memberships"
   to = "/.netlify/functions/community-memberships"
+  status = 200
+
+[[redirects]]
+  from = "/api/process-new-job"
+  to = "/.netlify/functions/process-new-job"
+  status = 200
+
+[[redirects]]
+  from = "/api/retry-pending-jobs"
+  to = "/.netlify/functions/retry-pending-jobs"
   status = 200
 
 [[redirects]]
