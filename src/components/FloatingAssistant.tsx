@@ -77,7 +77,7 @@ export default function FloatingAssistant() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed z-50 bottom-20 right-4 lg:bottom-6 lg:right-6 w-14 h-14 rounded-full text-white flex items-center justify-center animate-float hover:scale-110 transition-all overflow-hidden bg-[#B3C3DA] shadow"
+          className="fixed z-50 bottom-24 right-5 lg:bottom-8 lg:right-8 w-14 h-14 rounded-full text-white flex items-center justify-center animate-float hover:scale-110 transition-all overflow-hidden bg-[#B3C3DA] shadow-ios"
           aria-label="Abrir assistente MÔ SALO"
         >
           <img src="/mosalito.png?v=2" alt="Mosalito" className="w-full h-full object-cover" />
@@ -85,26 +85,26 @@ export default function FloatingAssistant() {
       )}
 
       {open && (
-        <div className="fixed z-50 bottom-20 right-4 lg:bottom-24 lg:right-6 w-[calc(100%-2rem)] max-w-sm bg-white rounded-2xl shadow-2xl border border-ms-border overflow-hidden flex flex-col max-h-[70vh]">
-          <div className="bg-gradient-to-r from-ms-blue to-ms-purple p-3 flex items-center justify-between">
+        <div className="fixed z-50 bottom-24 right-4 lg:bottom-24 lg:right-8 w-[calc(100%-2rem)] max-w-sm bg-white/95 backdrop-blur-2xl rounded-[32px] shadow-ios-lg border border-white/50 overflow-hidden flex flex-col max-h-[70vh]">
+          <div className="bg-white/80 backdrop-blur-xl p-3 flex items-center justify-between border-b border-ms-border/50">
             <div className="flex items-center gap-2">
               <div className="w-9 h-9 rounded-full overflow-hidden bg-[#B3C3DA]">
                 <img src="/mosalito.png?v=2" alt="Mosalito" className="w-full h-full object-cover" />
               </div>
               <div>
-                <p className="text-sm font-bold text-white">Mosalito</p>
-                <p className="text-[10px] text-white/80">Assistente MÔ SALO</p>
+                <p className="text-sm font-bold text-ms-dark">Mosalito</p>
+                <p className="text-[10px] text-ms-gray">Assistente MÔ SALO</p>
               </div>
             </div>
-            <button onClick={() => setOpen(false)} className="text-white/90 hover:text-white p-1">
+            <button onClick={() => setOpen(false)} className="text-ms-gray hover:text-ms-dark w-8 h-8 rounded-full bg-ms-surface flex items-center justify-center transition-colors">
               <X size={20} />
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-ms-surface min-h-[260px]">
+          <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-ms-surface/60 min-h-[260px]">
             {messages.map((m, i) => (
               <div key={i} className={`flex gap-2 ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden ${m.role === 'user' ? 'bg-ms-blue text-white' : 'bg-white'}`}>
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden shadow-ios-sm ${m.role === 'user' ? 'bg-ms-blue text-white' : 'bg-white'}`}>
                   {m.role === 'user' ? (
                     currentUser ? <ProfileAvatar url={currentUser.avatar_url} name={currentUser.nome} size={28} className="rounded-full" /> : <User size={14} />
                   ) : (
@@ -113,7 +113,7 @@ export default function FloatingAssistant() {
                     </div>
                   )}
                 </div>
-                <div className={`text-xs leading-relaxed p-2.5 rounded-2xl whitespace-pre-wrap ${m.role === 'user' ? 'bg-ms-blue text-white rounded-br-none' : 'bg-white text-ms-dark border border-ms-border rounded-bl-none'}`}>
+                <div className={`text-xs leading-relaxed p-3 rounded-3xl whitespace-pre-wrap shadow-ios-sm ${m.role === 'user' ? 'bg-ms-blue text-white rounded-br-2xl' : 'bg-white text-ms-dark rounded-bl-2xl'}`}>
                   {m.content}
                 </div>
               </div>
@@ -123,7 +123,7 @@ export default function FloatingAssistant() {
                 <div className="w-7 h-7 rounded-full overflow-hidden bg-[#B3C3DA]">
                   <img src="/mosalito.png?v=2" alt="Mosalito" className="w-full h-full object-cover" />
                 </div>
-                <div className="text-xs p-2.5 bg-white border border-ms-border rounded-2xl rounded-bl-none animate-pulse">A pensar...</div>
+                <div className="text-xs p-3 bg-white rounded-3xl rounded-bl-2xl animate-pulse shadow-ios-sm">A pensar...</div>
               </div>
             )}
             <div ref={endRef} />
@@ -134,7 +134,7 @@ export default function FloatingAssistant() {
                   <button
                     key={s}
                     onClick={() => send(s)}
-                    className="text-[10px] bg-white border border-ms-border text-ms-blue px-2.5 py-1.5 rounded-full hover:bg-ms-surface transition-colors"
+                    className="text-[10px] bg-white text-ms-blue px-3 py-1.5 rounded-full hover:bg-ms-surface transition-colors shadow-ios-sm"
                   >
                     {s}
                   </button>
@@ -143,8 +143,8 @@ export default function FloatingAssistant() {
             )}
           </div>
 
-          <div className="p-3 bg-white border-t border-ms-border">
-            <div className="flex items-center gap-2 bg-ms-surface rounded-full px-3 py-2">
+          <div className="p-3 bg-white/80 backdrop-blur-xl border-t border-ms-border/50">
+            <div className="flex items-center gap-2 bg-ms-surface rounded-[24px] px-3 py-2">
               <input
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
@@ -155,7 +155,7 @@ export default function FloatingAssistant() {
               <button
                 onClick={() => send()}
                 disabled={loading || !message.trim()}
-                className="w-8 h-8 rounded-full bg-ms-blue text-white flex items-center justify-center disabled:opacity-50 hover:bg-ms-purple transition-colors"
+                className="w-8 h-8 rounded-full bg-ms-blue text-white flex items-center justify-center disabled:opacity-50 hover:brightness-105 active:scale-95 transition-all shadow-ios-sm"
               >
                 <Send size={14} />
               </button>

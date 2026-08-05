@@ -274,7 +274,7 @@ export default function TrabalhoRapidoPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-28">
-      <header className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 z-40">
+      <header className="sticky top-0 bg-white/95 backdrop-blur-xl border-b border-white/40 px-4 py-3 z-40">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/" className="p-1"><ArrowLeft size={20} className="text-gray-700" /></Link>
@@ -304,8 +304,8 @@ export default function TrabalhoRapidoPage() {
       </div>
 
       {/* Trust bar */}
-      <div className="bg-white border-b border-gray-100">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between text-[10px] text-gray-600">
+      <div className="bg-white border-b border-ms-border/30">
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between text-[10px] text-ms-gray">
           <span className="flex items-center gap-1"><ShieldCheck size={12} className="text-green-600" /> Pagamento seguro</span>
           <span className="flex items-center gap-1"><Timer size={12} className="text-orange-500" /> Acesso imediato</span>
           <span className="flex items-center gap-1"><Users size={12} className="text-ms-blue" /> +1.000 utilizadores</span>
@@ -315,19 +315,19 @@ export default function TrabalhoRapidoPage() {
       <div className="max-w-2xl mx-auto p-4">
         {/* Promo card */}
         {!checkingAccess && !hasAccess && (
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-orange-100 mb-4 relative overflow-hidden">
+          <div className="card p-4 shadow-ios-sm border-orange-100/50 mb-4 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-24 h-24 bg-orange-100 rounded-full -translate-y-10 translate-x-10" />
             <div className="relative flex items-start gap-3">
-              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center flex-shrink-0">
+              <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center flex-shrink-0">
                 <Gift size={24} className="text-orange-600" />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-bold text-gray-900">Oferta de lançamento</p>
-                <p className="text-xs text-gray-500 mt-0.5">1.000 Kz/mês para contactar todos os trabalhos rápidos.</p>
+                <p className="text-sm font-bold text-ms-dark">Oferta de lançamento</p>
+                <p className="text-xs text-ms-gray/70 mt-0.5">1.000 Kz/mês para contactar todos os trabalhos rápidos.</p>
                 <div className="flex items-center gap-2 mt-2 text-[10px] font-medium text-orange-600">
                   <Timer size={12} /> Termina em {formatTime(timeLeft)}
                 </div>
-                <button onClick={openUnlock} className="mt-3 w-full bg-orange-500 text-white text-xs font-bold py-2.5 rounded-xl hover:bg-orange-600 transition-colors flex items-center justify-center gap-1">
+                <button onClick={openUnlock} className="mt-3 w-full bg-orange-500 text-white text-xs font-bold py-2.5 rounded-full hover:bg-orange-600 active:scale-[0.98] transition-all flex items-center justify-center gap-1 shadow-ios-sm">
                   Desbloquear agora <ChevronDown size={12} className="-rotate-90" />
                 </button>
               </div>
@@ -336,14 +336,14 @@ export default function TrabalhoRapidoPage() {
         )}
 
         {/* Search */}
-        <div className="flex items-center gap-2 bg-white rounded-xl px-4 py-3 mb-4 border border-gray-100">
-          <Search size={18} className="text-gray-400" />
+        <div className="flex items-center gap-2 bg-white rounded-2xl px-4 py-3 mb-4 border border-ms-border/50 shadow-ios-sm">
+          <Search size={18} className="text-ms-gray/50" />
           <input
             type="text"
             placeholder="Pesquisar trabalhos..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 bg-transparent outline-none text-sm text-gray-900 placeholder:text-gray-400"
+            className="flex-1 bg-transparent outline-none text-sm text-ms-dark placeholder:text-ms-gray/70"
           />
         </div>
 
@@ -353,7 +353,7 @@ export default function TrabalhoRapidoPage() {
             <button
               key={cat.key}
               onClick={() => setFiltroCategoria(cat.key)}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filtroCategoria === cat.key ? 'bg-orange-500 text-white' : 'bg-white text-gray-600 border border-gray-100'}`}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${filtroCategoria === cat.key ? 'bg-orange-500 text-white' : 'bg-white text-ms-gray border border-ms-border/50'}`}
             >
               {cat.label}
             </button>
@@ -362,16 +362,16 @@ export default function TrabalhoRapidoPage() {
 
         {/* Access banner */}
         {!checkingAccess && !hasAccess && (
-          <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-xl p-4 mb-4 text-white flex items-start gap-3">
+          <div className="bg-gradient-to-r from-ms-dark to-gray-800 rounded-2xl p-4 mb-4 text-white flex items-start gap-3 shadow-ios-sm">
             <Lock size={20} className="flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <p className="text-sm font-semibold">Acesso limitado</p>
               <p className="text-xs text-white/80 mt-0.5">Vês título, valor e data. Desbloqueia para ver descrição, localização e contactar.</p>
             </div>
             {accessPending ? (
-              <span className="text-[10px] bg-white/20 px-2 py-1 rounded-lg font-medium flex-shrink-0">Pendente</span>
+              <span className="text-[10px] bg-white/20 px-2 py-1 rounded-full font-medium flex-shrink-0">Pendente</span>
             ) : (
-              <button onClick={openUnlock} className="text-[10px] bg-white text-orange-600 px-3 py-1.5 rounded-lg font-semibold flex-shrink-0">Desbloquear</button>
+              <button onClick={openUnlock} className="text-[10px] bg-white text-orange-600 px-3 py-1.5 rounded-full font-semibold flex-shrink-0">Desbloquear</button>
             )}
           </div>
         )}
@@ -382,10 +382,10 @@ export default function TrabalhoRapidoPage() {
             <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-2xl">
-            <Zap size={40} className="text-gray-200 mx-auto mb-3" />
-            <p className="text-sm text-gray-500">Nenhum trabalho rápido disponível</p>
-            <p className="text-xs text-gray-400 mt-1">Sê o primeiro a publicar!</p>
+          <div className="text-center py-12 card shadow-ios-sm">
+            <Zap size={40} className="text-ms-gray/20 mx-auto mb-3" />
+            <p className="text-sm text-ms-gray">Nenhum trabalho rápido disponível</p>
+            <p className="text-xs text-ms-gray/60 mt-1">Sê o primeiro a publicar!</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -393,7 +393,7 @@ export default function TrabalhoRapidoPage() {
               const count = interestedCount(job.id)
               const urgent = isUrgent(job.created_at)
               return (
-                <div key={job.id} className="bg-white rounded-xl p-4 border border-gray-100 hover:border-orange-200 transition-colors relative overflow-hidden">
+                <div key={job.id} className="card p-4 shadow-ios-sm hover:border-orange-200 transition-colors relative overflow-hidden">
                   {urgent && !hasAccess && (
                     <div className="absolute top-0 right-0 bg-red-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-bl-lg">Acabou de sair</div>
                   )}

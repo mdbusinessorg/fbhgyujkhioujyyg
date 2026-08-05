@@ -182,15 +182,15 @@ export default function JarvisPanel() {
           </div>
 
           {loadingAds ? (
-            <div className="bg-white rounded-2xl p-8 text-center border border-ms-border"><div className="w-8 h-8 border-2 border-ms-purple border-t-transparent rounded-full animate-spin mx-auto" /></div>
+            <div className="card p-8 text-center shadow-ios-sm"><div className="w-8 h-8 border-2 border-ms-purple border-t-transparent rounded-full animate-spin mx-auto" /></div>
           ) : filteredAds.length === 0 ? (
-            <div className="bg-white rounded-2xl p-8 text-center border border-ms-border text-sm text-ms-gray">Nenhum anúncio.</div>
+            <div className="card p-8 text-center shadow-ios-sm text-sm text-ms-gray">Nenhum anúncio.</div>
           ) : (
             <div className="grid grid-cols-1 gap-4">
               {filteredAds.map(ad => (
-                <div key={ad.id} className="bg-white rounded-2xl p-4 border border-ms-border shadow-sm">
+                <div key={ad.id} className="card p-4 shadow-ios-sm">
                   <div className="flex items-start gap-3">
-                    <img src={ad.image_url} alt={ad.title} className="w-24 h-24 object-cover rounded-xl flex-shrink-0" />
+                    <img src={ad.image_url} alt={ad.title} className="w-24 h-24 object-cover rounded-2xl flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="text-sm font-bold text-ms-dark truncate">{ad.title}</h3>
@@ -250,14 +250,14 @@ export default function JarvisPanel() {
       )}
 
       {tab === 'aparencia' && (
-        <div className="bg-white rounded-2xl p-4 border border-ms-border shadow-sm space-y-4">
+        <div className="card p-4 shadow-ios-sm space-y-4">
           <h3 className="text-sm font-bold text-ms-dark flex items-center gap-2"><Palette size={18} className="text-ms-purple" /> Aparência do site</h3>
 
           {['logo_url', 'logo_icon_url', 'hero_image_url'].map((field) => (
             <div key={field}>
               <label className="block text-xs font-medium text-ms-dark mb-1 capitalize">{field.replace(/_/g, ' ')}</label>
               <div className="flex items-center gap-3">
-                <div className="w-16 h-16 bg-ms-surface rounded-xl flex items-center justify-center overflow-hidden border border-ms-border">
+                <div className="w-16 h-16 bg-ms-surface rounded-2xl flex items-center justify-center overflow-hidden border border-ms-border">
                   {appearance[field as keyof typeof appearance] ? <img src={appearance[field as keyof typeof appearance]} alt="" className="w-full h-full object-contain" /> : <ImageIcon size={20} className="text-ms-gray" />}
                 </div>
                 <label className="flex-1">
@@ -282,7 +282,7 @@ export default function JarvisPanel() {
       )}
 
       {tab === 'config' && (
-        <div className="bg-white rounded-2xl p-4 border border-ms-border shadow-sm space-y-4">
+        <div className="card p-4 shadow-ios-sm space-y-4">
           <h3 className="text-sm font-bold text-ms-dark flex items-center gap-2"><Settings size={18} className="text-ms-purple" /> Configurações gerais</h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

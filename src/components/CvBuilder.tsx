@@ -119,7 +119,7 @@ export default function CvBuilder() {
   if (!profile) {
     return (
       <div className="min-h-screen bg-ms-surface p-6 flex items-center justify-center">
-        <div className="bg-white rounded-2xl p-8 shadow-sm border border-ms-border text-center max-w-md">
+        <div className="card p-8 shadow-ios-sm text-center max-w-md">
           <h1 className="text-lg font-bold text-ms-dark mb-2">Inicia sessão</h1>
           <p className="text-sm text-ms-gray mb-4">Precisas de estar logado para gerares o teu CV.</p>
           <Link href="/auth/login/" className="btn-primary inline-block">Entrar</Link>
@@ -143,7 +143,7 @@ export default function CvBuilder() {
       <main className="max-w-5xl mx-auto px-4 py-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {TEMPLATES.map(t => (
-            <div key={t.key} className="bg-white rounded-2xl border border-ms-border p-4 shadow-sm flex flex-col">
+            <div key={t.key} className="card p-4 shadow-ios-sm flex flex-col">
               <div className="text-sm font-bold text-ms-dark mb-1">{t.name}</div>
               <p className="text-xs text-ms-gray mb-3">{t.desc}</p>
               <div className="bg-gray-50 rounded-xl border border-ms-border overflow-hidden flex-1 relative" style={{ height: '220px' }}>

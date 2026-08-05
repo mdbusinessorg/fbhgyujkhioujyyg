@@ -34,25 +34,32 @@ export default function BottomNav({ active, userRole, onTabChange }: BottomNavPr
   const items = userRole === 'recrutador' ? recrutadorItems : userRole === 'admin' ? adminItems : candidatoItems
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-ms-border z-50 lg:hidden">
-      <div className="flex items-center justify-around py-2 px-4 max-w-md mx-auto">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-t border-white/40 lg:hidden rounded-t-[28px] shadow-[0_-8px_32px_rgba(0,0,0,0.06)]">
+      <div className="flex items-center justify-around py-2.5 px-4 max-w-md mx-auto pb-safe">
         {items.map((item) => {
           const Icon = item.icon
           const isActive = active === item.key
 
+          const content = (
+            <div className={`flex flex-col items-center gap-1 py-1 px-3 rounded-2xl transition-all ${isActive ? 'text-ms-blue' : 'text-ms-gray'}`}>
+              <div className={`w-9 h-9 rounded-2xl flex items-center justify-center transition-all ${isActive ? 'bg-ms-blue/10 text-ms-blue' : 'bg-transparent'}`}>
+                <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+              </div>
+              <span className={`text-[10px] leading-none ${isActive ? 'font-semibold text-ms-blue' : 'font-medium'}`}>{item.label}</span>
+            </div>
+          )
+
           if (item.href) {
             return (
-              <Link key={item.key} href={item.href} className="flex flex-col items-center gap-0.5 py-1">
-                <Icon size={22} className={isActive ? 'text-ms-purple' : 'text-gray-400'} />
-                <span className={`text-[10px] ${isActive ? 'text-ms-purple font-medium' : 'text-gray-400'}`}>{item.label}</span>
+              <Link key={item.key} href={item.href}>
+                {content}
               </Link>
             )
           }
 
           return (
-            <button key={item.key} onClick={() => onTabChange?.(item.key)} className="flex flex-col items-center gap-0.5 py-1">
-              <Icon size={22} className={isActive ? 'text-ms-purple' : 'text-gray-400'} />
-              <span className={`text-[10px] ${isActive ? 'text-ms-purple font-medium' : 'text-gray-400'}`}>{item.label}</span>
+            <button key={item.key} onClick={() => onTabChange?.(item.key)}>
+              {content}
             </button>
           )
         })}

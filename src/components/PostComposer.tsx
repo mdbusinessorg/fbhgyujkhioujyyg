@@ -95,7 +95,7 @@ export default function PostComposer({
   }
 
   return (
-    <div className="bg-white rounded-2xl p-4 border border-ms-border shadow-sm">
+    <div className="card p-4 shadow-ios-sm">
       <div className="flex gap-3">
         <ProfileAvatar url={currentUser?.avatar_url} name={currentUser?.nome} size={44} />
         <div className="flex-1">
@@ -106,11 +106,11 @@ export default function PostComposer({
             rows={3}
             placeholder={currentUser ? "Partilha uma conquista, vaga ou novidade profissional..." : "Inicia sessão para publicares"}
             disabled={!currentUser || postedToday || posting}
-            className="w-full bg-ms-surface rounded-xl px-4 py-3 text-sm text-ms-dark placeholder:text-ms-gray outline-none focus:ring-2 focus:ring-ms-blue/20 resize-none disabled:opacity-60"
+            className="w-full bg-ms-surface rounded-2xl px-4 py-3 text-sm text-ms-dark placeholder:text-ms-gray/70 outline-none focus:ring-2 focus:ring-ms-blue/20 resize-none disabled:opacity-60"
           />
           {currentUser?.role === 'recrutador' && (
             <div className="mt-2 flex items-center gap-2">
-              <button onClick={() => setIsJobFeature(v => !v)} className={`flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full border transition-colors ${isJobFeature ? 'bg-ms-blue text-white border-ms-blue' : 'bg-white text-ms-blue border-ms-blue/30'}`}>
+              <button onClick={() => setIsJobFeature(v => !v)} className={`flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full border transition-all active:scale-95 ${isJobFeature ? 'bg-ms-blue text-white border-ms-blue' : 'bg-white text-ms-blue border-ms-blue/30'}`}>
                 <Sparkles size={12} /> Vaga em destaque
               </button>
               {isJobFeature && (
@@ -123,13 +123,13 @@ export default function PostComposer({
           )}
           {preview && (
             <div className="relative mt-2 inline-block">
-              <img src={preview} alt="Pré-visualização" className="h-28 w-auto rounded-xl object-cover" />
-              <button onClick={clearImage} className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs">×</button>
+              <img src={preview} alt="Pré-visualização" className="h-28 w-auto rounded-2xl object-cover" />
+              <button onClick={clearImage} className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs shadow-ios-sm">×</button>
             </div>
           )}
           <div className="flex items-center justify-between mt-3">
             <div className="flex items-center gap-2">
-              <button onClick={() => fileRef.current?.click()} disabled={!currentUser || postedToday || posting} className="flex items-center gap-1.5 px-3 py-2 bg-ms-surface text-ms-gray rounded-xl text-xs font-medium hover:text-ms-blue disabled:opacity-50">
+              <button onClick={() => fileRef.current?.click()} disabled={!currentUser || postedToday || posting} className="flex items-center gap-1.5 px-3 py-2 bg-ms-surface text-ms-gray rounded-full text-xs font-medium hover:text-ms-blue disabled:opacity-50 transition-colors">
                 <ImagePlus size={14} /> Foto
               </button>
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImage} />
@@ -138,7 +138,7 @@ export default function PostComposer({
             {postedToday ? (
               <span className="text-xs text-ms-gray">Já publicaste hoje</span>
             ) : (
-              <button onClick={handlePublish} disabled={!currentUser || (!content.trim() && !image) || posting} className="flex items-center gap-1.5 px-4 py-2 bg-ms-blue text-white rounded-xl text-xs font-medium disabled:opacity-50 hover:bg-blue-700 transition-colors">
+              <button onClick={handlePublish} disabled={!currentUser || (!content.trim() && !image) || posting} className="flex items-center gap-1.5 px-5 py-2 bg-ms-blue text-white rounded-full text-xs font-medium disabled:opacity-50 hover:brightness-105 active:scale-95 transition-all shadow-ios-sm">
                 {posting ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send size={14} />} Publicar
               </button>
             )}

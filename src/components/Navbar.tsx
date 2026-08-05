@@ -73,7 +73,7 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100">
+    <nav className="fixed top-0 left-0 right-0 z-50 ios-glass border-b border-white/40 shadow-ios-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <Link href="/" className="flex items-center gap-2">
@@ -81,15 +81,15 @@ export default function Navbar() {
           </Link>
 
           <div className="hidden md:flex items-center gap-6">
-            <Link href="/vagas/" className="flex items-center gap-1.5 text-gray-600 hover:text-k10-accent transition-colors font-medium text-sm">
+            <Link href="/vagas/" className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-ms-gray hover:text-ms-blue hover:bg-ms-surface transition-colors font-medium text-sm">
               <Briefcase size={16} />
               Vagas
             </Link>
-            <Link href="/guia/" className="flex items-center gap-1.5 text-gray-600 hover:text-k10-accent transition-colors font-medium text-sm">
+            <Link href="/guia/" className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-ms-gray hover:text-ms-blue hover:bg-ms-surface transition-colors font-medium text-sm">
               <BookOpen size={16} />
               Guia
             </Link>
-            <Link href="/vagas/" className="flex items-center gap-1.5 text-gray-600 hover:text-k10-accent transition-colors font-medium text-sm">
+            <Link href="/vagas/" className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-ms-gray hover:text-ms-blue hover:bg-ms-surface transition-colors font-medium text-sm">
               <Search size={16} />
               Pesquisar
             </Link>
@@ -100,13 +100,13 @@ export default function Navbar() {
               <div className="w-20 h-8 bg-gray-100 rounded-lg animate-pulse" />
             ) : user ? (
               <div className="flex items-center gap-3">
-                <Link href={getDashboardLink()} className="flex items-center gap-2 text-gray-600 hover:text-k10-accent transition-colors">
+                <Link href={getDashboardLink()} className="flex items-center gap-2 px-3 py-1.5 rounded-full text-ms-gray hover:text-ms-blue hover:bg-ms-surface transition-colors text-sm font-medium">
                   <LayoutDashboard size={16} />
                   <span className="text-sm font-medium">Painel</span>
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-1.5 text-gray-500 hover:text-red-500 transition-colors text-sm"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-ms-gray hover:text-red-500 hover:bg-red-50 transition-colors text-sm font-medium"
                 >
                   <LogOut size={16} />
                   Sair
@@ -114,7 +114,7 @@ export default function Navbar() {
               </div>
             ) : (
               <>
-                <Link href="/auth/login/" className="flex items-center gap-1.5 text-gray-600 hover:text-k10-accent transition-colors font-medium text-sm">
+                <Link href="/auth/login/" className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-ms-gray hover:text-ms-blue hover:bg-ms-surface transition-colors font-medium text-sm">
                   <LogIn size={16} />
                   Entrar
                 </Link>
@@ -125,37 +125,37 @@ export default function Navbar() {
             )}
           </div>
 
-          <button onClick={() => setIsOpen(!isOpen)} className="md:hidden text-gray-600 hover:text-k10-accent">
+          <button onClick={() => setIsOpen(!isOpen)} className="md:hidden w-9 h-9 rounded-full bg-ms-surface text-ms-gray hover:text-ms-blue flex items-center justify-center transition-colors">
             {isOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
       </div>
 
       {isOpen && (
-        <div className="md:hidden bg-white border-t border-gray-100 shadow-lg">
+        <div className="md:hidden bg-white/95 backdrop-blur-xl border-t border-gray-100/50 shadow-ios">
           <div className="px-4 py-4 space-y-3">
-            <Link href="/vagas/" className="flex items-center gap-2 py-2 text-gray-600 hover:text-k10-accent" onClick={() => setIsOpen(false)}>
+            <Link href="/vagas/" className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-ms-gray hover:text-ms-blue hover:bg-ms-surface transition-colors" onClick={() => setIsOpen(false)}>
               <Briefcase size={18} />
               Vagas
             </Link>
-            <Link href="/guia/" className="flex items-center gap-2 py-2 text-gray-600 hover:text-k10-accent" onClick={() => setIsOpen(false)}>
+            <Link href="/guia/" className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-ms-gray hover:text-ms-blue hover:bg-ms-surface transition-colors" onClick={() => setIsOpen(false)}>
               <BookOpen size={18} />
               Guia
             </Link>
-            <Link href="/vagas/" className="flex items-center gap-2 py-2 text-gray-600 hover:text-k10-accent" onClick={() => setIsOpen(false)}>
+            <Link href="/vagas/" className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-ms-gray hover:text-ms-blue hover:bg-ms-surface transition-colors" onClick={() => setIsOpen(false)}>
               <Search size={18} />
               Pesquisar
             </Link>
             <hr className="border-gray-100" />
             {user ? (
               <>
-                <Link href={getDashboardLink()} className="flex items-center gap-2 py-2 text-gray-600 hover:text-k10-accent" onClick={() => setIsOpen(false)}>
+                <Link href={getDashboardLink()} className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-ms-gray hover:text-ms-blue hover:bg-ms-surface transition-colors" onClick={() => setIsOpen(false)}>
                   <LayoutDashboard size={18} />
                   Painel
                 </Link>
                 <button
                   onClick={() => { handleLogout(); setIsOpen(false) }}
-                  className="flex items-center gap-2 py-2 text-red-500 w-full"
+                  className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-red-500 hover:bg-red-50 w-full transition-colors"
                 >
                   <LogOut size={18} />
                   Sair
@@ -163,7 +163,7 @@ export default function Navbar() {
               </>
             ) : (
               <>
-                <Link href="/auth/login/" className="flex items-center gap-2 py-2 text-gray-600 hover:text-k10-accent" onClick={() => setIsOpen(false)}>
+                <Link href="/auth/login/" className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-ms-gray hover:text-ms-blue hover:bg-ms-surface transition-colors" onClick={() => setIsOpen(false)}>
                   <LogIn size={18} />
                   Entrar
                 </Link>

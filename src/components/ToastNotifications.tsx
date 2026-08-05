@@ -107,7 +107,7 @@ export default function ToastNotifications() {
           <div
             key={t.id}
             onClick={() => handleClick(t)}
-            className={`pointer-events-auto w-80 bg-white rounded-2xl shadow-xl border border-ms-border p-4 flex gap-3 cursor-pointer transition-all duration-300 ${t.entering ? 'translate-x-10 opacity-0' : 'translate-x-0 opacity-100'}`}
+            className={`pointer-events-auto w-80 bg-white/95 backdrop-blur-xl rounded-3xl shadow-ios border border-white/50 p-4 flex gap-3 cursor-pointer transition-all duration-300 ${t.entering ? 'translate-x-10 opacity-0' : 'translate-x-0 opacity-100'}`}
           >
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-ms-blue to-ms-purple flex items-center justify-center text-white flex-shrink-0">
               <Icon size={18} />

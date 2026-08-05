@@ -5,33 +5,58 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
   body {
-    @apply bg-white text-ms-dark font-sans antialiased;
+    @apply bg-ms-surface text-ms-dark font-sans antialiased;
+    font-feature-settings: 'kern' 1, 'liga' 1;
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply bg-ms-blue hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200;
+    @apply inline-flex items-center justify-center gap-2 bg-ms-blue hover:brightness-105 active:scale-[0.98] text-white font-semibold py-3 px-6 rounded-full transition-all duration-200 shadow-ios-sm;
   }
   .btn-outline {
-    @apply border border-ms-border text-ms-dark bg-white hover:bg-ms-surface font-medium py-3 px-6 rounded-xl transition-all duration-200;
+    @apply inline-flex items-center justify-center gap-2 border border-ms-border text-ms-dark bg-white hover:bg-ms-surface active:scale-[0.98] font-medium py-3 px-6 rounded-full transition-all duration-200;
   }
   .input-field {
-    @apply w-full px-4 py-3.5 rounded-xl border border-ms-border focus:border-ms-blue focus:ring-2 focus:ring-ms-blue/10 outline-none transition-all bg-white text-sm;
+    @apply w-full px-4 py-3.5 rounded-2xl border border-ms-border focus:border-ms-blue focus:ring-2 focus:ring-ms-blue/10 outline-none transition-all bg-white/80 text-sm placeholder:text-ms-gray/70;
+  }
+  .card {
+    @apply bg-white rounded-[32px] shadow-ios-sm overflow-hidden transition-all duration-200;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wide;
+  }
+  .ios-glass {
+    @apply bg-white/70 backdrop-blur-xl border-white/30;
+  }
+  .ios-blur {
+    @apply backdrop-blur-2xl bg-white/60;
+  }
+  .gradient-hero {
+    background: linear-gradient(180deg, rgba(245, 247, 250, 0) 0%, #F5F7FA 100%),
+                linear-gradient(135deg, #EEF0FF 0%, #F0F9FF 50%, #F5F7FA 100%);
   }
 }
 
+/* iOS-style smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 10px;
 }
 
 .no-scrollbar::-webkit-scrollbar {

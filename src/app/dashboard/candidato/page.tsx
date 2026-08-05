@@ -393,14 +393,14 @@ function CandidatoDashboard() {
 
         {showNotifs && (
           <div className="fixed inset-0 z-[60]" onClick={() => setShowNotifs(false)}>
-            <div className="absolute right-4 top-20 w-80 max-w-[90vw] bg-white rounded-2xl shadow-xl border border-ms-border p-4" onClick={e => e.stopPropagation()}>
+            <div className="absolute right-4 top-20 w-80 max-w-[90vw] bg-white/95 backdrop-blur-xl rounded-3xl shadow-ios border border-white/50 p-4" onClick={e => e.stopPropagation()}>
               <h3 className="text-sm font-bold text-ms-dark mb-3">Notificações</h3>
               {notifications.length === 0 ? (
                 <p className="text-xs text-ms-gray text-center py-4">Sem notificações novas</p>
               ) : (
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                   {notifications.map((n, i) => (
-                    <button key={i} onClick={() => { setActiveTab('candidaturas'); setShowNotifs(false) }} className="w-full text-left bg-ms-surface rounded-xl p-3 hover:bg-ms-purple-light/30 transition-colors">
+                    <button key={i} onClick={() => { setActiveTab('candidaturas'); setShowNotifs(false) }} className="w-full text-left bg-ms-surface rounded-2xl p-3 hover:bg-ms-purple-light/30 transition-colors">
                       <p className="text-xs text-ms-dark">{n.text}</p>
                       <p className="text-[10px] text-ms-gray mt-1">Ver candidaturas</p>
                     </button>

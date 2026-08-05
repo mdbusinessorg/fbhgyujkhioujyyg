@@ -30,7 +30,7 @@ export default function Categories() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-10">
           <h2 className="font-heading text-3xl font-bold text-k10-primary mb-3">Categorias Populares</h2>
-          <p className="text-gray-500 max-w-lg mx-auto">Explora vagas organizadas por área profissional</p>
+          <p className="text-ms-gray/70 max-w-lg mx-auto">Explora vagas organizadas por área profissional</p>
         </div>
         
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
@@ -39,11 +39,11 @@ export default function Categories() {
             return (
               <Link key={cat.name} href={`/vagas/?area=${encodeURIComponent(cat.name)}`}>
                 <div className="card p-4 text-center hover:-translate-y-1 cursor-pointer group">
-                  <div className={`w-12 h-12 rounded-xl ${cat.color} flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform`}>
+                  <div className={`w-12 h-12 rounded-2xl ${cat.color} flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform`}>
                     <Icon size={22} />
                   </div>
-                  <h3 className="font-medium text-sm text-gray-800 mb-1 leading-tight">{cat.name}</h3>
-                  <p className="text-xs text-gray-400">{cat.count} vagas</p>
+                  <h3 className="font-medium text-sm text-ms-dark mb-1 leading-tight">{cat.name}</h3>
+                  <p className="text-xs text-ms-gray/70">{cat.count} vagas</p>
                 </div>
               </Link>
             )

@@ -172,7 +172,7 @@ export function ATS({ role, vagas, candidatos, onUpdate }: ATSProps) {
           { label: 'Fase de Concorrência', value: candidatesByStage.concorrencia.length, icon: Trophy },
           { label: 'Pré-selecionados', value: candidatesByStage.pre_selecionados.length + candidatesByStage.contratado.length, icon: Star },
         ].map((s, i) => (
-          <div key={i} className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+          <div key={i} className="card p-4 shadow-ios-sm hover:shadow-ios transition-all">
             <div className="flex items-center justify-between mb-2">
               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">{s.label}</p>
               <s.icon size={14} className="text-cyan-500" />

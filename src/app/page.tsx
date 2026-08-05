@@ -347,7 +347,7 @@ export default function HomePage() {
     const category = job.area || job.category
     return (
       <Link key={job.favId} href={jobHref(job)} className="block">
-        <div className={`bg-white rounded-2xl p-4 border ${featured || recommended ? 'border-ms-blue/20 shadow-md' : 'border-ms-border'} hover:shadow-md hover:border-ms-blue/30 transition-all relative`}>
+        <div className={`card p-4 shadow-ios-sm hover:shadow-ios transition-all ${featured || recommended ? 'border-ms-blue/20' : ''} relative`}>
           {recommended && (
             <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-1 text-[10px] font-bold text-white bg-gradient-to-r from-ms-blue to-ms-purple px-2 py-0.5 rounded-full">
               <Star size={10} className="fill-white" /> Recomendada
@@ -391,7 +391,7 @@ export default function HomePage() {
   }
 
   const NotificationDropdown = () => (
-    <div className="absolute right-0 top-12 w-72 bg-white rounded-2xl shadow-xl border border-ms-border z-50 overflow-hidden">
+    <div className="absolute right-0 top-12 w-72 bg-white/95 backdrop-blur-xl rounded-3xl shadow-ios border border-white/50 z-50 overflow-hidden">
       <div className="px-4 py-3 border-b border-ms-border flex items-center justify-between">
         <p className="text-sm font-semibold text-ms-dark">Notificações</p>
         <button onClick={() => setShowNotif(false)}><X size={14} className="text-ms-gray" /></button>
@@ -641,14 +641,14 @@ export default function HomePage() {
         {/* Info cards: Trabalho Rápido + Perfil */}
         <section className="mb-6">
           <div className="grid grid-cols-2 gap-3">
-            <Link href="/trabalho-rapido/" className="bg-gradient-to-br from-orange-400 to-orange-500 rounded-2xl p-4 text-white relative overflow-hidden hover:shadow-md transition-shadow">
+            <Link href="/trabalho-rapido/" className="bg-gradient-to-br from-orange-400 to-orange-500 rounded-3xl p-4 text-white relative overflow-hidden hover:shadow-ios transition-shadow shadow-ios-sm">
               <div className="absolute -bottom-4 -right-4 w-20 h-20 bg-white/10 rounded-full" />
               <Zap size={24} className="mb-3" />
               <h3 className="text-sm font-bold mb-1">Trabalho Rápido</h3>
               <p className="text-[10px] text-white/80 mb-3">Empregos diretos. Paga uma taxa mensal e acede aos contactos.</p>
               <span className="inline-flex items-center text-[10px] font-bold bg-white/20 px-2 py-1 rounded-lg">Saber mais</span>
             </Link>
-            <Link href={isLoggedIn ? `/dashboard/${userRole}/?tab=perfil` : '/auth/registar/'} className="bg-gradient-to-br from-ms-blue to-ms-purple rounded-2xl p-4 text-white relative overflow-hidden hover:shadow-md transition-shadow">
+            <Link href={isLoggedIn ? `/dashboard/${userRole}/?tab=perfil` : '/auth/registar/'} className="bg-gradient-to-br from-ms-blue to-ms-purple rounded-3xl p-4 text-white relative overflow-hidden hover:shadow-ios transition-shadow shadow-ios-sm">
               <div className="absolute -bottom-4 -right-4 w-20 h-20 bg-white/10 rounded-full" />
               <User size={24} className="mb-3" />
               <h3 className="text-sm font-bold mb-1">Perfil de Candidato</h3>
@@ -717,7 +717,7 @@ export default function HomePage() {
                   href={news.link || '#'}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="snap-start flex-shrink-0 w-72 bg-white border border-ms-border rounded-2xl p-4 hover:border-red-400 hover:shadow-md transition-all group"
+                  className="snap-start flex-shrink-0 w-72 card p-4 shadow-ios-sm hover:border-red-400 hover:shadow-ios transition-all group"
                 >
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-red-600 px-2 py-0.5 rounded-md">Notícia</span>
@@ -791,7 +791,7 @@ export default function HomePage() {
             <Link href="/vagas/" className="text-xs text-ms-blue font-medium">Ver todas</Link>
           </div>
           {mainJobs.length === 0 ? (
-            <div className="bg-white rounded-2xl p-8 text-center border border-ms-border">
+            <div className="card p-8 text-center shadow-ios-sm">
               <Briefcase size={32} className="text-ms-gray mx-auto mb-3" />
               <p className="text-sm text-ms-gray">Nenhuma vaga encontrada</p>
               {activeFilter === 'Favoritos' && <p className="text-xs text-ms-gray mt-1">Guarda vagas clicando no coração</p>}
@@ -810,7 +810,7 @@ export default function HomePage() {
             <h2 className="text-sm font-bold text-ms-dark mb-3">Vagas LinkedIn</h2>
             <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
               {linkedinJobs.map((job: any) => (
-                <a key={job.id} href={job.link} target="_blank" rel="noopener noreferrer" className="flex-shrink-0 w-64 bg-white border border-ms-border rounded-2xl p-4 hover:border-ms-blue/30 transition-all">
+                <a key={job.id} href={job.link} target="_blank" rel="noopener noreferrer" className="flex-shrink-0 w-64 card p-4 shadow-ios-sm hover:border-ms-blue/30 transition-all">
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
                       <Settings size={20} className="text-blue-600" />

@@ -40,14 +40,14 @@ export default function AdStatsPanel() {
         <button
           onClick={loadStats}
           disabled={loading}
-          className="flex items-center gap-1 text-xs font-medium text-ms-blue bg-ms-surface px-3 py-2 rounded-lg hover:bg-ms-purple-light transition-colors disabled:opacity-50"
+          className="flex items-center gap-1 text-xs font-medium text-ms-blue bg-ms-surface px-3 py-2 rounded-full hover:bg-ms-purple-light transition-colors disabled:opacity-50"
         >
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Actualizar
         </button>
       </div>
 
       {ads.length === 0 ? (
-        <div className="bg-white rounded-2xl p-8 text-center border border-ms-border">
+        <div className="card p-8 text-center shadow-ios-sm">
           <Megaphone size={32} className="text-ms-gray mx-auto mb-3" />
           <p className="text-sm text-ms-gray">Sem dados de anúncios ainda.</p>
         </div>
@@ -56,9 +56,9 @@ export default function AdStatsPanel() {
           {ads.map(([adId, s]) => {
             const ctr = s.impressions > 0 ? ((s.clicks / s.impressions) * 100).toFixed(1) : '0.0'
             return (
-              <div key={adId} className="bg-white rounded-2xl p-5 border border-ms-border shadow-sm">
+              <div key={adId} className="card p-5 shadow-ios-sm">
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-ms-blue to-ms-purple flex items-center justify-center text-white">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-ms-blue to-ms-purple flex items-center justify-center text-white">
                     <Megaphone size={20} />
                   </div>
                   <div>
@@ -67,15 +67,15 @@ export default function AdStatsPanel() {
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
-                  <div className="bg-blue-50 rounded-xl p-3 text-center">
+                  <div className="bg-ms-blue/5 rounded-2xl p-3 text-center">
                     <p className="text-xs text-ms-gray mb-1 flex items-center justify-center gap-1"><Eye size={12} /> Views</p>
                     <p className="text-lg font-bold text-ms-blue">{s.impressions}</p>
                   </div>
-                  <div className="bg-green-50 rounded-xl p-3 text-center">
+                  <div className="bg-ms-green/5 rounded-2xl p-3 text-center">
                     <p className="text-xs text-ms-gray mb-1 flex items-center justify-center gap-1"><MousePointerClick size={12} /> Cliques</p>
                     <p className="text-lg font-bold text-green-600">{s.clicks}</p>
                   </div>
-                  <div className="bg-purple-50 rounded-xl p-3 text-center">
+                  <div className="bg-ms-purple/10 rounded-2xl p-3 text-center">
                     <p className="text-xs text-ms-gray mb-1">CTR</p>
                     <p className="text-lg font-bold text-ms-purple">{ctr}%</p>
                   </div>

@@ -331,12 +331,12 @@ function PerfilContent() {
             </button>
           )}
         </div>
-        <div className="relative z-10 bg-white rounded-b-2xl border-x border-b border-ms-border shadow-sm p-6 -mt-10 text-center mb-4">
-          <div className="relative z-20 w-24 h-24 mx-auto -mt-14 rounded-full p-[3px] bg-gradient-to-br from-ms-blue to-ms-purple shadow-xl ring-4 ring-white">
+        <div className="relative z-10 bg-white rounded-b-[32px] border-x border-b border-white/60 shadow-ios-sm p-6 -mt-10 text-center mb-4">
+          <div className="relative z-20 w-24 h-24 mx-auto -mt-14 rounded-full p-[3px] bg-gradient-to-br from-ms-blue to-ms-purple shadow-ios-lg ring-4 ring-white">
             <div className="relative">
               <ProfileAvatar url={person.avatar_url} name={person.nome} size={86} className="rounded-full border-2 border-white" />
               {isMe && (
-                <button onClick={() => triggerUpload('avatar')} disabled={uploading === 'avatar'} className="absolute bottom-0 right-0 bg-ms-blue text-white p-1.5 rounded-full border-2 border-white shadow hover:bg-blue-700 transition">
+                <button onClick={() => triggerUpload('avatar')} disabled={uploading === 'avatar'} className="absolute bottom-0 right-0 bg-ms-blue text-white p-1.5 rounded-full border-2 border-white shadow-ios-sm hover:brightness-105 transition">
                   <Camera size={12} />
                 </button>
               )}
@@ -357,35 +357,35 @@ function PerfilContent() {
 
           <div className="flex flex-col gap-3 mt-5">
             {!isMe && relationship === 'received' && request && (
-              <div className="w-full bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-4 shadow-sm">
+              <div className="w-full bg-gradient-to-br from-ms-blue/5 to-ms-purple/5 border border-ms-blue/10 rounded-3xl p-4 shadow-ios-sm">
                 <p className="text-sm font-semibold text-ms-dark mb-3 flex items-center justify-center gap-2"><UserPlus size={16} className="text-ms-blue" /> {person.nome} quer conectar contigo</p>
                 <div className="flex gap-3">
-                  <button onClick={acceptRequest} className="flex-1 flex items-center justify-center gap-2 bg-green-500 text-white text-sm font-bold py-3 rounded-xl hover:bg-green-600 active:scale-[0.98] shadow-md transition-all"><Check size={18} /> Aceitar</button>
-                  <button onClick={rejectRequest} className="flex-1 flex items-center justify-center gap-2 bg-white border-2 border-red-100 text-red-500 text-sm font-bold py-3 rounded-xl hover:bg-red-50 active:scale-[0.98] transition-all"><X size={18} /> Rejeitar</button>
+                  <button onClick={acceptRequest} className="flex-1 flex items-center justify-center gap-2 bg-green-500 text-white text-sm font-bold py-3 rounded-full hover:bg-green-600 active:scale-[0.98] shadow-md transition-all"><Check size={18} /> Aceitar</button>
+                  <button onClick={rejectRequest} className="flex-1 flex items-center justify-center gap-2 bg-white border-2 border-red-100 text-red-500 text-sm font-bold py-3 rounded-full hover:bg-red-50 active:scale-[0.98] transition-all"><X size={18} /> Rejeitar</button>
                 </div>
               </div>
             )}
 
             <div className="flex items-center justify-center gap-3">
               {!isMe && relationship === 'none' && (
-                <button onClick={handleConnect} className="flex-1 flex items-center justify-center gap-2 bg-ms-blue text-white text-sm font-bold py-3 rounded-xl hover:bg-blue-700 active:scale-[0.98] shadow-md transition-all"><UserPlus size={18} /> Conectar</button>
+                <button onClick={handleConnect} className="flex-1 flex items-center justify-center gap-2 bg-ms-blue text-white text-sm font-bold py-3 rounded-full hover:brightness-105 active:scale-[0.98] shadow-md transition-all"><UserPlus size={18} /> Conectar</button>
               )}
               {!isMe && relationship === 'sent' && (
-                <span className="flex-1 flex items-center justify-center gap-2 text-center text-sm py-3 bg-ms-surface text-ms-gray rounded-xl font-semibold"><UserCheck size={18} /> Pedido enviado</span>
+                <span className="flex-1 flex items-center justify-center gap-2 text-center text-sm py-3 bg-ms-surface text-ms-gray rounded-full font-semibold"><UserCheck size={18} /> Pedido enviado</span>
               )}
               {!isMe && relationship === 'connected' && (
-                <button onClick={handleMessage} className="flex-1 flex items-center justify-center gap-2 bg-ms-purple text-white text-sm font-bold py-3 rounded-xl hover:bg-purple-700 active:scale-[0.98] shadow-md transition-all"><MessageSquare size={18} /> Mensagem</button>
+                <button onClick={handleMessage} className="flex-1 flex items-center justify-center gap-2 bg-ms-purple text-white text-sm font-bold py-3 rounded-full hover:brightness-105 active:scale-[0.98] shadow-md transition-all"><MessageSquare size={18} /> Mensagem</button>
               )}
               {!isMe && relationship === 'rejected' && (
-                <span className="flex-1 text-center text-sm py-3 bg-gray-100 text-gray-500 rounded-xl font-semibold">Pedido rejeitado</span>
+                <span className="flex-1 text-center text-sm py-3 bg-gray-100 text-gray-500 rounded-full font-semibold">Pedido rejeitado</span>
               )}
               {!isMe && (
-                <button onClick={isFollowing ? handleUnfollow : handleFollow} className={`flex-1 flex items-center justify-center gap-2 text-sm font-bold py-3 rounded-xl border transition-all ${isFollowing ? 'bg-ms-surface text-ms-dark border-ms-border' : 'bg-white text-ms-blue border-ms-blue/30 hover:bg-blue-50'}`}>
+                <button onClick={isFollowing ? handleUnfollow : handleFollow} className={`flex-1 flex items-center justify-center gap-2 text-sm font-bold py-3 rounded-full border transition-all active:scale-[0.98] ${isFollowing ? 'bg-ms-surface text-ms-dark border-ms-border' : 'bg-white text-ms-blue border-ms-blue/30 hover:bg-blue-50'}`}>
                   {isFollowing ? <Check size={18} /> : <Building2 size={18} />} {isFollowing ? 'Seguindo' : 'Seguir'}
                 </button>
               )}
               {!isMe && (
-                <button onClick={() => setSaved(v => !v)} className={`w-12 h-12 flex items-center justify-center rounded-xl border transition-all shadow-sm ${saved ? 'bg-ms-blue text-white border-ms-blue' : 'bg-white text-ms-gray border-ms-border hover:bg-ms-surface'}`}>
+                <button onClick={() => setSaved(v => !v)} className={`w-12 h-12 flex items-center justify-center rounded-2xl border transition-all shadow-ios-sm ${saved ? 'bg-ms-blue text-white border-ms-blue' : 'bg-white text-ms-gray border-ms-border hover:bg-ms-surface'}`}>
                   <Bookmark size={20} className={saved ? 'fill-white' : ''} />
                 </button>
               )}
@@ -393,7 +393,7 @@ function PerfilContent() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-5 border border-ms-border shadow-sm mb-4">
+        <div className="card p-5 shadow-ios-sm mb-4">
           {person.profile?.bio && (
             <div className="mb-4">
               <h2 className="text-sm font-bold text-ms-dark mb-1">Sobre</h2>
@@ -423,11 +423,11 @@ function PerfilContent() {
         </div>
 
         {isMe && person.role === 'recrutador' && (
-          <div className="bg-white rounded-2xl p-5 border border-ms-border shadow-sm mb-4">
+          <div className="card p-5 shadow-ios-sm mb-4">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-bold text-ms-dark flex items-center gap-2"><ShieldCheck size={16} className="text-ms-blue" /> Verificação de Recrutador</h2>
               {isVerified ? (
-                <span className="text-xs font-semibold text-ms-blue bg-blue-50 px-2 py-1 rounded-full">Verificado</span>
+                <span className="text-xs font-semibold text-ms-blue bg-ms-blue/10 px-2.5 py-1 rounded-full">Verificado</span>
               ) : (
                 <button onClick={() => setVerifyMode(v => !v)} className="text-xs font-semibold text-ms-blue hover:underline">{verifyMode ? 'Cancelar' : 'Verificar'}</button>
               )}
@@ -439,15 +439,15 @@ function PerfilContent() {
                 {!verifyRequested ? (
                   <>
                     <p className="text-xs text-ms-gray">Insere o teu email corporativo. Vamos enviar um código de confirmação.</p>
-                    <input type="email" value={verifyEmail} onChange={e => setVerifyEmail(e.target.value)} placeholder="email@empresa.ao" className="w-full bg-ms-surface rounded-xl px-4 py-2.5 text-sm text-ms-dark placeholder:text-ms-gray outline-none focus:ring-2 focus:ring-ms-blue/20" />
-                    <input type="text" value={verifyCompany} onChange={e => setVerifyCompany(e.target.value)} placeholder="Nome da empresa" className="w-full bg-ms-surface rounded-xl px-4 py-2.5 text-sm text-ms-dark placeholder:text-ms-gray outline-none focus:ring-2 focus:ring-ms-blue/20" />
-                    <button onClick={requestVerification} disabled={verifyLoading || !verifyEmail.includes('@')} className="w-full py-2.5 bg-ms-blue text-white rounded-xl text-sm font-bold disabled:opacity-50">{verifyLoading ? 'A enviar...' : 'Enviar código'}</button>
+                    <input type="email" value={verifyEmail} onChange={e => setVerifyEmail(e.target.value)} placeholder="email@empresa.ao" className="input-field" />
+                    <input type="text" value={verifyCompany} onChange={e => setVerifyCompany(e.target.value)} placeholder="Nome da empresa" className="input-field" />
+                    <button onClick={requestVerification} disabled={verifyLoading || !verifyEmail.includes('@')} className="w-full py-3 btn-primary disabled:opacity-50 text-sm !font-bold">{verifyLoading ? 'A enviar...' : 'Enviar código'}</button>
                   </>
                 ) : (
                   <>
                     <p className="text-xs text-ms-gray">Insere o código de 6 dígitos recebido no email.</p>
-                    <input type="text" value={verifyCode} onChange={e => setVerifyCode(e.target.value)} maxLength={6} placeholder="000000" className="w-full bg-ms-surface rounded-xl px-4 py-2.5 text-sm text-ms-dark placeholder:text-ms-gray outline-none focus:ring-2 focus:ring-ms-blue/20 tracking-[0.5em] text-center" />
-                    <button onClick={confirmVerification} disabled={verifyLoading || verifyCode.length !== 6} className="w-full py-2.5 bg-ms-purple text-white rounded-xl text-sm font-bold disabled:opacity-50">{verifyLoading ? 'A verificar...' : 'Confirmar'}</button>
+                    <input type="text" value={verifyCode} onChange={e => setVerifyCode(e.target.value)} maxLength={6} placeholder="000000" className="input-field tracking-[0.5em] text-center" />
+                    <button onClick={confirmVerification} disabled={verifyLoading || verifyCode.length !== 6} className="w-full py-3 btn-primary !bg-ms-purple disabled:opacity-50 text-sm !font-bold">{verifyLoading ? 'A verificar...' : 'Confirmar'}</button>
                   </>
                 )}
               </div>
@@ -462,7 +462,7 @@ function PerfilContent() {
           {loadingPosts ? (
             <div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-ms-blue border-t-transparent rounded-full animate-spin" /></div>
           ) : posts.length === 0 ? (
-            <div className="bg-white rounded-2xl p-8 border border-ms-border text-center">
+            <div className="card p-8 shadow-ios-sm text-center">
               <Briefcase size={40} className="text-ms-gray mx-auto mb-3" />
               <p className="text-sm text-ms-gray">Ainda não há publicações.</p>
             </div>

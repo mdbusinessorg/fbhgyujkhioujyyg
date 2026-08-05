@@ -153,7 +153,7 @@ export default function StoryBar({ currentUser, people }: { currentUser?: StoryU
 
       {composerOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => !posting && resetComposer()}>
-          <div className="bg-white rounded-2xl w-full max-w-sm p-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="bg-white/95 backdrop-blur-xl rounded-[32px] w-full max-w-sm p-4 shadow-ios-lg" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-bold text-ms-dark">Novo estado</h3>
               <button onClick={() => !posting && resetComposer()} className="text-ms-gray hover:text-ms-dark"><X size={18} /></button>

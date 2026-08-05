@@ -70,24 +70,24 @@ export default function InstallPWA() {
     <>
       {/* Install Banner */}
       <div className="fixed bottom-20 left-4 right-4 md:left-auto md:right-4 md:bottom-4 md:w-80 z-50 animate-slide-up">
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-2.5 flex items-center gap-2.5 max-w-xs mx-auto">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#1A56FF] to-[#6C47FF] p-1.5 flex-shrink-0 flex items-center justify-center">
+        <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-ios border border-white/50 p-2 flex items-center gap-2 max-w-[16rem] mx-auto">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-ms-blue to-ms-purple p-1 flex-shrink-0 flex items-center justify-center">
             <img src={config.logo_icon_url || '/logo-icon.png'} alt="" className="w-full h-full object-contain" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-gray-900 text-xs">Instalar MÔ SALO</p>
-            <p className="text-[10px] text-gray-500">Acesso rápido no ecrã inicial</p>
+            <p className="font-semibold text-ms-dark text-[11px]">Instalar MÔ SALO</p>
+            <p className="text-[9px] text-ms-gray/70">Acesso rápido no ecrã inicial</p>
           </div>
           <div className="flex flex-col gap-1">
             <button
               onClick={handleInstall}
-              className="px-2 py-0.5 bg-[#1A56FF] text-white text-[11px] font-medium rounded-lg hover:bg-[#1445DD] transition-colors"
+              className="px-2.5 py-1 bg-ms-blue text-white text-[10px] font-medium rounded-full hover:brightness-105 transition-all"
             >
               Instalar
             </button>
             <button
               onClick={handleDismiss}
-              className="px-2 py-0.5 text-gray-400 text-[10px] hover:text-gray-600 transition-colors"
+              className="px-2 py-0.5 text-ms-gray/50 text-[10px] hover:text-ms-gray transition-colors"
             >
               Agora não
             </button>
@@ -98,16 +98,16 @@ export default function InstallPWA() {
       {/* iOS Guide Modal */}
       {showIOSGuide && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/50" onClick={handleDismiss}>
-          <div className="bg-white rounded-t-3xl w-full max-w-md p-6 pb-10 animate-slide-up" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white/95 backdrop-blur-xl rounded-t-[36px] w-full max-w-md p-6 pb-10 animate-slide-up" onClick={(e) => e.stopPropagation()}>
             <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Instalar MÔ SALO no iPhone</h3>
+            <h3 className="text-lg font-bold text-ms-dark mb-4">Instalar MÔ SALO no iPhone</h3>
             <div className="space-y-4">
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-full bg-[#EEF0FF] flex items-center justify-center flex-shrink-0">
                   <span className="text-[#1A56FF] font-bold text-sm">1</span>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-700">Toca no ícone <span className="inline-block">
+                  <p className="text-sm text-ms-dark/80">Toca no ícone <span className="inline-block">
                     <svg className="w-5 h-5 inline text-[#1A56FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                     </svg>
@@ -118,18 +118,18 @@ export default function InstallPWA() {
                 <div className="w-8 h-8 rounded-full bg-[#EEF0FF] flex items-center justify-center flex-shrink-0">
                   <span className="text-[#1A56FF] font-bold text-sm">2</span>
                 </div>
-                <p className="text-sm text-gray-700">Desliza para baixo e toca em <strong>&quot;Adicionar ao Ecrã Inicial&quot;</strong></p>
+                <p className="text-sm text-ms-dark/80">Desliza para baixo e toca em <strong>&quot;Adicionar ao Ecrã Inicial&quot;</strong></p>
               </div>
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-full bg-[#EEF0FF] flex items-center justify-center flex-shrink-0">
                   <span className="text-[#1A56FF] font-bold text-sm">3</span>
                 </div>
-                <p className="text-sm text-gray-700">Toca em <strong>&quot;Adicionar&quot;</strong> — e pronto!</p>
+                <p className="text-sm text-ms-dark/80">Toca em <strong>&quot;Adicionar&quot;</strong> — e pronto!</p>
               </div>
             </div>
             <button
               onClick={handleDismiss}
-              className="mt-6 w-full py-3 bg-[#1A56FF] text-white font-medium rounded-xl hover:bg-[#1445DD] transition-colors"
+              className="mt-6 w-full py-3 btn-primary"
             >
               Entendi
             </button>

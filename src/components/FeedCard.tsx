@@ -153,7 +153,7 @@ export default function FeedCard({ post, currentUser, onDelete, onUpdate }: Feed
   const vaga = post.vaga
 
   return (
-    <article className="bg-white rounded-2xl border border-ms-border shadow-sm overflow-hidden">
+    <article className="card shadow-ios-sm overflow-hidden">
       <div className="p-4">
         <div className="flex items-start justify-between gap-3">
           <Link href={`/pessoas/perfil/?id=${post.user_id}`} className="flex items-center gap-3 min-w-0">
@@ -162,10 +162,10 @@ export default function FeedCard({ post, currentUser, onDelete, onUpdate }: Feed
           </Link>
           {currentUser?.id === post.user_id && onDelete && (
             <div className="relative">
-              <button onClick={() => setMenuOpen(v => !v)} className="text-ms-gray hover:text-ms-dark p-1"><MoreHorizontal size={18} /></button>
+              <button onClick={() => setMenuOpen(v => !v)} className="text-ms-gray hover:text-ms-dark w-8 h-8 rounded-full bg-ms-surface flex items-center justify-center transition-colors"><MoreHorizontal size={18} /></button>
               {menuOpen && (
-                <div className="absolute right-0 top-7 bg-white rounded-xl border border-ms-border shadow-lg p-1.5 z-10 min-w-[160px]">
-                  <button onClick={() => { setMenuOpen(false); if (confirm('Apagar publicação?')) onDelete(post.id) }} className="w-full text-left text-xs font-medium text-red-500 hover:bg-red-50 px-3 py-2 rounded-lg flex items-center gap-2">
+                <div className="absolute right-0 top-9 bg-white/95 backdrop-blur-xl rounded-2xl border border-white/50 shadow-ios p-1.5 z-10 min-w-[160px]">
+                  <button onClick={() => { setMenuOpen(false); if (confirm('Apagar publicação?')) onDelete(post.id) }} className="w-full text-left text-xs font-medium text-red-500 hover:bg-red-50 px-3 py-2.5 rounded-xl flex items-center gap-2">
                     <Trash2 size={14} /> Apagar publicação
                   </button>
                 </div>
@@ -179,18 +179,18 @@ export default function FeedCard({ post, currentUser, onDelete, onUpdate }: Feed
         )}
 
         {post.is_featured_job && (
-          <span className="inline-block mt-2 text-[10px] px-2 py-0.5 bg-gradient-to-r from-ms-blue/10 to-ms-purple/10 text-ms-blue rounded-full font-semibold">Vaga em destaque</span>
+          <span className="inline-block mt-2 text-[10px] px-3 py-1 bg-ms-blue/10 text-ms-blue rounded-full font-semibold">Vaga em destaque</span>
         )}
       </div>
 
       {post.media_url && (
         <div className="px-4 pb-4">
-          <img src={post.media_url} alt="" className="w-full max-h-[420px] object-cover rounded-xl select-none" draggable={false} />
+          <img src={post.media_url} alt="" className="w-full max-h-[420px] object-cover rounded-2xl select-none" draggable={false} />
         </div>
       )}
 
       {vaga && (
-        <div className="mx-4 mb-4 p-3 rounded-xl bg-ms-surface border border-ms-border">
+        <div className="mx-4 mb-4 p-3 rounded-2xl bg-ms-surface/70 border border-white/60 shadow-ios-sm">
           <div className="flex items-start justify-between gap-2">
             <div>
               <h4 className="text-sm font-bold text-ms-dark">{vaga.titulo || vaga.title || 'Vaga'}</h4>
@@ -200,12 +200,12 @@ export default function FeedCard({ post, currentUser, onDelete, onUpdate }: Feed
                 {vaga.area ? <span>{vaga.area}</span> : null}
               </p>
             </div>
-            <Link href={`/vagas/detalhe/?id=${vaga.id}`} className="flex-shrink-0 text-xs font-semibold px-3 py-1.5 bg-ms-blue text-white rounded-lg hover:bg-blue-700 transition-colors">Ver vaga</Link>
+            <Link href={`/vagas/detalhe/?id=${vaga.id}`} className="flex-shrink-0 text-xs font-semibold px-4 py-2 bg-ms-blue text-white rounded-full hover:brightness-105 transition-all">Ver vaga</Link>
           </div>
         </div>
       )}
 
-      <div className="px-4 py-3 border-t border-ms-border flex items-center justify-between text-ms-gray">
+      <div className="px-4 py-3 border-t border-ms-border/50 flex items-center justify-between text-ms-gray">
         <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
           {REACTIONS.map(r => (
             <ReactionButton
@@ -229,7 +229,7 @@ export default function FeedCard({ post, currentUser, onDelete, onUpdate }: Feed
       </div>
 
       {commentsOpen && (
-        <div className="px-4 pb-4 border-t border-ms-border">
+        <div className="px-4 pb-4 border-t border-ms-border/50">
           <div className="flex items-center justify-between py-2">
             <h4 className="text-xs font-bold text-ms-dark">Comentários</h4>
             <button onClick={() => setCommentsOpen(false)} className="text-ms-gray hover:text-ms-dark"><X size={16} /></button>
@@ -248,8 +248,8 @@ export default function FeedCard({ post, currentUser, onDelete, onUpdate }: Feed
           </div>
           {currentUser ? (
             <div className="flex items-center gap-2">
-              <input value={commentText} onChange={e => setCommentText(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleComment()} placeholder="Escreve um comentário..." className="flex-1 bg-ms-surface rounded-full px-4 py-2 text-xs text-ms-dark placeholder:text-ms-gray outline-none focus:ring-2 focus:ring-ms-blue/20" />
-              <button onClick={handleComment} disabled={postingComment || !commentText.trim()} className="p-2 bg-ms-blue text-white rounded-full disabled:opacity-50"><Send size={14} /></button>
+              <input value={commentText} onChange={e => setCommentText(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleComment()} placeholder="Escreve um comentário..." className="flex-1 bg-ms-surface rounded-[20px] px-4 py-2.5 text-xs text-ms-dark placeholder:text-ms-gray/70 outline-none focus:ring-2 focus:ring-ms-blue/20" />
+              <button onClick={handleComment} disabled={postingComment || !commentText.trim()} className="p-2 bg-ms-blue text-white rounded-full disabled:opacity-50 hover:brightness-105 active:scale-95 transition-all"><Send size={14} /></button>
             </div>
           ) : (
             <button onClick={() => router.push('/auth/login/')} className="text-xs text-ms-blue font-medium">Inicia sessão para comentar</button>

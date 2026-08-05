@@ -261,7 +261,7 @@ function PessoasPageContent() {
   const renderPendingRequests = () => {
     if (!currentUser || pendingReceived.length === 0) return null
     return (
-      <div className="bg-white rounded-2xl p-4 border border-ms-border shadow-sm mb-4">
+      <div className="card p-4 shadow-ios-sm mb-4">
         <h3 className="text-sm font-bold text-ms-dark mb-3 flex items-center gap-2"><Bell size={16} className="text-ms-blue" /> Pedidos de conexão pendentes</h3>
         <div className="space-y-2">
           {pendingReceived.map(req => (
@@ -310,7 +310,7 @@ function PessoasPageContent() {
 
   const renderDiscover = () => (
     <div className="space-y-4">
-      <div className="bg-white rounded-2xl p-4 border border-ms-border shadow-sm">
+      <div className="card p-4 shadow-ios-sm">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-ms-gray" size={16} />
           <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Procurar por nome, área, localização..." className="w-full bg-ms-surface rounded-xl pl-9 pr-4 py-2.5 text-sm text-ms-dark placeholder:text-ms-gray outline-none focus:ring-2 focus:ring-ms-blue/20" />
@@ -333,7 +333,7 @@ function PessoasPageContent() {
       {loadingPeople ? (
         <div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-ms-blue border-t-transparent rounded-full animate-spin" /></div>
       ) : filteredPeople.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-2xl border border-ms-border">
+        <div className="text-center py-12 card shadow-ios-sm">
           <Users size={40} className="text-ms-gray mx-auto mb-3" />
           <p className="text-sm text-ms-gray">Nenhum profissional encontrado.</p>
         </div>
@@ -343,7 +343,7 @@ function PessoasPageContent() {
             const state = connectionState(person.id)
             const following = isFollowing(person.id)
             return (
-              <div key={person.id} className="bg-white rounded-2xl p-4 border border-ms-border shadow-sm hover:shadow-md transition-shadow">
+              <div key={person.id} className="card p-4 shadow-ios-sm hover:shadow-ios transition-all">
                 <div className="flex items-start gap-3">
                   <Link href={`/pessoas/perfil/?id=${person.id}`}><ProfileAvatar url={person.avatar_url} name={person.nome} size={52} /></Link>
                   <div className="flex-1 min-w-0">
@@ -434,7 +434,7 @@ function PessoasPageContent() {
           {loadingFeed ? (
             <div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-ms-blue border-t-transparent rounded-full animate-spin" /></div>
           ) : communityFeed.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-2xl border border-ms-border">
+            <div className="text-center py-12 card shadow-ios-sm">
               <Hash size={40} className="text-ms-gray mx-auto mb-3" />
               <p className="text-sm text-ms-gray">Ainda não há publicações nesta comunidade.</p>
             </div>
@@ -447,14 +447,14 @@ function PessoasPageContent() {
 
     return (
       <div className="space-y-4">
-        <div className="bg-white rounded-2xl p-4 border border-ms-border shadow-sm">
+        <div className="card p-4 shadow-ios-sm">
           <h3 className="text-sm font-bold text-ms-dark flex items-center gap-2"><Hash size={16} className="text-ms-blue" /> Comunidades profissionais</h3>
           <p className="text-xs text-ms-gray mt-1">Junta-te a grupos por área e partilha conhecimento, oportunidades e apoio.</p>
         </div>
         {loadingPeople ? (
           <div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-ms-blue border-t-transparent rounded-full animate-spin" /></div>
         ) : communities.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-2xl border border-ms-border">
+          <div className="text-center py-12 card shadow-ios-sm">
             <Hash size={40} className="text-ms-gray mx-auto mb-3" />
             <p className="text-sm text-ms-gray">Ainda não há comunidades. Cria publicações com área para formar novas.</p>
           </div>
@@ -463,7 +463,7 @@ function PessoasPageContent() {
             {communities.map(c => {
               const member = isMember(c.area)
               return (
-                <div key={c.area} className="text-left bg-white rounded-2xl p-4 border border-ms-border shadow-sm hover:border-ms-blue/40 hover:shadow-md transition-all">
+                <div key={c.area} className="text-left card p-4 shadow-ios-sm hover:border-ms-blue/30 hover:shadow-ios transition-all">
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-bold text-ms-dark">{c.area}</h4>
                     <span className="bg-ms-surface text-ms-blue text-[10px] font-bold px-2 py-0.5 rounded-full">{c.members} {c.members === 1 ? 'membro' : 'membros'}</span>
@@ -500,7 +500,7 @@ function PessoasPageContent() {
       {loadingFeed ? (
         <div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-ms-blue border-t-transparent rounded-full animate-spin" /></div>
       ) : feed.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-2xl border border-ms-border">
+        <div className="text-center py-12 card shadow-ios-sm">
           <Sparkles size={40} className="text-ms-gray mx-auto mb-3" />
           <p className="text-sm text-ms-gray">Ainda não há publicações nesta secção.</p>
         </div>
