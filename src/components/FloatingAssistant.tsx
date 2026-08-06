@@ -77,10 +77,10 @@ export default function FloatingAssistant() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed z-50 bottom-24 right-5 lg:bottom-8 lg:right-8 w-14 h-14 rounded-full text-white flex items-center justify-center animate-float hover:scale-110 transition-all overflow-hidden bg-[#B3C3DA] shadow-ios"
+          className="fixed z-50 bottom-24 right-5 sm:right-6 lg:bottom-8 lg:right-8 w-12 h-12 sm:w-14 sm:h-14 rounded-full text-white flex items-center justify-center animate-float hover:scale-110 transition-all overflow-hidden bg-[#B3C3DA] ring-2 ring-white/80 shadow-ios-lg"
           aria-label="Abrir assistente MÔ SALO"
         >
-          <img src="/mosalito.png?v=2" alt="Mosalito" className="w-full h-full object-cover" />
+          <img src="/mosalito.png?v=3" alt="Mosalito" className="w-full h-full object-contain p-1" />
         </button>
       )}
 
@@ -88,8 +88,8 @@ export default function FloatingAssistant() {
         <div className="fixed z-50 bottom-24 right-4 lg:bottom-24 lg:right-8 w-[calc(100%-2rem)] max-w-sm bg-white/95 backdrop-blur-2xl rounded-[32px] shadow-ios-lg border border-white/50 overflow-hidden flex flex-col max-h-[70vh]">
           <div className="bg-white/80 backdrop-blur-xl p-3 flex items-center justify-between border-b border-ms-border/50">
             <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-full overflow-hidden bg-[#B3C3DA]">
-                <img src="/mosalito.png?v=2" alt="Mosalito" className="w-full h-full object-cover" />
+              <div className="w-9 h-9 rounded-full overflow-hidden bg-[#B3C3DA] ring-2 ring-white/80">
+                <img src="/mosalito.png?v=3" alt="Mosalito" className="w-full h-full object-contain p-0.5" />
               </div>
               <div>
                 <p className="text-sm font-bold text-ms-dark">Mosalito</p>
@@ -104,13 +104,11 @@ export default function FloatingAssistant() {
           <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-ms-surface/60 min-h-[260px]">
             {messages.map((m, i) => (
               <div key={i} className={`flex gap-2 ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden shadow-ios-sm ${m.role === 'user' ? 'bg-ms-blue text-white' : 'bg-white'}`}>
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden shadow-ios-sm ring-1 ring-white/80 ${m.role === 'user' ? 'bg-ms-blue text-white' : 'bg-[#B3C3DA]'}`}>
                   {m.role === 'user' ? (
                     currentUser ? <ProfileAvatar url={currentUser.avatar_url} name={currentUser.nome} size={28} className="rounded-full" /> : <User size={14} />
                   ) : (
-                    <div className="w-full h-full rounded-full overflow-hidden bg-[#B3C3DA]">
-                      <img src="/mosalito.png?v=2" alt="Mosalito" className="w-full h-full object-cover" />
-                    </div>
+                    <img src="/mosalito.png?v=3" alt="Mosalito" className="w-full h-full object-contain p-0.5" />
                   )}
                 </div>
                 <div className={`text-xs leading-relaxed p-3 rounded-3xl whitespace-pre-wrap shadow-ios-sm ${m.role === 'user' ? 'bg-ms-blue text-white rounded-br-2xl' : 'bg-white text-ms-dark rounded-bl-2xl'}`}>
@@ -120,8 +118,8 @@ export default function FloatingAssistant() {
             ))}
             {loading && (
               <div className="flex gap-2">
-                <div className="w-7 h-7 rounded-full overflow-hidden bg-[#B3C3DA]">
-                  <img src="/mosalito.png?v=2" alt="Mosalito" className="w-full h-full object-cover" />
+                <div className="w-7 h-7 rounded-full overflow-hidden bg-[#B3C3DA] ring-1 ring-white/80">
+                  <img src="/mosalito.png?v=3" alt="Mosalito" className="w-full h-full object-contain p-0.5" />
                 </div>
                 <div className="text-xs p-3 bg-white rounded-3xl rounded-bl-2xl animate-pulse shadow-ios-sm">A pensar...</div>
               </div>
