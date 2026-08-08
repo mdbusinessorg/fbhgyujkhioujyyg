@@ -24,7 +24,7 @@ export default function Logo({
       <img
         src={config.logo_url || '/logo.png'}
         alt={config.site_title || 'MÔ SALO'}
-        className={`max-w-full max-h-8 h-8 w-auto object-contain ${className}`}
+        className={`max-w-full max-h-48 h-auto w-auto object-contain ${className}`}
       />
     )
   }
@@ -44,9 +44,9 @@ export default function Logo({
       <img
         src={config.logo_icon_url || '/logo-icon.png'}
         alt=""
-        className={`h-8 w-auto max-h-8 max-w-8 object-contain ${iconClassName}`}
+        className={`h-10 w-auto max-h-10 max-w-10 object-contain ${iconClassName}`}
       />
-      {showText && <span className={`font-bold text-lg whitespace-nowrap ${textClassName}`}>{config.site_title || 'MÔ SALO'}</span>}
+      {showText && <span className={`font-bold text-xl whitespace-nowrap ${textClassName}`}>{config.site_title || 'MÔ SALO'}</span>}
     </div>
   )
 }
