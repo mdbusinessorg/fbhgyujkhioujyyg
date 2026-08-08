@@ -83,7 +83,7 @@ export default function PremiumCheckout() {
           </div>
           <h1 className="text-xl font-bold text-gray-900 mb-2">Pedido Enviado!</h1>
           <p className="text-sm text-gray-600 mb-6">O teu comprovativo foi recebido. O acesso Premium será activado em até 24h após aprovação pelo admin.</p>
-          <Link href="/" className="inline-block bg-[#1A56FF] text-white px-6 py-3 rounded-xl font-medium text-sm">Voltar ao Início</Link>
+          <Link href="/" className="inline-block bg-[#BC181C] text-white px-6 py-3 rounded-xl font-medium text-sm">Voltar ao Início</Link>
         </div>
       </div>
     )
@@ -98,7 +98,7 @@ export default function PremiumCheckout() {
           </div>
           <h1 className="text-xl font-bold text-gray-900 mb-2">Pedido em Análise</h1>
           <p className="text-sm text-gray-600 mb-6">Já tens um pedido de pagamento pendente. Aguarda a aprovação do admin (até 24h).</p>
-          <Link href="/" className="inline-block bg-[#1A56FF] text-white px-6 py-3 rounded-xl font-medium text-sm">Voltar ao Início</Link>
+          <Link href="/" className="inline-block bg-[#BC181C] text-white px-6 py-3 rounded-xl font-medium text-sm">Voltar ao Início</Link>
         </div>
       </div>
     )
@@ -115,7 +115,7 @@ export default function PremiumCheckout() {
 
       <div className="max-w-lg mx-auto p-4 space-y-4">
         {/* Price Card */}
-        <div className="bg-gradient-to-br from-[#1A56FF] to-[#6C47FF] rounded-2xl p-6 text-white text-center">
+        <div className="bg-gradient-to-br from-[#BC181C] to-[#ECA61B] rounded-2xl p-6 text-white text-center">
           <Shield size={32} className="mx-auto mb-3 opacity-80" />
           <h2 className="text-lg font-bold mb-1">Acesso Premium</h2>
           <p className="text-3xl font-black">500 Kz</p>
@@ -131,19 +131,19 @@ export default function PremiumCheckout() {
         {/* Instructions */}
         <div className="bg-white rounded-2xl p-5 space-y-4">
           <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-            <Smartphone size={18} className="text-[#1A56FF]" /> Como pagar
+            <Smartphone size={18} className="text-[#BC181C]" /> Como pagar
           </h3>
 
           <div className="space-y-3">
             <div className="flex items-start gap-3">
-              <div className="w-7 h-7 bg-[#EEF0FF] rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-[#1A56FF] font-bold text-xs">1</span>
+              <div className="w-7 h-7 bg-[#FFF0F0] rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-[#BC181C] font-bold text-xs">1</span>
               </div>
               <p className="text-sm text-gray-700">Abre o app <strong>Multicaixa Express</strong></p>
             </div>
             <div className="flex items-start gap-3">
-              <div className="w-7 h-7 bg-[#EEF0FF] rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-[#1A56FF] font-bold text-xs">2</span>
+              <div className="w-7 h-7 bg-[#FFF0F0] rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-[#BC181C] font-bold text-xs">2</span>
               </div>
               <div>
                 <p className="text-sm text-gray-700">Transfere <strong>500 Kz</strong> para:</p>
@@ -155,14 +155,14 @@ export default function PremiumCheckout() {
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <div className="w-7 h-7 bg-[#EEF0FF] rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-[#1A56FF] font-bold text-xs">3</span>
+              <div className="w-7 h-7 bg-[#FFF0F0] rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-[#BC181C] font-bold text-xs">3</span>
               </div>
               <p className="text-sm text-gray-700">Tira <strong>print/foto do comprovativo</strong></p>
             </div>
             <div className="flex items-start gap-3">
-              <div className="w-7 h-7 bg-[#EEF0FF] rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-[#1A56FF] font-bold text-xs">4</span>
+              <div className="w-7 h-7 bg-[#FFF0F0] rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-[#BC181C] font-bold text-xs">4</span>
               </div>
               <p className="text-sm text-gray-700">Envia abaixo</p>
             </div>
@@ -172,7 +172,7 @@ export default function PremiumCheckout() {
         {/* Upload */}
         <div className="bg-white rounded-2xl p-5 space-y-4">
           <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-            <Upload size={18} className="text-[#1A56FF]" /> Enviar Comprovativo
+            <Upload size={18} className="text-[#BC181C]" /> Enviar Comprovativo
           </h3>
 
           <div>
@@ -182,13 +182,13 @@ export default function PremiumCheckout() {
               value={reference}
               onChange={(e) => setReference(e.target.value)}
               placeholder="Ex: 123456789"
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#1A56FF]/20 focus:border-[#1A56FF] outline-none"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#BC181C]/20 focus:border-[#BC181C] outline-none"
             />
           </div>
 
           <div>
             <label className="block text-xs text-gray-500 mb-1">Comprovativo (imagem ou PDF)</label>
-            <label className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl p-6 cursor-pointer hover:border-[#1A56FF]/40 transition-colors">
+            <label className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl p-6 cursor-pointer hover:border-[#BC181C]/40 transition-colors">
               <input type="file" accept="image/*,.pdf" onChange={handleUploadProof} className="hidden" />
               {uploading ? (
                 <span className="text-sm text-gray-500">A enviar...</span>
@@ -203,7 +203,7 @@ export default function PremiumCheckout() {
           <button
             onClick={handleSubmit}
             disabled={!proofUrl || uploading}
-            className="w-full bg-[#1A56FF] text-white py-3.5 rounded-xl font-medium text-sm disabled:opacity-50 hover:bg-[#1445DD] transition-colors"
+            className="w-full bg-[#BC181C] text-white py-3.5 rounded-xl font-medium text-sm disabled:opacity-50 hover:bg-[#1445DD] transition-colors"
           >
             Submeter Pagamento
           </button>

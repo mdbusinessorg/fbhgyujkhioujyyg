@@ -32,7 +32,7 @@ export default function SplashScreen() {
   return (
     <div
       className={`fixed inset-0 z-[200] flex flex-col items-center justify-center px-6 transition-opacity duration-500 ${fadeOut ? 'opacity-0' : 'opacity-100'}`}
-      style={{ background: `linear-gradient(135deg, ${config.primary_color || '#1A56FF'} 0%, ${config.secondary_color || '#6C47FF'} 100%)` }}
+      style={{ background: `linear-gradient(135deg, ${config.primary_color || '#BC181C'} 0%, ${config.secondary_color || '#ECA61B'} 100%)` }}
     >
       <div className="animate-scale-in flex flex-col items-center w-full max-w-xs">
         <div className="relative w-20 h-20 sm:w-24 sm:h-24 bg-white rounded-3xl p-4 shadow-2xl mb-5 flex items-center justify-center overflow-hidden max-w-[80vw] max-h-[35vh]">

@@ -33,8 +33,8 @@ const defaultConfig: SiteConfig = {
   maintenance_mode: false,
   site_title: 'MÔ SALO',
   site_description: 'Plataforma de recrutamento inteligente angolana.',
-  primary_color: '#1A56FF',
-  secondary_color: '#6C47FF',
+  primary_color: '#BC181C',
+  secondary_color: '#ECA61B',
 }
 
 interface SiteConfigContextType {

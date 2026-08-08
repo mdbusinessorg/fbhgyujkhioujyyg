@@ -14,7 +14,7 @@ interface StatChartCardProps {
 
 const defaultPalette = [
   '#3B82F6',
-  '#6C47FF',
+  '#ECA61B',
   '#EC4899',
   '#F59E0B',
   '#10B981',

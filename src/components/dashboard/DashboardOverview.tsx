@@ -63,7 +63,7 @@ export function DashboardOverview({ role, data, onTabChange }: DashboardOverview
   }, [])
 
   const content = useMemo(() => {
-    const chartColors = ['#3B82F6', '#6C47FF', '#EC4899', '#F59E0B', '#10B981', '#8B5CF6', '#14B8A6', '#F97316']
+    const chartColors = ['#3B82F6', '#ECA61B', '#EC4899', '#F59E0B', '#10B981', '#8B5CF6', '#14B8A6', '#F97316']
 
     if (role === 'admin') {
       const d = data as AdminData

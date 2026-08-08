@@ -30,7 +30,7 @@ interface Message {
 
 export default function MensagensPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center"><div className="w-8 h-8 border-2 border-[#1A56FF] border-t-transparent rounded-full animate-spin" /></div>}>
+    <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center"><div className="w-8 h-8 border-2 border-[#BC181C] border-t-transparent rounded-full animate-spin" /></div>}>
       <MensagensContent />
     </Suspense>
   )
@@ -277,7 +277,7 @@ function MensagensContent() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#1A56FF] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-[#BC181C] border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -306,13 +306,13 @@ function MensagensContent() {
           <div className="flex gap-2 bg-white border border-gray-200 rounded-2xl p-1.5 shadow-sm">
             <button
               onClick={() => setActiveView('conversas')}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${activeView === 'conversas' ? 'bg-[#1A56FF] text-white shadow-md' : 'text-gray-700 hover:bg-gray-100'}`}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${activeView === 'conversas' ? 'bg-[#BC181C] text-white shadow-md' : 'text-gray-700 hover:bg-gray-100'}`}
             >
               <MessageSquare size={16} /> Conversas
             </button>
             <button
               onClick={() => setActiveView('pedidos')}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${activeView === 'pedidos' ? 'bg-[#1A56FF] text-white shadow-md' : 'text-gray-700 hover:bg-gray-100'}`}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${activeView === 'pedidos' ? 'bg-[#BC181C] text-white shadow-md' : 'text-gray-700 hover:bg-gray-100'}`}
             >
               <UserPlus size={16} /> Pedidos {requests.length > 0 && <span className="ml-1 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{requests.length}</span>}
             </button>
@@ -326,7 +326,7 @@ function MensagensContent() {
                 <MessageSquare size={40} className="text-gray-200 mx-auto mb-3" />
                 <p className="text-sm text-gray-500">Sem conversas</p>
                 <p className="text-xs text-gray-400 mt-1">Vai a Pessoas para iniciar uma conversa</p>
-                <Link href="/pessoas/" className="inline-block mt-3 text-xs text-[#1A56FF] font-medium">Encontrar Pessoas</Link>
+                <Link href="/pessoas/" className="inline-block mt-3 text-xs text-[#BC181C] font-medium">Encontrar Pessoas</Link>
               </div>
             ) : (
               filteredConvs.map(conv => (
@@ -402,7 +402,7 @@ function MensagensContent() {
               const isImage = isImageMessage(msg.content)
               return (
                 <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 overflow-hidden ${isMe ? 'bg-[#1A56FF] text-white rounded-br-sm' : 'bg-white text-gray-900 border border-gray-100 rounded-bl-sm'}`}>
+                  <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 overflow-hidden ${isMe ? 'bg-[#BC181C] text-white rounded-br-sm' : 'bg-white text-gray-900 border border-gray-100 rounded-bl-sm'}`}>
                     {isImage ? (
                       <img src={extractImageUrl(msg.content)} alt="Imagem" className="max-w-full rounded-xl cursor-pointer" onClick={() => window.open(extractImageUrl(msg.content), '_blank')} />
                     ) : (
@@ -421,9 +421,9 @@ function MensagensContent() {
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadingImage}
-                className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-[#1A56FF] transition-colors flex-shrink-0"
+                className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-[#BC181C] transition-colors flex-shrink-0"
               >
-                {uploadingImage ? <div className="w-4 h-4 border-2 border-[#1A56FF] border-t-transparent rounded-full animate-spin" /> : <ImagePlus size={18} />}
+                {uploadingImage ? <div className="w-4 h-4 border-2 border-[#BC181C] border-t-transparent rounded-full animate-spin" /> : <ImagePlus size={18} />}
               </button>
               <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
               <input
@@ -432,12 +432,12 @@ function MensagensContent() {
                 onChange={(e) => setNewMessage(e.target.value)}
                 onKeyDown={handleKeyPress}
                 placeholder="Escreve uma mensagem..."
-                className="flex-1 bg-gray-50 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#1A56FF]/20"
+                className="flex-1 bg-gray-50 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#BC181C]/20"
               />
               <button
                 onClick={() => sendMessage()}
                 disabled={!newMessage.trim()}
-                className="w-10 h-10 bg-[#1A56FF] rounded-xl flex items-center justify-center text-white disabled:opacity-50 hover:bg-[#1445DD] transition-colors flex-shrink-0"
+                className="w-10 h-10 bg-[#BC181C] rounded-xl flex items-center justify-center text-white disabled:opacity-50 hover:bg-[#1445DD] transition-colors flex-shrink-0"
               >
                 <Send size={16} />
               </button>

@@ -185,7 +185,7 @@ function buildDocx(template: string, profile: CvProfile, experiencias: string[],
   const borderNone = { style: docx.BorderStyle.NONE, size: 0, color: 'FFFFFF' }
   const noBorders = { top: borderNone, bottom: borderNone, left: borderNone, right: borderNone, insideHorizontal: borderNone, insideVertical: borderNone }
 
-  const h = (text: string, color = '#1A56FF') => new docx.Paragraph({
+  const h = (text: string, color = '#BC181C') => new docx.Paragraph({
     text,
     heading: docx.HeadingLevel.HEADING_2,
     spacing: { before: 200, after: 80 },
@@ -215,7 +215,7 @@ function buildDocx(template: string, profile: CvProfile, experiencias: string[],
           localizacao && new docx.TextRun({ text: localizacao, size: 18, color: '#4b5563' }),
         ].filter(Boolean) as docx.TextRun[],
         spacing: { after: 200 },
-        border: { bottom: { color: '#1A56FF', space: 1, style: docx.BorderStyle.SINGLE, size: 12 } },
+        border: { bottom: { color: '#BC181C', space: 1, style: docx.BorderStyle.SINGLE, size: 12 } },
       })
     )
     if (profile.bio) { sectionChildren.push(h('Perfil'), p(profile.bio)) }
@@ -269,7 +269,7 @@ function buildDocx(template: string, profile: CvProfile, experiencias: string[],
     // professional
     const leftCell = new docx.TableCell({
       width: { size: 34, type: docx.WidthType.PERCENTAGE },
-      shading: { fill: '#1A56FF', type: docx.ShadingType.CLEAR },
+      shading: { fill: '#BC181C', type: docx.ShadingType.CLEAR },
       children: [
         new docx.Paragraph({ children: [new docx.TextRun({ text: profile.nome, bold: true, size: 28, color: '#ffffff' })], spacing: { after: 60 } }),
         new docx.Paragraph({ children: [new docx.TextRun({ text: profile.area || '', size: 20, color: '#ffffff' })], spacing: { after: 200 } }),

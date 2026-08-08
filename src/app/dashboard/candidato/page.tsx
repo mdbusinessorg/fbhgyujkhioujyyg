@@ -770,7 +770,7 @@ function CandidatoDashboard() {
           <div>
             <h2 className="text-lg font-bold text-ms-dark mb-4">Subscrição</h2>
 
-            <div className="bg-gradient-to-br from-[#6C47FF] to-[#9B7BFF] rounded-2xl p-5 mb-6 text-white relative overflow-hidden">
+            <div className="bg-gradient-to-br from-[#ECA61B] to-[#9B7BFF] rounded-2xl p-5 mb-6 text-white relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-8 translate-x-8" />
               <div className="flex items-center gap-2 mb-3">
                 <CreditCard size={20} />

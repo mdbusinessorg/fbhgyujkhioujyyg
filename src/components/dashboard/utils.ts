@@ -116,7 +116,7 @@ export function countInPeriod<T extends { created_at?: string; data_candidatura?
 }
 
 export function countByStatus<T extends { status?: string }>(items: T[], statuses: string[]): { name: string; value: number; color: string }[] {
-  const colors = ['#6C47FF', '#10B981', '#F59E0B', '#EF4444', '#3B82F6']
+  const colors = ['#ECA61B', '#10B981', '#F59E0B', '#EF4444', '#3B82F6']
   return statuses.map((status, i) => ({
     name: status,
     value: items.filter((item) => (item.status || '').toLowerCase() === status.toLowerCase()).length,
@@ -131,6 +131,6 @@ export function countByField<T extends Record<string, any>>(items: T[], field: k
     map.set(key, (map.get(key) || 0) + 1)
   }
   const sorted = Array.from(map.entries()).sort((a, b) => b[1] - a[1]).slice(0, topN)
-  const colors = ['#6C47FF', '#10B981', '#F59E0B', '#3B82F6', '#EC4899', '#8B5CF6']
+  const colors = ['#ECA61B', '#10B981', '#F59E0B', '#3B82F6', '#EC4899', '#8B5CF6']
   return sorted.map(([name, value], i) => ({ name, value, color: colors[i % colors.length] }))
 }
