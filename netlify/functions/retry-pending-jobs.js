@@ -1,16 +1,10 @@
-// Cron diário: processa vagas inseridas recentemente que ainda não têm log,
-// ou logs com erro, respeitando o limite diário.
+// Cron diário: processa vagas recentes sem candidatura de algum candidato,
+// e re-tenta logs com erro, respeitando o limite diário por candidato.
 const { headers, supabaseRest, processExternalJob } = require('./_auto-apply')
 
-async function fetchPendingJobs() {
-  const rows = await supabaseRest(`/external_jobs?select=*&order=created_at.desc&limit=200`)
-  const logs = await supabaseRest(`/job_applications_log?select=external_job_id,status`)
-  const logMap = new Map((logs || []).map(l => [l.external_job_id, l.status]))
-
-  return (rows || []).filter(job => {
-    const status = logMap.get(job.id)
-    return !status || status === 'erro'
-  })
+async function fetchRecentJobs(limit = 200) {
+  const rows = await supabaseRest(`/external_jobs?select=*&order=created_at.desc&limit=${limit}`)
+  return rows || []
 }
 
 exports.handler = async (event) => {
@@ -20,15 +14,12 @@ exports.handler = async (event) => {
   }
 
   try {
-    const pending = await fetchPendingJobs()
+    const jobs = await fetchRecentJobs()
     const results = []
-    for (const job of pending) {
+    for (const job of jobs) {
       try {
-        const result = await processExternalJob(job)
-        results.push({ id: job.id, ...result })
-        if (result.sent) {
-          // Stop when we hit the daily limit implicitly handled by processExternalJob.
-        }
+        const jobResults = await processExternalJob(job)
+        results.push({ id: job.id, results: jobResults })
       } catch (err) {
         results.push({ id: job.id, error: String(err.message || err) })
       }
