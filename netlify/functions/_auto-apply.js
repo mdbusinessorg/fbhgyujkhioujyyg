@@ -1,4 +1,4 @@
-// Shared logic for the private auto-apply module (Matias only).
+// Shared logic for the private auto-apply module (multiple candidates).
 const { groqChat } = require('./_groq')
 const nodemailer = require('nodemailer')
 
@@ -60,9 +60,10 @@ async function getSettings() {
   }
 }
 
-async function getAdminUserId() {
-  const rows = await supabaseRest(`/users?select=id&email=eq.${encodeURIComponent('matiasdomingos158@gmail.com')}&limit=1`)
-  return rows?.[0]?.id
+// Return every candidate profile configured for auto-apply.
+async function getCandidates() {
+  const rows = await supabaseRest('/candidate_profile?select=*')
+  return rows || []
 }
 
 async function getProfile(userId) {
@@ -75,7 +76,6 @@ async function getActiveCVs(userId) {
 }
 
 async function getCVFileBuffer(arquivoUrl) {
-  // arquivo_url can be a public Supabase Storage URL or a path.
   let url = arquivoUrl
   if (!/^https?:\/\//i.test(url)) {
     url = `${SUPABASE_URL}/storage/v1/object/public/documentos/${arquivoUrl.replace(/^\//, '')}`
@@ -86,15 +86,14 @@ async function getCVFileBuffer(arquivoUrl) {
   return Buffer.from(arrayBuffer)
 }
 
-async function countSentToday() {
+async function countSentToday(userId) {
   const today = todayDate()
-  const rows = await supabaseRest(`/job_applications_log?status=eq.enviado&created_at=gte.${encodeURIComponent(today)}T00:00:00Z&created_at=lt.${encodeURIComponent(today)}T23:59:59.999Z&select=count`)
-  // Supabase returns count in a header; fallback to array length.
+  const rows = await supabaseRest(`/job_applications_log?user_id=eq.${userId}&status=eq.enviado&created_at=gte.${encodeURIComponent(today)}T00:00:00Z&created_at=lt.${encodeURIComponent(today)}T23:59:59.999Z&select=count`)
   return Array.isArray(rows) ? rows.length : 0
 }
 
-async function findLog(jobId) {
-  const rows = await supabaseRest(`/job_applications_log?external_job_id=eq.${encodeURIComponent(jobId)}&limit=1`)
+async function findLog(jobId, userId) {
+  const rows = await supabaseRest(`/job_applications_log?external_job_id=eq.${encodeURIComponent(jobId)}&user_id=eq.${userId}&limit=1`)
   return rows?.[0] || null
 }
 
@@ -106,14 +105,39 @@ async function updateLog(id, payload) {
   return supabaseRest(`/job_applications_log?id=eq.${id}`, { method: 'PATCH', body: payload })
 }
 
+function buildSmtpConfig(profile, defaultEmail) {
+  if (profile.smtp_host && profile.smtp_user) {
+    return {
+      host: profile.smtp_host,
+      port: Number(profile.smtp_port) || 587,
+      secure: profile.smtp_secure === true || profile.smtp_secure === 'true',
+      auth: {
+        user: profile.smtp_user,
+        pass: profile.smtp_pass || '',
+      },
+    }
+  }
+  // Fallback to global env variables.
+  return {
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: Number(process.env.SMTP_PORT) || 587,
+    secure: process.env.SMTP_SECURE === 'true',
+    auth: {
+      user: process.env.SMTP_USER || defaultEmail,
+      pass: process.env.SMTP_PASS || '',
+    },
+  }
+}
+
 async function buildPrompt(job, profile, cvs) {
   const desc = String(job.description || job.excerpt || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').slice(0, 2500)
   const certificacoes = Array.isArray(profile.certificacoes) ? profile.certificacoes.join(', ') : profile.certificacoes
   const skills = Array.isArray(profile.skills) ? profile.skills.join(', ') : profile.skills
   const cvsText = (cvs || []).map(c => `- ${c.titulo} (cargo-alvo: ${c.cargo_alvo}; skills: ${Array.isArray(c.skills_cobertas) ? c.skills_cobertas.join(', ') : c.skills_cobertas || ''})`).join('\n')
+  const fullName = profile.full_name || 'Candidato'
 
-  const system = `És o assistente privado de candidatura automática do Matias para vagas de emprego em Angola.
-Tarefa: analisar a vaga, comparar com o perfil e CVs do Matias, e devolver um objeto JSON com a melhor candidatura possível.
+  const system = `És o assistente privado de candidatura automática de ${fullName} para vagas de emprego em Angola.
+Tarefa: analisar a vaga, comparar com o perfil e CVs do candidato, e devolver um objeto JSON com a melhor candidatura possível.
 Regras absolutas:
 - NUNCA inventes experiência, formação, certificação ou skill que não esteja no perfil/CV fornecidos.
 - Cita APENAS 3-5 skills/certificações que batem genuinamente com a vaga.
@@ -143,8 +167,8 @@ Requisitos: ${job.requisitos || ''}
 Benefícios: ${job.beneficios || ''}
 Descrição: ${desc}
 
-PERFIL DO MATIAS:
-Nome: ${profile.full_name || 'Matias Domingos'}
+PERFIL DO CANDIDATO:
+Nome: ${fullName}
 Bio/percurso: ${profile.bio_longa || ''}
 Formação: ${profile.formacao || ''}
 Certificações: ${certificacoes || ''}
@@ -212,57 +236,47 @@ async function sendApplicationEmail({ to, subject, body, cvUrl, fromEmail, smtpC
   return info
 }
 
-async function processExternalJob(job, { force = false, dryRun = false } = {}) {
-  const settings = await getSettings()
-  if (!settings.ativo && !force) {
-    return { skipped: true, reason: 'módulo desativado' }
-  }
-
-  const userId = await getAdminUserId()
+async function processCandidateJob(job, candidate, settings, { force = false, dryRun = false } = {}) {
+  const userId = candidate.user_id
   if (!userId) {
-    throw new Error('Admin user matiasdomingos158@gmail.com not found')
+    throw new Error('Candidato sem user_id')
   }
 
-  // Duplicate check
-  const existing = await findLog(job.id)
+  const existing = await findLog(job.id, userId)
   if (existing) {
     if (!dryRun) await updateLog(existing.id, { status: 'duplicado' })
-    return { skipped: true, status: 'duplicado', logId: existing.id }
+    return { skipped: true, status: 'duplicado', logId: existing.id, userId }
   }
 
-  // Daily limit
-  const sentToday = await countSentToday()
+  const sentToday = await countSentToday(userId)
   if (sentToday >= settings.limite_diario && !force) {
-    return { skipped: true, reason: 'limite diário atingido', sentToday, limit: settings.limite_diario }
+    return { skipped: true, reason: 'limite diário atingido', sentToday, limit: settings.limite_diario, userId }
   }
 
-  // Extract email
   const emailDestino = extractEmail(`${job.description || ''} ${job.apply_url || ''} ${job.excerpt || ''}`)
   if (!emailDestino) {
     const payload = {
       external_job_id: job.id,
+      user_id: userId,
       status: 'sem_email',
       score_match: 0,
       email_destino: null,
     }
     const inserted = dryRun ? null : await insertLog(payload)
-    return { skipped: true, status: 'sem_email', logId: inserted?.[0]?.id || null }
+    return { skipped: true, status: 'sem_email', logId: inserted?.[0]?.id || null, userId }
   }
 
-  // Load profile and CVs
-  const profile = await getProfile(userId)
   const cvs = await getActiveCVs(userId)
-  if (!profile || cvs.length === 0) {
+  if (!candidate || cvs.length === 0) {
     throw new Error('Perfil ou CVs do candidato não configurados')
   }
 
-  // AI generation
-  const ai = await generateApplication(job, profile, cvs)
+  const ai = await generateApplication(job, candidate, cvs)
 
-  // Threshold
   if (ai.score_match < settings.score_minimo && !force) {
     const payload = {
       external_job_id: job.id,
+      user_id: userId,
       status: 'sem_match',
       score_match: ai.score_match,
       cv_usado_id: ai.cv_recomendado_id,
@@ -270,14 +284,15 @@ async function processExternalJob(job, { force = false, dryRun = false } = {}) {
       skills_destacadas: ai.skills_destacadas,
     }
     const inserted = dryRun ? null : await insertLog(payload)
-    return { skipped: true, status: 'sem_match', score: ai.score_match, logId: inserted?.[0]?.id || null }
+    return { skipped: true, status: 'sem_match', score: ai.score_match, logId: inserted?.[0]?.id || null, userId }
   }
 
-  // Pick CV: use AI recommendation if valid, otherwise first active.
   let cvUsado = cvs.find(c => c.id === ai.cv_recomendado_id)
   if (!cvUsado) cvUsado = cvs[0]
 
-  // Send email with retries
+  const fromEmail = candidate.email_remetente || settings.email_remetente || candidate.smtp_user || process.env.SMTP_USER
+  const smtpConfig = buildSmtpConfig(candidate, fromEmail)
+
   let lastError = null
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
@@ -287,11 +302,13 @@ async function processExternalJob(job, { force = false, dryRun = false } = {}) {
           subject: ai.assunto_email,
           body: ai.corpo_email,
           cvUrl: cvUsado.arquivo_url,
-          fromEmail: settings.email_remetente,
+          fromEmail,
+          smtpConfig,
         })
       }
       const payload = {
         external_job_id: job.id,
+        user_id: userId,
         status: 'enviado',
         cv_usado_id: cvUsado.id,
         email_destino: emailDestino,
@@ -301,16 +318,16 @@ async function processExternalJob(job, { force = false, dryRun = false } = {}) {
         skills_destacadas: ai.skills_destacadas,
       }
       const inserted = dryRun ? null : await insertLog(payload)
-      return { sent: true, status: 'enviado', to: emailDestino, score: ai.score_match, logId: inserted?.[0]?.id || null, attempts: attempt }
+      return { sent: true, status: 'enviado', to: emailDestino, score: ai.score_match, logId: inserted?.[0]?.id || null, userId, attempts: attempt }
     } catch (err) {
       lastError = err
       if (attempt < 3) await new Promise(r => setTimeout(r, attempt * 1500))
     }
   }
 
-  // All retries failed
   const payload = {
     external_job_id: job.id,
+    user_id: userId,
     status: 'erro',
     cv_usado_id: cvUsado.id,
     email_destino: emailDestino,
@@ -322,13 +339,36 @@ async function processExternalJob(job, { force = false, dryRun = false } = {}) {
   throw new Error(`Falha ao enviar após 3 tentativas: ${lastError?.message || lastError}`)
 }
 
+async function processExternalJob(job, { force = false, dryRun = false } = {}) {
+  const settings = await getSettings()
+  if (!settings.ativo && !force) {
+    return [{ skipped: true, reason: 'módulo desativado' }]
+  }
+
+  const candidates = await getCandidates()
+  if (!candidates.length) {
+    throw new Error('Nenhum candidato configurado')
+  }
+
+  const results = []
+  for (const candidate of candidates) {
+    try {
+      const result = await processCandidateJob(job, candidate, settings, { force, dryRun })
+      results.push({ ...result, candidate: candidate.full_name || candidate.user_id })
+    } catch (err) {
+      results.push({ error: String(err.message || err), userId: candidate.user_id, candidate: candidate.full_name || candidate.user_id })
+    }
+  }
+  return results
+}
+
 module.exports = {
   headers,
   supabaseRest,
   extractEmail,
   todayDate,
   getSettings,
-  getAdminUserId,
+  getCandidates,
   getProfile,
   getActiveCVs,
   getCVFileBuffer,
@@ -338,5 +378,6 @@ module.exports = {
   updateLog,
   generateApplication,
   sendApplicationEmail,
+  processCandidateJob,
   processExternalJob,
 }
