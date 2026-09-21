@@ -45,6 +45,7 @@ jobs:
           MAX_PAGES: ${{ github.event.inputs.max_pages || '50' }}
           CONCURRENCY: '4'
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_API_KEY_FALLBACK: ${{ secrets.GROQ_API_KEY_FALLBACK }}
         run: |
           node scripts/ingest-angolaemprego.mjs --json
 
@@ -52,6 +53,7 @@ jobs:
         env:
           CONCURRENCY: '4'
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_API_KEY_FALLBACK: ${{ secrets.GROQ_API_KEY_FALLBACK }}
         run: |
           node scripts/ingest-rss.mjs
 
@@ -61,6 +63,7 @@ jobs:
           CAREERJET_API_KEY: ${{ secrets.CAREERJET_API_KEY }}
           CAREERJET_REFERER: 'https://mosalo.eu.cc/'
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_API_KEY_FALLBACK: ${{ secrets.GROQ_API_KEY_FALLBACK }}
         run: |
           node scripts/ingest-careerjet.mjs
 
@@ -70,15 +73,29 @@ jobs:
           MAX_PAGES: '5'
           CONCURRENCY: '2'
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_API_KEY_FALLBACK: ${{ secrets.GROQ_API_KEY_FALLBACK }}
         run: |
           node scripts/ingest-jobartis.mjs --json
 
-      - name: Sincronizar novas vagas com Supabase
+      - name: Recolher vagas do Ango Emprego
+        continue-on-error: true
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MAX_JOBS: '300'
+          CONCURRENCY: '4'
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_API_KEY_FALLBACK: ${{ secrets.GROQ_API_KEY_FALLBACK }}
         run: |
-          node scripts/sync-external-jobs-to-supabase.mjs
+          node scripts/ingest-angoemprego.mjs --json
+
+      - name: Recolher vagas do Empregos Yoyota
+        continue-on-error: true
+        env:
+          MAX_JOBS: '300'
+          CONCURRENCY: '4'
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_API_KEY_FALLBACK: ${{ secrets.GROQ_API_KEY_FALLBACK }}
+        run: |
+          node scripts/ingest-yoyota.mjs --json
 
       - name: Commit se houver alterações
         run: |
@@ -92,6 +109,14 @@ jobs:
             git commit -m "chore(vagas): atualização automática de vagas"
             git push
           fi
+
+      - name: Sincronizar novas vagas com Supabase
+        continue-on-error: true
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          node scripts/sync-external-jobs-to-supabase.mjs
 
       - name: Upload artifact para depuração
         if: ${{ failure() }}

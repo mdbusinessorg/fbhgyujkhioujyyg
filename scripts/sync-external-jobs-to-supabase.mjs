@@ -87,6 +87,19 @@ async function main() {
     return
   }
 
+  // Probe the table first: if external_jobs does not exist in the project
+  // (PGRST205), skip the sync instead of failing — the auto-apply module is
+  // optional and the public feed lives in external-jobs.json.
+  try {
+    await rest('/external_jobs?select=id&limit=1')
+  } catch (e) {
+    if (String(e).includes('PGRST205')) {
+      console.warn('external_jobs table not found in Supabase — skipping sync (auto-apply disabled). Run supabase/auto-apply.sql to re-enable it.')
+      return
+    }
+    throw e
+  }
+
   const allIds = jobs.map(j => j.id)
   const existing = await fetchExistingIds(allIds)
   const newJobs = jobs.filter(j => !existing.has(j.id))
