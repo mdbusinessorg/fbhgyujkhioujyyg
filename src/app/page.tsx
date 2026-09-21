@@ -3,12 +3,13 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
+import { parseCV } from '@/lib/ai'
 import { sortByMatch } from '@/lib/match'
 import { social } from '@/lib/social'
 import {
   Search, SlidersHorizontal, Heart, Bell, Menu, X, Briefcase, Home as HomeIcon, User, LogOut, FileText,
-  Settings, Star, MapPin, Monitor, Banknote, Stethoscope, Megaphone, Scale, GraduationCap, HardHat, Wrench,
+  Settings, MapPin, Monitor, Banknote, Stethoscope, Megaphone, Scale, GraduationCap, HardHat, Wrench,
   MessageSquare, Zap, Users, Clock, ChevronDown, Newspaper, BookOpen, HeartHandshake, MessageCircle,
   Sparkles, Bookmark, BadgeCheck, Upload
 } from 'lucide-react'
@@ -72,6 +73,9 @@ export default function HomePage() {
   const [searchLoc, setSearchLoc] = useState('')
   const [searchNivel, setSearchNivel] = useState('')
   const [searchTipo, setSearchTipo] = useState('')
+  const [cvUploading, setCvUploading] = useState(false)
+  const [cvMsg, setCvMsg] = useState('')
+  const cvInputRef = useRef<HTMLInputElement>(null)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userRole, setUserRole] = useState('candidato')
   const [userName, setUserName] = useState('')
@@ -343,6 +347,39 @@ export default function HomePage() {
     router.push(`/vagas/?${params.toString()}`)
   }
 
+  const handleCvFile = async (file: File) => {
+    if (!isLoggedIn || !userId) { router.push('/auth/login/'); return }
+    setCvUploading(true)
+    setCvMsg('A carregar o CV...')
+    try {
+      const path = `${userId}/${Date.now()}-${file.name}`
+      const { error: upErr } = await supabase.storage.from(STORAGE_BUCKET).upload(path, file)
+      if (upErr) throw upErr
+      const url = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`
+      const docs = [...(profile?.documentos || []), url].slice(-2)
+
+      setCvMsg('A ler o CV com IA...')
+      const parsed = await parseCV(url)
+      await supabase.from('profiles').upsert({
+        user_id: userId,
+        documentos: docs,
+        area: parsed.area || profile?.area || null,
+        localizacao: parsed.localizacao || profile?.localizacao || null,
+        nivel_academico: parsed.nivel_academico || profile?.nivel_academico || null,
+        bio: parsed.bio || profile?.bio || null,
+        experiencias: parsed.experiencias || profile?.experiencias || null,
+        competencias: parsed.competencias || profile?.competencias || null,
+      }, { onConflict: 'user_id' })
+      if (parsed.nome) await supabase.from('users').update({ nome: parsed.nome }).eq('id', userId)
+      setProfile((p: any) => ({ ...(p || {}), documentos: docs, area: parsed.area || p?.area, localizacao: parsed.localizacao || p?.localizacao, competencias: parsed.competencias || p?.competencias }))
+      setCvMsg(parsed.error ? 'CV guardado. A mostrar vagas...' : 'Perfil criado! A mostrar vagas para ti...')
+      setTimeout(() => router.push('/vagas/'), 800)
+    } catch (e) {
+      setCvMsg('Não foi possível carregar o CV. Tenta novamente.')
+    }
+    setCvUploading(false)
+  }
+
   const heroStats = useMemo(() => {
     const companies = new Set<string>()
     allJobs.forEach((j: any) => { const c = (j.empresa_nome || j.company || '').trim().toLowerCase(); if (c) companies.add(c) })
@@ -544,51 +581,62 @@ export default function HomePage() {
 
         {/* Search bar */}
         <section className="bg-white rounded-3xl border border-ms-border shadow-ios-sm p-4 sm:p-5 mb-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.3fr_1fr_1fr_1fr_auto] gap-3 items-end">
-            <div>
-              <label className="text-[11px] font-semibold text-ms-dark mb-1.5 block">Título / Palavras-chave</label>
-              <input
-                type="text"
-                placeholder="ex.: Contabilista, Engenheiro"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') doSearch() }}
-                className="w-full bg-ms-surface border border-ms-border rounded-xl px-3 py-2.5 text-sm text-ms-dark placeholder:text-ms-gray outline-none focus:border-ms-blue"
-              />
-            </div>
-            <div>
-              <label className="text-[11px] font-semibold text-ms-dark mb-1.5 block">Localização</label>
-              <div className="relative">
-                <select value={searchLoc} onChange={(e) => setSearchLoc(e.target.value)} className="w-full appearance-none bg-ms-surface border border-ms-border rounded-xl px-3 py-2.5 text-sm text-ms-dark outline-none focus:border-ms-blue pr-8">
-                  <option value="">Todas</option>
-                  {['Luanda', 'Benguela', 'Lubango', 'Cabinda', 'Huambo', 'Malanje', 'Namibe', 'Lobito', 'Uíge', 'Kuito', 'Sumbe', 'Remoto'].map(l => <option key={l} value={l}>{l}</option>)}
-                </select>
-                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-ms-gray pointer-events-none" />
+          <div className="flex flex-col gap-2 lg:grid lg:grid-cols-[1.3fr_1fr_1fr_1fr_auto] lg:gap-3 lg:items-end">
+            <div className="flex gap-2 lg:contents">
+              <div className="flex-1 min-w-0">
+                <label className="hidden lg:block text-[11px] font-semibold text-ms-dark mb-1.5">Título / Palavras-chave</label>
+                <input
+                  type="text"
+                  placeholder="Título da vaga, empresa ou área"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') doSearch() }}
+                  className="w-full bg-ms-surface border border-ms-border rounded-xl px-3 py-2.5 text-sm text-ms-dark placeholder:text-ms-gray outline-none focus:border-ms-blue"
+                />
               </div>
+              <button
+                onClick={doSearch}
+                aria-label="Procurar"
+                className="lg:hidden flex items-center justify-center bg-ms-blue text-white px-4 rounded-xl hover:bg-blue-700 transition-colors self-end h-[42px]"
+              >
+                <Search size={16} />
+              </button>
             </div>
-            <div>
-              <label className="text-[11px] font-semibold text-ms-dark mb-1.5 block">Nível de Experiência</label>
-              <div className="relative">
-                <select value={searchNivel} onChange={(e) => setSearchNivel(e.target.value)} className="w-full appearance-none bg-ms-surface border border-ms-border rounded-xl px-3 py-2.5 text-sm text-ms-dark outline-none focus:border-ms-blue pr-8">
-                  <option value="">Todos</option>
-                  {['Júnior', 'Intermédio', 'Sénior', 'Estágio', 'Gestão / Direcção'].map(n => <option key={n} value={n}>{n}</option>)}
-                </select>
-                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-ms-gray pointer-events-none" />
+            <div className="grid grid-cols-3 gap-2 lg:contents">
+              <div>
+                <label className="hidden lg:block text-[11px] font-semibold text-ms-dark mb-1.5">Localização</label>
+                <div className="relative">
+                  <select value={searchLoc} onChange={(e) => setSearchLoc(e.target.value)} className="w-full appearance-none bg-ms-surface border border-ms-border rounded-xl px-2 lg:px-3 py-2.5 text-xs lg:text-sm text-ms-dark outline-none focus:border-ms-blue pr-6 lg:pr-8">
+                    <option value="">Localização</option>
+                    {['Luanda', 'Benguela', 'Lubango', 'Cabinda', 'Huambo', 'Malanje', 'Namibe', 'Lobito', 'Uíge', 'Kuito', 'Sumbe', 'Remoto'].map(l => <option key={l} value={l}>{l}</option>)}
+                  </select>
+                  <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-ms-gray pointer-events-none" />
+                </div>
               </div>
-            </div>
-            <div>
-              <label className="text-[11px] font-semibold text-ms-dark mb-1.5 block">Tipo de Vaga</label>
-              <div className="relative">
-                <select value={searchTipo} onChange={(e) => setSearchTipo(e.target.value)} className="w-full appearance-none bg-ms-surface border border-ms-border rounded-xl px-3 py-2.5 text-sm text-ms-dark outline-none focus:border-ms-blue pr-8">
-                  <option value="">Todos</option>
-                  {['Efetivo', 'Temporário', 'Freelancer', 'Remoto', 'Híbrido'].map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-ms-gray pointer-events-none" />
+              <div>
+                <label className="hidden lg:block text-[11px] font-semibold text-ms-dark mb-1.5">Nível de Experiência</label>
+                <div className="relative">
+                  <select value={searchNivel} onChange={(e) => setSearchNivel(e.target.value)} className="w-full appearance-none bg-ms-surface border border-ms-border rounded-xl px-2 lg:px-3 py-2.5 text-xs lg:text-sm text-ms-dark outline-none focus:border-ms-blue pr-6 lg:pr-8">
+                    <option value="">Experiência</option>
+                    {['Júnior', 'Intermédio', 'Sénior', 'Estágio', 'Gestão / Direcção'].map(n => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                  <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-ms-gray pointer-events-none" />
+                </div>
+              </div>
+              <div>
+                <label className="hidden lg:block text-[11px] font-semibold text-ms-dark mb-1.5">Tipo de Vaga</label>
+                <div className="relative">
+                  <select value={searchTipo} onChange={(e) => setSearchTipo(e.target.value)} className="w-full appearance-none bg-ms-surface border border-ms-border rounded-xl px-2 lg:px-3 py-2.5 text-xs lg:text-sm text-ms-dark outline-none focus:border-ms-blue pr-6 lg:pr-8">
+                    <option value="">Tipo</option>
+                    {['Efetivo', 'Temporário', 'Freelancer', 'Remoto', 'Híbrido'].map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-ms-gray pointer-events-none" />
+                </div>
               </div>
             </div>
             <button
               onClick={doSearch}
-              className="flex items-center justify-center gap-2 bg-ms-blue text-white text-sm font-bold px-6 py-2.5 rounded-xl hover:bg-blue-700 transition-colors sm:col-span-2 lg:col-span-1"
+              className="hidden lg:flex items-center justify-center gap-2 bg-ms-blue text-white text-sm font-bold px-6 py-2.5 rounded-xl hover:bg-blue-700 transition-colors"
             >
               <Search size={16} /> Procurar
             </button>
@@ -601,15 +649,32 @@ export default function HomePage() {
           <div className="bg-white rounded-3xl border border-ms-border p-5 shadow-ios-sm">
             <h3 className="text-base font-bold text-ms-dark">Deixa a IA encontrar a tua vaga ideal</h3>
             <p className="text-xs text-ms-gray mt-1 mb-4">Carrega o teu CV e recebe correspondências instantâneas.</p>
-            <Link
-              href={isLoggedIn ? `/dashboard/${userRole}/?tab=perfil` : '/auth/registar/'}
-              className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-ms-border rounded-2xl py-6 text-ms-gray text-xs mb-3 hover:border-ms-blue/40 hover:text-ms-blue transition-colors"
+            <input
+              ref={cvInputRef}
+              type="file"
+              accept=".pdf,.doc,.docx,.txt"
+              className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleCvFile(f); e.target.value = '' }}
+            />
+            <button
+              onClick={() => { if (isLoggedIn) cvInputRef.current?.click(); else router.push('/auth/login/') }}
+              disabled={cvUploading}
+              className="w-full flex flex-col items-center justify-center gap-2 border-2 border-dashed border-ms-border rounded-2xl py-6 text-ms-gray text-xs mb-3 hover:border-ms-blue/40 hover:text-ms-blue transition-colors disabled:opacity-60"
             >
-              <Upload size={20} /> Carrega o CV aqui
-            </Link>
-            <Link href="/modelos-cv/" className="block w-full text-center bg-ms-dark text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-ms-blue transition-colors">
+              <Upload size={20} /> {cvUploading ? cvMsg : 'Carrega o CV aqui'}
+            </button>
+            <button
+              onClick={() => {
+                if (!isLoggedIn) { router.push('/auth/login/'); return }
+                if (profile?.documentos?.length) router.push('/vagas/')
+                else cvInputRef.current?.click()
+              }}
+              disabled={cvUploading}
+              className="w-full bg-ms-dark text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-ms-blue transition-colors disabled:opacity-60"
+            >
               Encontrar Match
-            </Link>
+            </button>
+            {cvMsg && !cvUploading && <p className="text-[10px] text-ms-gray text-center mt-2">{cvMsg}</p>}
           </div>
           <div className="bg-white rounded-3xl border border-ms-border p-5 shadow-ios-sm space-y-4">
             <h3 className="text-sm font-bold text-ms-dark">Filtros rápidos</h3>
@@ -665,21 +730,17 @@ export default function HomePage() {
         {/* Atalhos rápidos */}
         <section className="mb-6">
           <h2 className="text-sm font-bold text-ms-dark mb-3">Acesso Rápido</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
             {[
               { href: '/vagas/', label: 'Ver Vagas', icon: Briefcase, bg: 'bg-ms-blue', text: 'text-white' },
               { href: '/trabalho-rapido/', label: 'Trabalho Rápido', icon: Zap, bg: 'bg-sky-50', text: 'text-sky-600' },
               { href: '/pessoas/', label: 'Rede', icon: Users, bg: 'bg-ms-purple-light', text: 'text-ms-purple' },
               { href: '/modelos-cv/', label: 'Modelos CV', icon: FileText, bg: 'bg-emerald-50', text: 'text-emerald-600' },
-              { href: '/mensagens/', label: 'Mensagens', icon: MessageSquare, bg: 'bg-sky-50', text: 'text-sky-500' },
-              { href: '/anuncios/', label: 'Anunciar', icon: Megaphone, bg: 'bg-ms-blue/10', text: 'text-ms-blue' },
-              { href: isLoggedIn ? `/dashboard/${userRole}/?tab=candidaturas` : '/auth/login/', label: 'Candidaturas', icon: BookOpen, bg: 'bg-ms-purple-light', text: 'text-ms-purple' },
-              { href: '/premium/', label: 'MÔ SALO PRO', icon: Star, bg: 'bg-ms-dark', text: 'text-white' },
             ].map(item => {
               const Icon = item.icon
               const solid = item.bg === 'bg-ms-blue' || item.bg === 'bg-ms-dark'
               return (
-                <Link key={item.label} href={item.href} className={`flex flex-col gap-3 rounded-3xl p-4 border transition-all hover:shadow-ios ${solid ? `${item.bg} border-transparent` : 'bg-white border-ms-border hover:border-ms-blue/30'}`}>
+                <Link key={item.label} href={item.href} className={`flex-shrink-0 w-[160px] sm:w-auto sm:flex-1 flex flex-col gap-3 rounded-3xl p-4 border transition-all hover:shadow-ios ${solid ? `${item.bg} border-transparent` : 'bg-white border-ms-border hover:border-ms-blue/30'}`}>
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${solid ? 'bg-white/20' : item.bg}`}>
                     <Icon size={18} className={item.text} />
                   </div>
@@ -796,8 +857,8 @@ export default function HomePage() {
             <div className="flex items-center justify-between mb-3">
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
-                  <div className="w-7 h-7 rounded-lg bg-ms-blue/10 flex items-center justify-center">
-                    <Newspaper size={16} className="text-ms-blue" />
+                  <div className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center">
+                    <Newspaper size={16} className="text-red-600" />
                   </div>
                   <h2 className="text-base font-bold text-ms-dark">Últimas Notícias</h2>
                 </div>
@@ -812,15 +873,15 @@ export default function HomePage() {
                   href={news.link || '#'}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="snap-start flex-shrink-0 w-72 card p-4 shadow-ios-sm hover:border-ms-blue/40 hover:shadow-ios transition-all group"
+                  className="snap-start flex-shrink-0 w-72 card p-4 shadow-ios-sm hover:border-red-400 hover:shadow-ios transition-all group"
                 >
                   <div className="flex items-center gap-2 mb-3">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-ms-blue px-2 py-0.5 rounded-md">Notícia</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-red-600 px-2 py-0.5 rounded-md">Notícia</span>
                     <span className="text-[10px] text-ms-gray">{getTimeAgo(news.date)}</span>
                   </div>
-                  <p className="text-sm font-bold text-ms-dark leading-snug line-clamp-3 mb-2 group-hover:text-ms-blue transition-colors">{news.title}</p>
+                  <p className="text-sm font-bold text-ms-dark leading-snug line-clamp-3 mb-2 group-hover:text-red-700 transition-colors">{news.title}</p>
                   <p className="text-xs text-ms-gray line-clamp-3 mb-3">{news.excerpt || ''}</p>
-                  <span className="inline-flex items-center text-[10px] font-semibold text-ms-blue">Ler notícia <ChevronDown size={12} className="-rotate-90 ml-0.5" /></span>
+                  <span className="inline-flex items-center text-[10px] font-semibold text-red-600">Ler notícia <ChevronDown size={12} className="-rotate-90 ml-0.5" /></span>
                 </a>
               ))}
             </div>
