@@ -10,7 +10,7 @@ import {
   Search, SlidersHorizontal, Heart, Bell, Menu, X, Briefcase, Home as HomeIcon, User, LogOut, FileText,
   Settings, Star, MapPin, Monitor, Banknote, Stethoscope, Megaphone, Scale, GraduationCap, HardHat, Wrench,
   MessageSquare, Zap, Users, Clock, ChevronDown, Newspaper, BookOpen, HeartHandshake, MessageCircle,
-  Building2, Sparkles, TrendingUp
+  Sparkles, Bookmark, BadgeCheck, Upload
 } from 'lucide-react'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import InstallPWA from '@/components/InstallPWA'
@@ -69,6 +69,9 @@ export default function HomePage() {
   const router = useRouter()
   const pathname = usePathname()
   const [searchQuery, setSearchQuery] = useState('')
+  const [searchLoc, setSearchLoc] = useState('')
+  const [searchNivel, setSearchNivel] = useState('')
+  const [searchTipo, setSearchTipo] = useState('')
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userRole, setUserRole] = useState('candidato')
   const [userName, setUserName] = useState('')
@@ -330,12 +333,29 @@ export default function HomePage() {
 
   const jobHref = (job: any) => job.source === 'external' ? `/vagas/externa/?id=${encodeURIComponent(job.id)}` : `/vagas/detalhe/?id=${job.id}`
 
+  const doSearch = () => {
+    const params = new URLSearchParams()
+    const q = [searchQuery.trim(), searchNivel].filter(Boolean).join(' ').trim()
+    if (q) params.set('q', q)
+    if (searchLoc) params.set('loc', searchLoc)
+    if (searchTipo === 'Remoto' || searchTipo === 'Híbrido') params.set('modalidade', searchTipo)
+    else if (searchTipo) params.set('tipo', searchTipo)
+    router.push(`/vagas/?${params.toString()}`)
+  }
+
   const heroStats = useMemo(() => {
     const companies = new Set<string>()
     allJobs.forEach((j: any) => { const c = (j.empresa_nome || j.company || '').trim().toLowerCase(); if (c) companies.add(c) })
     const newThisWeek = allJobs.filter((j: any) => isThisWeek(j.created_at || j.first_seen_at || j.posted_at)).length
     return { vagas: allJobs.length, empresas: companies.size, novas: newThisWeek }
   }, [allJobs])
+
+  const fmtShortDate = (date?: string) => {
+    if (!date) return ''
+    const d = new Date(date)
+    if (isNaN(d.getTime())) return ''
+    return d.toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', year: 'numeric' })
+  }
 
   const JobCard = ({ job, featured, recommended }: { job: any; featured?: boolean; recommended?: boolean }) => {
     const fav = favorites.includes(job.favId)
@@ -345,45 +365,52 @@ export default function HomePage() {
     const salary = job.salario || job.salary
     const date = job.created_at || job.first_seen_at || job.posted_at
     const category = job.area || job.category
+    const jobType = job.tipo || job.contract_type || job.job_type
+    const chip = 'inline-flex items-center text-[10px] font-medium text-ms-gray bg-ms-surface border border-ms-border px-2 py-0.5 rounded-md'
     return (
-      <Link key={job.favId} href={jobHref(job)} className="block">
-        <div className={`card p-4 shadow-ios-sm hover:shadow-ios transition-all ${featured || recommended ? 'border-ms-blue/20' : ''} relative`}>
-          {recommended && (
-            <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-1 text-[10px] font-bold text-white bg-gradient-to-r from-ms-blue to-ms-purple px-2 py-0.5 rounded-full">
-              <Star size={10} className="fill-white" /> Recomendada
-            </span>
-          )}
-          <button
-            onClick={(e) => toggleFavorite(e, job)}
-            className={`absolute top-3 right-3 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-colors ${fav ? 'bg-red-50 text-red-500' : 'bg-ms-surface text-ms-gray hover:text-red-400'}`}
-          >
-            <Heart size={16} className={fav ? 'fill-red-500' : ''} />
-          </button>
-          <div className="flex items-start gap-3 pr-10">
-            <CompanyLogo company={company} logoUrl={job.logo_url} size={56} rounded="rounded-2xl" className="border border-ms-border flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-bold text-ms-dark leading-snug line-clamp-2">{title}</h3>
-              {company && <p className="text-xs text-ms-gray mt-0.5">{company}</p>}
-              <div className="flex flex-wrap items-center gap-2 mt-2">
-                {location && (
-                  <span className="inline-flex items-center gap-0.5 text-[10px] text-ms-gray">
-                    <MapPin size={10} /> {location}
-                  </span>
-                )}
-                {salary && (
-                  <span className="text-[10px] font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">{salary}</span>
-                )}
-                {category && (
-                  <span className="text-[10px] text-ms-blue bg-ms-blue/10 px-2 py-0.5 rounded-full">{category}</span>
-                )}
-              </div>
-              <div className="flex items-center justify-between mt-3">
-                <span className="text-[10px] text-ms-gray flex items-center gap-0.5">
-                  <Clock size={10} /> {getTimeAgo(date)}
+      <Link key={job.favId} href={jobHref(job)} className="block h-full group">
+        <div className={`relative h-full bg-white rounded-3xl border p-4 sm:p-5 transition-all group-hover:shadow-ios group-hover:border-ms-blue/40 ${featured || recommended ? 'border-ms-blue/25' : 'border-ms-border'}`}>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] text-ms-gray">{fmtShortDate(date) || getTimeAgo(date)}</span>
+            <div className="flex items-center gap-1.5">
+              {recommended && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-ms-blue bg-ms-blue/10 px-2 py-0.5 rounded-full">
+                  <Sparkles size={10} /> Match
                 </span>
-                <span className="text-[10px] font-semibold text-ms-blue">Ver detalhes</span>
-              </div>
+              )}
+              <button
+                onClick={(e) => toggleFavorite(e, job)}
+                aria-label="Guardar vaga"
+                className={`z-10 w-7 h-7 rounded-full flex items-center justify-center transition-colors ${fav ? 'text-ms-blue' : 'text-ms-gray hover:text-ms-blue'}`}
+              >
+                <Bookmark size={15} className={fav ? 'fill-ms-blue' : ''} />
+              </button>
             </div>
+          </div>
+          <div className="flex items-center gap-2 mb-1.5">
+            <CompanyLogo company={company} logoUrl={job.logo_url} size={38} rounded="rounded-full" className="border border-ms-border flex-shrink-0" />
+            {company && (
+              <span className="text-xs font-medium text-ms-dark truncate flex items-center gap-1">
+                {company}
+                <BadgeCheck size={14} className="text-ms-blue flex-shrink-0" />
+              </span>
+            )}
+          </div>
+          <h3 className="text-[15px] font-bold text-ms-dark leading-snug line-clamp-2 mb-2.5">{title}</h3>
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {jobType && <span className={chip}>{jobType}</span>}
+            {location && <span className={chip}><MapPin size={10} className="mr-0.5" />{location}</span>}
+            {category && <span className={chip}>{category}</span>}
+          </div>
+          <div className="flex items-center justify-between">
+            {salary ? (
+              <span className="text-xs font-semibold text-ms-dark">{salary}</span>
+            ) : (
+              <span className="text-[11px] text-ms-gray flex items-center gap-1"><Clock size={11} />{getTimeAgo(date)}</span>
+            )}
+            <span className="inline-flex items-center gap-1 bg-ms-dark text-white text-[11px] font-semibold px-4 py-2 rounded-full group-hover:bg-ms-blue transition-colors">
+              Detalhes
+            </span>
           </div>
         </div>
       </Link>
@@ -488,14 +515,20 @@ export default function HomePage() {
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 pt-4 lg:pt-6">
-        {/* Greeting / Desktop header */}
-        <div className="hidden lg:flex items-center justify-between mb-6">
+      <main className="max-w-3xl lg:max-w-6xl mx-auto px-4 pt-4 lg:pt-6">
+        {/* Greeting */}
+        <div className="flex items-start justify-between gap-4 mb-5">
           <div>
-            <h1 className="text-2xl font-bold text-ms-dark">Olá{userName ? `, ${userName.split(' ')[0]}` : ''}!</h1>
-            <p className="text-sm text-ms-gray">Encontra as melhores oportunidades em Angola.</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-ms-dark">Olá{userName ? `, ${userName.split(' ')[0]}` : ''}!</h1>
+            <p className="text-xs sm:text-sm text-ms-gray mt-1">
+              <span className="font-semibold text-ms-blue">{heroStats.vagas}</span> vagas ativas
+              <span className="mx-1.5 text-ms-border">·</span>
+              <span className="font-semibold text-ms-blue">{heroStats.empresas}</span> empresas
+              <span className="mx-1.5 text-ms-border">·</span>
+              <span className="font-semibold text-ms-blue">{heroStats.novas}</span> novas esta semana
+            </p>
           </div>
-          <div className="relative">
+          <div className="relative hidden lg:block">
             <button onClick={() => setShowNotif(!showNotif)} className="w-10 h-10 bg-white border border-ms-border rounded-full flex items-center justify-center relative hover:bg-ms-surface">
               <Bell size={20} className="text-ms-dark" />
               {notifications.length > 0 && <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full" />}
@@ -509,89 +542,151 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Hero */}
-        <section className="mb-6">
-          <div
-            className="rounded-3xl text-white relative overflow-hidden"
-            style={{ backgroundImage: `url('${config.hero_image_url || '/images/hero-destaque.jpg'}')`, backgroundSize: 'cover', backgroundPosition: 'center' }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-ms-dark/90 via-ms-blue/70 to-ms-purple/60" />
-            <div className="absolute top-0 right-0 w-56 h-56 bg-white/5 rounded-full -translate-y-20 translate-x-16" />
-            <div className="absolute bottom-0 left-1/3 w-32 h-32 bg-ms-purple/20 rounded-full translate-y-16 blur-2xl" />
-            <div className="relative z-10 p-5 sm:p-7">
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-white/15 backdrop-blur px-2.5 py-1 rounded-full mb-3">
-                <Sparkles size={11} /> A rede profissional de Angola
-              </span>
-              <h2 className="text-xl sm:text-2xl font-extrabold leading-tight mb-1.5 max-w-md">{config.hero_title || 'Encontra o teu próximo emprego'}</h2>
-              <p className="text-xs sm:text-sm text-white/85 mb-4 max-w-md">{config.hero_subtitle || 'Vagas novas todos os dias das melhores empresas em Angola.'}</p>
-
-              <div className="bg-white rounded-2xl px-3 py-2 shadow-lg flex items-center gap-2 max-w-xl">
-                <Search size={18} className="text-ms-gray flex-shrink-0 ml-1" />
-                <input
-                  type="text"
-                  placeholder="Título da vaga, empresa ou área"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && searchQuery.trim()) {
-                      router.push(`/vagas/?q=${encodeURIComponent(searchQuery.trim())}`)
-                    }
-                  }}
-                  className="flex-1 bg-transparent outline-none text-sm text-ms-dark placeholder:text-ms-gray min-w-0"
-                />
-                <Link href="/vagas/?showFilters=1" className="w-9 h-9 bg-ms-surface rounded-xl flex items-center justify-center flex-shrink-0 hover:bg-ms-border transition-colors">
-                  <SlidersHorizontal size={16} className="text-ms-blue" />
-                </Link>
-                <button
-                  onClick={() => searchQuery.trim() && router.push(`/vagas/?q=${encodeURIComponent(searchQuery.trim())}`)}
-                  className="hidden sm:flex items-center gap-1 bg-ms-blue text-white text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-blue-700 transition-colors flex-shrink-0"
-                >
-                  Procurar
-                </button>
-              </div>
-
-              <div className="flex items-center gap-4 sm:gap-6 mt-4">
-                <div className="flex items-center gap-1.5">
-                  <Briefcase size={14} className="text-white/70" />
-                  <span className="text-sm font-bold">{heroStats.vagas}</span>
-                  <span className="text-[11px] text-white/70">vagas ativas</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Building2 size={14} className="text-white/70" />
-                  <span className="text-sm font-bold">{heroStats.empresas}</span>
-                  <span className="text-[11px] text-white/70">empresas</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <TrendingUp size={14} className="text-white/70" />
-                  <span className="text-sm font-bold">{heroStats.novas}</span>
-                  <span className="text-[11px] text-white/70">novas esta semana</span>
-                </div>
+        {/* Search bar */}
+        <section className="bg-white rounded-3xl border border-ms-border shadow-ios-sm p-4 sm:p-5 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.3fr_1fr_1fr_1fr_auto] gap-3 items-end">
+            <div>
+              <label className="text-[11px] font-semibold text-ms-dark mb-1.5 block">Título / Palavras-chave</label>
+              <input
+                type="text"
+                placeholder="ex.: Contabilista, Engenheiro"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') doSearch() }}
+                className="w-full bg-ms-surface border border-ms-border rounded-xl px-3 py-2.5 text-sm text-ms-dark placeholder:text-ms-gray outline-none focus:border-ms-blue"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold text-ms-dark mb-1.5 block">Localização</label>
+              <div className="relative">
+                <select value={searchLoc} onChange={(e) => setSearchLoc(e.target.value)} className="w-full appearance-none bg-ms-surface border border-ms-border rounded-xl px-3 py-2.5 text-sm text-ms-dark outline-none focus:border-ms-blue pr-8">
+                  <option value="">Todas</option>
+                  {['Luanda', 'Benguela', 'Lubango', 'Cabinda', 'Huambo', 'Malanje', 'Namibe', 'Lobito', 'Uíge', 'Kuito', 'Sumbe', 'Remoto'].map(l => <option key={l} value={l}>{l}</option>)}
+                </select>
+                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-ms-gray pointer-events-none" />
               </div>
             </div>
+            <div>
+              <label className="text-[11px] font-semibold text-ms-dark mb-1.5 block">Nível de Experiência</label>
+              <div className="relative">
+                <select value={searchNivel} onChange={(e) => setSearchNivel(e.target.value)} className="w-full appearance-none bg-ms-surface border border-ms-border rounded-xl px-3 py-2.5 text-sm text-ms-dark outline-none focus:border-ms-blue pr-8">
+                  <option value="">Todos</option>
+                  {['Júnior', 'Intermédio', 'Sénior', 'Estágio', 'Gestão / Direcção'].map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-ms-gray pointer-events-none" />
+              </div>
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold text-ms-dark mb-1.5 block">Tipo de Vaga</label>
+              <div className="relative">
+                <select value={searchTipo} onChange={(e) => setSearchTipo(e.target.value)} className="w-full appearance-none bg-ms-surface border border-ms-border rounded-xl px-3 py-2.5 text-sm text-ms-dark outline-none focus:border-ms-blue pr-8">
+                  <option value="">Todos</option>
+                  {['Efetivo', 'Temporário', 'Freelancer', 'Remoto', 'Híbrido'].map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-ms-gray pointer-events-none" />
+              </div>
+            </div>
+            <button
+              onClick={doSearch}
+              className="flex items-center justify-center gap-2 bg-ms-blue text-white text-sm font-bold px-6 py-2.5 rounded-xl hover:bg-blue-700 transition-colors sm:col-span-2 lg:col-span-1"
+            >
+              <Search size={16} /> Procurar
+            </button>
           </div>
         </section>
+
+        <div className="lg:grid lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-6">
+        {/* Sidebar (desktop) */}
+        <aside className="hidden lg:flex flex-col gap-4 mb-6 lg:mb-0">
+          <div className="bg-white rounded-3xl border border-ms-border p-5 shadow-ios-sm">
+            <h3 className="text-base font-bold text-ms-dark">Deixa a IA encontrar a tua vaga ideal</h3>
+            <p className="text-xs text-ms-gray mt-1 mb-4">Carrega o teu CV e recebe correspondências instantâneas.</p>
+            <Link
+              href={isLoggedIn ? `/dashboard/${userRole}/?tab=perfil` : '/auth/registar/'}
+              className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-ms-border rounded-2xl py-6 text-ms-gray text-xs mb-3 hover:border-ms-blue/40 hover:text-ms-blue transition-colors"
+            >
+              <Upload size={20} /> Carrega o CV aqui
+            </Link>
+            <Link href="/modelos-cv/" className="block w-full text-center bg-ms-dark text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-ms-blue transition-colors">
+              Encontrar Match
+            </Link>
+          </div>
+          <div className="bg-white rounded-3xl border border-ms-border p-5 shadow-ios-sm space-y-4">
+            <h3 className="text-sm font-bold text-ms-dark">Filtros rápidos</h3>
+            <div>
+              <label className="text-[10px] text-ms-gray mb-1 block">Indústria</label>
+              <div className="relative">
+                <select
+                  defaultValue=""
+                  onChange={(e) => e.target.value && router.push(`/vagas/?area=${encodeURIComponent(e.target.value)}`)}
+                  className="w-full appearance-none bg-ms-surface border border-ms-border rounded-xl px-3 py-2 text-xs text-ms-dark outline-none focus:border-ms-blue pr-8"
+                >
+                  <option value="">Todas</option>
+                  {CATEGORIAS_HOME.map(c => <option key={c.key} value={c.label}>{c.label}</option>)}
+                </select>
+                <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-ms-gray pointer-events-none" />
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] text-ms-gray mb-1 block">Modalidade</label>
+              <div className="relative">
+                <select
+                  defaultValue=""
+                  onChange={(e) => e.target.value && router.push(`/vagas/?modalidade=${encodeURIComponent(e.target.value)}`)}
+                  className="w-full appearance-none bg-ms-surface border border-ms-border rounded-xl px-3 py-2 text-xs text-ms-dark outline-none focus:border-ms-blue pr-8"
+                >
+                  <option value="">Todas</option>
+                  {['Presencial', 'Remoto', 'Híbrido'].map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+                <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-ms-gray pointer-events-none" />
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] text-ms-gray mb-1 block">Tipo de contrato</label>
+              <div className="relative">
+                <select
+                  defaultValue=""
+                  onChange={(e) => e.target.value && router.push(`/vagas/?tipo=${encodeURIComponent(e.target.value)}`)}
+                  className="w-full appearance-none bg-ms-surface border border-ms-border rounded-xl px-3 py-2 text-xs text-ms-dark outline-none focus:border-ms-blue pr-8"
+                >
+                  <option value="">Todos</option>
+                  {['Efetivo', 'Temporário', 'Estágio', 'Trainee', 'Freelancer'].map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+                <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-ms-gray pointer-events-none" />
+              </div>
+            </div>
+            <Link href="/vagas/?showFilters=1" className="flex items-center justify-center gap-1.5 text-xs font-semibold text-ms-blue bg-ms-blue/10 rounded-xl py-2.5 hover:bg-ms-blue/15 transition-colors">
+              <SlidersHorizontal size={13} /> Todos os filtros
+            </Link>
+          </div>
+        </aside>
+        <div className="min-w-0">
 
         {/* Atalhos rápidos */}
         <section className="mb-6">
           <h2 className="text-sm font-bold text-ms-dark mb-3">Acesso Rápido</h2>
-          <div className="grid grid-cols-4 gap-2 sm:gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { href: '/vagas/', label: 'Ver Vagas', icon: Briefcase, grad: 'from-ms-blue to-blue-400' },
-              { href: '/trabalho-rapido/', label: 'Trabalho Rápido', icon: Zap, grad: 'from-orange-400 to-amber-400' },
-              { href: '/pessoas/', label: 'Rede', icon: Users, grad: 'from-ms-purple to-fuchsia-400' },
-              { href: '/modelos-cv/', label: 'Modelos CV', icon: FileText, grad: 'from-emerald-500 to-teal-400' },
-              { href: '/mensagens/', label: 'Mensagens', icon: MessageSquare, grad: 'from-sky-500 to-cyan-400' },
-              { href: '/anuncios/', label: 'Anunciar', icon: Megaphone, grad: 'from-rose-500 to-pink-400' },
-              { href: isLoggedIn ? `/dashboard/${userRole}/?tab=candidaturas` : '/auth/login/', label: 'Candidaturas', icon: BookOpen, grad: 'from-indigo-500 to-violet-400' },
-              { href: '/premium/', label: 'MÔ SALO PRO', icon: Star, grad: 'from-amber-500 to-yellow-400' },
+              { href: '/vagas/', label: 'Ver Vagas', icon: Briefcase, bg: 'bg-ms-blue', text: 'text-white' },
+              { href: '/trabalho-rapido/', label: 'Trabalho Rápido', icon: Zap, bg: 'bg-sky-50', text: 'text-sky-600' },
+              { href: '/pessoas/', label: 'Rede', icon: Users, bg: 'bg-ms-purple-light', text: 'text-ms-purple' },
+              { href: '/modelos-cv/', label: 'Modelos CV', icon: FileText, bg: 'bg-emerald-50', text: 'text-emerald-600' },
+              { href: '/mensagens/', label: 'Mensagens', icon: MessageSquare, bg: 'bg-sky-50', text: 'text-sky-500' },
+              { href: '/anuncios/', label: 'Anunciar', icon: Megaphone, bg: 'bg-ms-blue/10', text: 'text-ms-blue' },
+              { href: isLoggedIn ? `/dashboard/${userRole}/?tab=candidaturas` : '/auth/login/', label: 'Candidaturas', icon: BookOpen, bg: 'bg-ms-purple-light', text: 'text-ms-purple' },
+              { href: '/premium/', label: 'MÔ SALO PRO', icon: Star, bg: 'bg-ms-dark', text: 'text-white' },
             ].map(item => {
               const Icon = item.icon
+              const solid = item.bg === 'bg-ms-blue' || item.bg === 'bg-ms-dark'
               return (
-                <Link key={item.label} href={item.href} className="flex flex-col items-center gap-1.5 bg-white border border-ms-border rounded-2xl py-3 px-1 hover:shadow-md hover:border-ms-blue/30 transition-all">
-                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${item.grad} flex items-center justify-center shadow-sm`}>
-                    <Icon size={18} className="text-white" />
+                <Link key={item.label} href={item.href} className={`flex flex-col gap-3 rounded-3xl p-4 border transition-all hover:shadow-ios ${solid ? `${item.bg} border-transparent` : 'bg-white border-ms-border hover:border-ms-blue/30'}`}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${solid ? 'bg-white/20' : item.bg}`}>
+                    <Icon size={18} className={item.text} />
                   </div>
-                  <span className="text-[10px] font-semibold text-ms-dark text-center leading-tight">{item.label}</span>
+                  <div>
+                    <p className={`text-sm font-bold leading-tight ${solid ? 'text-white' : 'text-ms-dark'}`}>{item.label}</p>
+                    <p className={`text-[10px] mt-0.5 ${solid ? 'text-white/70' : 'text-ms-gray'}`}>Abrir</p>
+                  </div>
                 </Link>
               )
             })}
@@ -641,7 +736,7 @@ export default function HomePage() {
         {/* Info cards: Trabalho Rápido + Perfil */}
         <section className="mb-6">
           <div className="grid grid-cols-2 gap-3">
-            <Link href="/trabalho-rapido/" className="bg-gradient-to-br from-orange-400 to-orange-500 rounded-3xl p-4 text-white relative overflow-hidden hover:shadow-ios transition-shadow shadow-ios-sm">
+            <Link href="/trabalho-rapido/" className="bg-gradient-to-br from-ms-blue to-sky-500 rounded-3xl p-4 text-white relative overflow-hidden hover:shadow-ios transition-shadow shadow-ios-sm">
               <div className="absolute -bottom-4 -right-4 w-20 h-20 bg-white/10 rounded-full" />
               <Zap size={24} className="mb-3" />
               <h3 className="text-sm font-bold mb-1">Trabalho Rápido</h3>
@@ -701,8 +796,8 @@ export default function HomePage() {
             <div className="flex items-center justify-between mb-3">
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
-                  <div className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center">
-                    <Newspaper size={16} className="text-red-600" />
+                  <div className="w-7 h-7 rounded-lg bg-ms-blue/10 flex items-center justify-center">
+                    <Newspaper size={16} className="text-ms-blue" />
                   </div>
                   <h2 className="text-base font-bold text-ms-dark">Últimas Notícias</h2>
                 </div>
@@ -717,15 +812,15 @@ export default function HomePage() {
                   href={news.link || '#'}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="snap-start flex-shrink-0 w-72 card p-4 shadow-ios-sm hover:border-red-400 hover:shadow-ios transition-all group"
+                  className="snap-start flex-shrink-0 w-72 card p-4 shadow-ios-sm hover:border-ms-blue/40 hover:shadow-ios transition-all group"
                 >
                   <div className="flex items-center gap-2 mb-3">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-red-600 px-2 py-0.5 rounded-md">Notícia</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-ms-blue px-2 py-0.5 rounded-md">Notícia</span>
                     <span className="text-[10px] text-ms-gray">{getTimeAgo(news.date)}</span>
                   </div>
-                  <p className="text-sm font-bold text-ms-dark leading-snug line-clamp-3 mb-2 group-hover:text-red-700 transition-colors">{news.title}</p>
+                  <p className="text-sm font-bold text-ms-dark leading-snug line-clamp-3 mb-2 group-hover:text-ms-blue transition-colors">{news.title}</p>
                   <p className="text-xs text-ms-gray line-clamp-3 mb-3">{news.excerpt || ''}</p>
-                  <span className="inline-flex items-center text-[10px] font-semibold text-red-600">Ler notícia <ChevronDown size={12} className="-rotate-90 ml-0.5" /></span>
+                  <span className="inline-flex items-center text-[10px] font-semibold text-ms-blue">Ler notícia <ChevronDown size={12} className="-rotate-90 ml-0.5" /></span>
                 </a>
               ))}
             </div>
@@ -798,8 +893,8 @@ export default function HomePage() {
               <button onClick={() => { setActiveFilter('Todas'); setSearchQuery('') }} className="text-xs text-ms-blue font-medium mt-3">Limpar filtros</button>
             </div>
           ) : (
-            <div className="space-y-3">
-              {mainJobs.slice(0, 6).map((job: any) => <JobCard key={job.favId} job={job} featured={job.is_prioritaria || (job.score || 0) >= 20} />)}
+            <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              {mainJobs.slice(0, 9).map((job: any) => <JobCard key={job.favId} job={job} featured={job.is_prioritaria || (job.score || 0) >= 20} />)}
             </div>
           )}
         </section>
@@ -825,6 +920,8 @@ export default function HomePage() {
             </div>
           </section>
         )}
+        </div>
+        </div>
       </main>
 
       {/* Bottom Nav (mobile) */}

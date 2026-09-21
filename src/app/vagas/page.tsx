@@ -144,6 +144,13 @@ export default function VagasPage() {
     const q = params.get('q')
     const openFilters = params.get('showFilters')
     const recentes = params.get('recentes')
+    const loc = params.get('loc')
+    const tipo = params.get('tipo')
+    const modalidade = params.get('modalidade')
+    if (loc) setActiveLocation(loc)
+    if (tipo && CONTRATOS.includes(tipo)) setActiveContract(tipo)
+    if (modalidade && MODALIDADES.includes(modalidade)) setActiveModality(modalidade)
+    if (loc || tipo || modalidade) setShowFilters(true)
     const cat = area ? getCategoryByKeyOrLabel(area) : null
     if (cat) {
       setActiveFilter(cat.key)
