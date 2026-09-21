@@ -9,6 +9,18 @@ import Logo from '@/components/Logo'
 import { sortByMatch } from '@/lib/match'
 
 const EXT_PAGE_SIZE = 20
+const THREE_WEEKS = 21 * 24 * 60 * 60 * 1000
+const jobDate = (j: any) => j?.created_at || j?.first_seen_at || j?.posted_at
+const isTodayDate = (date?: string) => {
+  if (!date) return false
+  const d = new Date(date)
+  const now = new Date()
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate()
+}
+const isOlderThan3Weeks = (j: any) => {
+  const d = jobDate(j)
+  return !!d && (Date.now() - new Date(d).getTime()) > THREE_WEEKS
+}
 
 const CATEGORIAS = [
   { key: 'Todas', label: 'Todas', match: '', external: '' },
@@ -49,6 +61,8 @@ export default function VagasPage() {
   const [activeModality, setActiveModality] = useState('Todas')
   const [activeLocation, setActiveLocation] = useState('Todas')
   const [showFilters, setShowFilters] = useState(false)
+  const [onlyToday, setOnlyToday] = useState(false)
+  const [hideOld, setHideOld] = useState(false)
   const [source, setSource] = useState<'mosalo' | 'externas'>('mosalo')
   const [allExternal, setAllExternal] = useState<any[]>([])
   const [extLoaded, setExtLoaded] = useState(false)
@@ -160,6 +174,8 @@ export default function VagasPage() {
   }
 
   const filteredExternal = allExternal.filter((j) => {
+    if (hideOld && isOlderThan3Weeks(j)) return false
+    if (onlyToday && !isTodayDate(jobDate(j))) return false
     const kw = searchQuery.trim().toLowerCase()
     const matchSearch = !kw || j.title?.toLowerCase().includes(kw) || j.company?.toLowerCase().includes(kw) || j.excerpt?.toLowerCase().includes(kw)
     const cat = activeFilter === 'Todas' ? null : getCategoryByKey(activeFilter)
@@ -173,6 +189,8 @@ export default function VagasPage() {
   const stripHtml = (html: string) => (html || '').replace(/<[^>]*>/g, '').trim()
 
   const filteredVagas = vagas.filter(v => {
+    if (hideOld && isOlderThan3Weeks(v)) return false
+    if (onlyToday && !isTodayDate(jobDate(v))) return false
     const matchSearch = !searchQuery || v.titulo?.toLowerCase().includes(searchQuery.toLowerCase()) || v.empresa_nome?.toLowerCase().includes(searchQuery.toLowerCase()) || stripHtml(v.descricao || '').toLowerCase().includes(searchQuery.toLowerCase())
     let matchFilter = activeFilter === 'Todas'
     if (!matchFilter) {
@@ -433,6 +451,22 @@ export default function VagasPage() {
 
         {/* Category chips */}
         <div className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-hide">
+          <button
+            onClick={() => setOnlyToday(v => !v)}
+            className={`text-xs px-4 py-2 rounded-full whitespace-nowrap font-medium transition-colors ${
+              onlyToday ? 'bg-ms-blue text-white' : 'bg-ms-surface text-ms-gray border border-ms-border hover:bg-ms-border'
+            }`}
+          >
+            Vagas do dia
+          </button>
+          <button
+            onClick={() => setHideOld(v => !v)}
+            className={`text-xs px-4 py-2 rounded-full whitespace-nowrap font-medium transition-colors ${
+              hideOld ? 'bg-ms-blue text-white' : 'bg-ms-surface text-ms-gray border border-ms-border hover:bg-ms-border'
+            }`}
+          >
+            Sem vagas +3 semanas
+          </button>
           {CATEGORIAS.map(f => (
             <button
               key={f.key}
