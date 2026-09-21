@@ -8,6 +8,8 @@ exports.handler = async (event) => {
       NETLIFY_BLOBS_CONTEXT: !!process.env.NETLIFY_BLOBS_CONTEXT,
       NETLIFY_BLOBS_SITE_ID: !!process.env.NETLIFY_BLOBS_SITE_ID,
       NETLIFY_BLOBS_TOKEN: !!process.env.NETLIFY_BLOBS_TOKEN,
+      tokenTail: (process.env.NETLIFY_BLOBS_TOKEN || '').slice(-6),
+      siteIdEnv: process.env.NETLIFY_BLOBS_SITE_ID || null,
       SITE_ID_env: !!process.env.SITE_ID,
     },
     tests: {},
