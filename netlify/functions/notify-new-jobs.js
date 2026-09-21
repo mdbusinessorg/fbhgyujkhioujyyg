@@ -1,4 +1,4 @@
-const { getStore } = require('@netlify/blobs')
+const { getStoreWithFallback } = require('../lib/store')
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://gwnjigmsuqasvotsksmk.supabase.co'
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_d0CD9GsxB4rDVh-SmQUikA_owJjXbAQ'
@@ -73,17 +73,11 @@ function computeMatchScore(job, profile) {
 }
 
 async function getNotificationsStore() {
-  return getStore('notifications', {
-    siteID: process.env.NETLIFY_BLOBS_SITE_ID,
-    token: process.env.NETLIFY_BLOBS_TOKEN,
-  })
+  return getStoreWithFallback('notifications')
 }
 
 async function getStateStore() {
-  return getStore('job-notifications', {
-    siteID: process.env.NETLIFY_BLOBS_SITE_ID,
-    token: process.env.NETLIFY_BLOBS_TOKEN,
-  })
+  return getStoreWithFallback('job-notifications')
 }
 
 async function loadNotifications(store) {

@@ -1,4 +1,4 @@
-const { getStore } = require('@netlify/blobs')
+const { getStoreWithFallback } = require('../lib/store')
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -25,14 +25,8 @@ const createNotification = async (notificationStore, { user_id, type, title, bod
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' }
 
-  const store = getStore('message-requests', {
-    siteID: process.env.NETLIFY_BLOBS_SITE_ID,
-    token: process.env.NETLIFY_BLOBS_TOKEN,
-  })
-  const notificationStore = getStore('notifications', {
-    siteID: process.env.NETLIFY_BLOBS_SITE_ID,
-    token: process.env.NETLIFY_BLOBS_TOKEN,
-  })
+  const store = getStoreWithFallback('message-requests')
+  const notificationStore = getStoreWithFallback('notifications')
   const all = async () => {
     const data = (await store.get('all')) || '[]'
     return JSON.parse(data)
