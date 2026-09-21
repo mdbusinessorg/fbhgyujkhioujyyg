@@ -15,6 +15,8 @@ interface FeedCardProps {
   currentUser?: { id: string; nome: string; role: string; avatar_url?: string | null } | null
   onDelete?: (id: string) => void
   onUpdate?: (post: Post) => void
+  isFollowing?: boolean
+  onFollow?: (authorId: string) => void
 }
 
 const REACTIONS = [
@@ -87,7 +89,7 @@ function ReactionButton({
   )
 }
 
-export default function FeedCard({ post, currentUser, onDelete, onUpdate }: FeedCardProps) {
+export default function FeedCard({ post, currentUser, onDelete, onUpdate, isFollowing, onFollow }: FeedCardProps) {
   const router = useRouter()
   const [commentsOpen, setCommentsOpen] = useState(false)
   const [comments, setComments] = useState<PostComment[]>(post.comments || [])
@@ -160,6 +162,14 @@ export default function FeedCard({ post, currentUser, onDelete, onUpdate }: Feed
             <ProfileAvatar url={post.author.avatar_url} name={post.author.nome} size={48} />
             <AuthorLine author={post.author} isVerified={post.is_verified} timestamp={post.created_at} />
           </Link>
+          {onFollow && currentUser?.id !== post.user_id && (
+            <button
+              onClick={(e) => { e.preventDefault(); onFollow(post.user_id) }}
+              className={`flex-shrink-0 text-[11px] font-bold px-3 py-1.5 rounded-full transition-all ${isFollowing ? 'bg-ms-surface text-ms-gray border border-ms-border' : 'bg-ms-blue text-white hover:brightness-105 active:scale-95'}`}
+            >
+              {isFollowing ? 'A seguir' : '+ Seguir'}
+            </button>
+          )}
           {currentUser?.id === post.user_id && onDelete && (
             <div className="relative">
               <button onClick={() => setMenuOpen(v => !v)} className="text-ms-gray hover:text-ms-dark w-8 h-8 rounded-full bg-ms-surface flex items-center justify-center transition-colors"><MoreHorizontal size={18} /></button>
@@ -204,6 +214,19 @@ export default function FeedCard({ post, currentUser, onDelete, onUpdate }: Feed
           </div>
         </div>
       )}
+
+      {(() => {
+        const totalReactions = Object.values(reactionCounts).reduce((a, b) => a + (b || 0), 0)
+        const totalComments = comments.length || post.comments_count || 0
+        if (!totalReactions && !totalComments) return null
+        return (
+          <p className="px-4 pb-1 text-[11px] text-ms-gray">
+            {totalReactions > 0 && <>{totalReactions} {totalReactions === 1 ? 'reação' : 'reações'}</>}
+            {totalReactions > 0 && totalComments > 0 && ' · '}
+            {totalComments > 0 && <>{totalComments} {totalComments === 1 ? 'comentário' : 'comentários'}</>}
+          </p>
+        )
+      })()}
 
       <div className="px-4 py-3 border-t border-ms-border/50 flex items-center justify-between text-ms-gray">
         <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
