@@ -63,7 +63,7 @@ export default function VagasPage() {
   const [showFilters, setShowFilters] = useState(false)
   const [onlyToday, setOnlyToday] = useState(false)
   const [hideOld, setHideOld] = useState(false)
-  const [source, setSource] = useState<'mosalo' | 'externas'>('mosalo')
+  const [source, setSource] = useState<'mosalo' | 'externas'>('externas')
   const [allExternal, setAllExternal] = useState<any[]>([])
   const [extLoaded, setExtLoaded] = useState(false)
   const [extPage, setExtPage] = useState(1)
@@ -398,16 +398,16 @@ export default function VagasPage() {
         {/* Source toggle: MÔ SALO vs External (CareerJet) */}
         <div className="flex gap-2 mb-4 bg-ms-surface rounded-xl p-1">
           <button
+            onClick={() => setSource('externas')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-colors ${source === 'externas' ? 'bg-white text-ms-blue shadow-sm' : 'text-ms-gray'}`}
+          >
+            <Globe size={14} /> Vagas
+          </button>
+          <button
             onClick={() => setSource('mosalo')}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-colors ${source === 'mosalo' ? 'bg-white text-ms-blue shadow-sm' : 'text-ms-gray'}`}
           >
             <Briefcase size={14} /> MÔ SALO
-          </button>
-          <button
-            onClick={() => setSource('externas')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-colors ${source === 'externas' ? 'bg-white text-ms-blue shadow-sm' : 'text-ms-gray'}`}
-          >
-            <Globe size={14} /> Vagas Externas
           </button>
         </div>
 
@@ -495,8 +495,8 @@ export default function VagasPage() {
               <h2 className="text-sm font-semibold text-ms-dark">Vagas Recentes <span className="text-xs font-normal text-ms-gray">(últimas 60h)</span></h2>
             </div>
             <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
-              {recentVagas.map(v => <JobCard key={v.id} v={v} variant="recent" />)}
               {recentExternal.slice(0, 10).map(j => <ExternalJobCard key={j.id} j={j} variant="recent" />)}
+              {recentVagas.map(v => <JobCard key={v.id} v={v} variant="recent" />)}
             </div>
           </section>
         )}
