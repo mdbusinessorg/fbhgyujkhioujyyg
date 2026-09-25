@@ -541,6 +541,50 @@ export default function HomePage() {
         </div>
       )}
 
+      {/* Desktop top nav — estilo Facebook */}
+      <header className="hidden lg:block sticky top-0 bg-white z-50 border-b border-ms-border shadow-sm">
+        <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-2 gap-4">
+          <Link href="/" className="flex items-center flex-shrink-0">
+            <Logo variant="full" className="h-8 w-auto" />
+          </Link>
+          <nav className="flex items-center gap-0.5 overflow-x-auto no-scrollbar scrollbar-hide">
+            {desktopNav.map((item) => {
+              const Icon = item.icon
+              return (
+                <Link key={item.key} href={item.href} className={`flex flex-col items-center justify-center gap-0.5 min-w-[64px] py-1.5 px-2 rounded-lg hover:bg-ms-surface flex-shrink-0 ${item.accent ? 'text-ms-blue' : 'text-ms-dark'}`}>
+                  <Icon size={19} />
+                  <span className="text-[10px] font-medium whitespace-nowrap">{item.label}</span>
+                </Link>
+              )
+            })}
+          </nav>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="relative">
+              <button onClick={() => setShowNotif(!showNotif)} className="w-9 h-9 bg-ms-surface border border-ms-border rounded-full flex items-center justify-center relative hover:bg-ms-border" aria-label="Notificações">
+                <Bell size={18} className="text-ms-dark" />
+                {notifications.length > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />}
+              </button>
+              {showNotif && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowNotif(false)} />
+                  <NotificationDropdown />
+                </>
+              )}
+            </div>
+            {isLoggedIn ? (
+              <button onClick={handleLogout} title="Terminar Sessão" aria-label="Terminar Sessão" className="w-9 h-9 bg-ms-surface border border-ms-border rounded-full flex items-center justify-center hover:bg-red-50 hover:border-red-200">
+                <LogOut size={18} className="text-ms-red" />
+              </button>
+            ) : (
+              <>
+                <Link href="/auth/login/" className="text-xs font-bold text-ms-blue border border-ms-blue rounded-xl px-4 py-2 hover:bg-ms-blue/5">Entrar</Link>
+                <Link href="/auth/registar/" className="text-xs font-bold text-white bg-ms-blue rounded-xl px-4 py-2 hover:bg-blue-700">Criar Conta</Link>
+              </>
+            )}
+          </div>
+        </div>
+      </header>
+
       {/* Top header — estilo Facebook: navegação sempre visível */}
       <header className="sticky top-0 bg-white z-50 shadow-sm lg:hidden">
         <div className="max-w-3xl mx-auto flex items-center justify-between px-4 py-2.5">
@@ -994,50 +1038,6 @@ export default function HomePage() {
         </div>
         </div>
       </main>
-
-      {/* Desktop top nav — estilo Facebook */}
-      <header className="hidden lg:block sticky top-0 bg-white z-50 border-b border-ms-border shadow-sm">
-        <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-2 gap-4">
-          <Link href="/" className="flex items-center flex-shrink-0">
-            <Logo variant="full" className="h-8 w-auto" />
-          </Link>
-          <nav className="flex items-center gap-0.5 overflow-x-auto no-scrollbar scrollbar-hide">
-            {desktopNav.map((item) => {
-              const Icon = item.icon
-              return (
-                <Link key={item.key} href={item.href} className={`flex flex-col items-center justify-center gap-0.5 min-w-[64px] py-1.5 px-2 rounded-lg hover:bg-ms-surface flex-shrink-0 ${item.accent ? 'text-ms-blue' : 'text-ms-dark'}`}>
-                  <Icon size={19} />
-                  <span className="text-[10px] font-medium whitespace-nowrap">{item.label}</span>
-                </Link>
-              )
-            })}
-          </nav>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <div className="relative">
-              <button onClick={() => setShowNotif(!showNotif)} className="w-9 h-9 bg-ms-surface border border-ms-border rounded-full flex items-center justify-center relative hover:bg-ms-border" aria-label="Notificações">
-                <Bell size={18} className="text-ms-dark" />
-                {notifications.length > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />}
-              </button>
-              {showNotif && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowNotif(false)} />
-                  <NotificationDropdown />
-                </>
-              )}
-            </div>
-            {isLoggedIn ? (
-              <button onClick={handleLogout} title="Terminar Sessão" aria-label="Terminar Sessão" className="w-9 h-9 bg-ms-surface border border-ms-border rounded-full flex items-center justify-center hover:bg-red-50 hover:border-red-200">
-                <LogOut size={18} className="text-ms-red" />
-              </button>
-            ) : (
-              <>
-                <Link href="/auth/login/" className="text-xs font-bold text-ms-blue border border-ms-blue rounded-xl px-4 py-2 hover:bg-ms-blue/5">Entrar</Link>
-                <Link href="/auth/registar/" className="text-xs font-bold text-white bg-ms-blue rounded-xl px-4 py-2 hover:bg-blue-700">Criar Conta</Link>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
 
       <InstallPWA />
     </div>
