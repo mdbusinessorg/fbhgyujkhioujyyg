@@ -69,9 +69,24 @@ function computeMatchScore(job, profile) {
   if (profile.bio && text.includes(normalize(profile.bio))) score += 5
 
   if (job.salario || job.salary) score += 5
+  if (job.apply_url || job.has_apply) score += 5
   if (job.is_prioritaria) score += 15
 
   return Math.min(score, 100)
+}
+
+function jobKey(job) {
+  return normalize(`${job.titulo || job.title || ''}|${job.empresa || job.company || ''}`)
+}
+
+function selectJobsForProfile(newJobs, profile, limit = 4) {
+  const seen = new Set()
+  return newJobs
+    .map((job) => ({ job, score: computeMatchScore(job, profile) }))
+    .filter((s) => s.score >= 25 && !seen.has(jobKey(s.job)) && (seen.add(jobKey(s.job)), true))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((s) => ({ ...s, job: { ...s.job, _match: s.score } }))
 }
 
 async function getNotificationsStore() {
@@ -148,11 +163,7 @@ exports.handler = async (event) => {
     const emailsToSend = []
 
     for (const profile of profiles) {
-      const scored = newJobs
-        .map((job) => ({ job, score: computeMatchScore(job, profile) }))
-        .filter((s) => s.score >= 25)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 3)
+      const scored = selectJobsForProfile(newJobs, profile, 4)
 
       if (scored.length === 0) continue
 
