@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
-import { ArrowLeft, Heart, MapPin, Send, Upload, MessageSquare, MessageCircle, LogIn } from 'lucide-react'
+import { ArrowLeft, MapPin, Send, Upload, MessageSquare, MessageCircle, LogIn } from 'lucide-react'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import Logo from '@/components/Logo'
 
@@ -130,13 +130,15 @@ function VagaDetalheContent() {
       {/* Top Nav */}
       <header className="sticky top-0 bg-white border-b border-ms-border z-50 px-4 py-3">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <button onClick={() => router.back()}>
+          <Link href="/vagas/" aria-label="Voltar às vagas">
             <ArrowLeft size={20} className="text-ms-dark" />
-          </button>
-          <Logo variant="full" className="h-8 w-auto" />
-          <button>
-            <Heart size={20} className="text-ms-gray" />
-          </button>
+          </Link>
+          <Link href="/" aria-label="MÔ SALO — página inicial">
+            <Logo variant="full" className="h-8 w-auto" />
+          </Link>
+          <Link href="/vagas/" className="text-ms-blue text-xs font-bold">
+            Vagas
+          </Link>
         </div>
       </header>
 
