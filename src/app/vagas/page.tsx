@@ -299,13 +299,6 @@ export default function VagasPage() {
               <span className="inline-flex items-center gap-1 text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">NOVA</span>
             </div>
           )}
-          <button
-            onClick={(e) => shareJob(e, `/vagas/detalhe/?id=${v.id}`, v.titulo)}
-            className="absolute bottom-2 right-2 inline-flex items-center gap-1 text-[10px] text-ms-gray hover:text-ms-blue bg-white/80 border border-ms-border rounded-full px-2 py-1"
-            aria-label="Partilhar vaga"
-          >
-            {sharedId === `/vagas/detalhe/?id=${v.id}` ? <><Check size={11} className="text-green-600" /> Copiado</> : <><Share2 size={11} /> Partilhar</>}
-          </button>
           <div className="flex items-start gap-3">
             <CompanyLogo company={v.empresa_nome} size={40} rounded="rounded-full" className="border border-ms-border" />
             <div className="flex-1 min-w-0 pr-16">
@@ -334,7 +327,16 @@ export default function VagasPage() {
               </div>
               <div className="flex items-center justify-between mt-2">
                 <span className="text-[11px] text-ms-gray">{getTimeAgo(v.created_at)}</span>
-                <span className="text-[11px] font-medium text-ms-blue bg-ms-blue/10 px-3 py-1 rounded-full">Candidatar</span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={(e) => shareJob(e, `/vagas/detalhe/?id=${v.id}`, v.titulo)}
+                    className="inline-flex items-center gap-1 text-[10px] text-ms-gray hover:text-ms-blue border border-ms-border rounded-full px-2 py-1"
+                    aria-label="Partilhar vaga"
+                  >
+                    {sharedId === `/vagas/detalhe/?id=${v.id}` ? <><Check size={11} className="text-green-600" /> Copiado</> : <><Share2 size={11} /> Partilhar</>}
+                  </button>
+                  <span className="text-[11px] font-medium text-ms-blue bg-ms-blue/10 px-3 py-1 rounded-full">Candidatar</span>
+                </div>
               </div>
             </div>
           </div>
@@ -353,13 +355,7 @@ export default function VagasPage() {
               <span className="inline-flex items-center gap-1 text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">NOVA</span>
             </div>
           )}
-          <button
-            onClick={(e) => shareJob(e, `/vagas/externa/?id=${j.id}`, j.title)}
-            className="absolute bottom-2 right-2 inline-flex items-center gap-1 text-[10px] text-ms-gray hover:text-ms-blue bg-white/90 border border-ms-border rounded-full px-2 py-1 z-10"
-            aria-label="Partilhar vaga"
-          >
-            {sharedId === `/vagas/externa/?id=${j.id}` ? <><Check size={11} className="text-green-600" /> Copiado</> : <><Share2 size={11} /> Partilhar</>}
-          </button>
+
           <div className="flex items-start gap-3">
             <CompanyLogo company={j.company} logoUrl={j.logo_url} size={40} rounded="rounded-lg" className="border border-ms-border" />
             <div className="flex-1 min-w-0">
@@ -383,7 +379,16 @@ export default function VagasPage() {
               </p>
               <div className="flex items-center justify-between mt-2">
                 <span className="text-[11px] text-ms-gray">{getTimeAgo(j.first_seen_at || j.posted_at)}</span>
-                <span className="text-[11px] font-medium text-ms-blue bg-ms-blue/10 px-3 py-1 rounded-full">Candidatar-se</span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={(e) => shareJob(e, `/vagas/externa/?id=${j.id}`, j.title)}
+                    className="inline-flex items-center gap-1 text-[10px] text-ms-gray hover:text-ms-blue border border-ms-border rounded-full px-2 py-1"
+                    aria-label="Partilhar vaga"
+                  >
+                    {sharedId === `/vagas/externa/?id=${j.id}` ? <><Check size={11} className="text-green-600" /> Copiado</> : <><Share2 size={11} /> Partilhar</>}
+                  </button>
+                  <span className="text-[11px] font-medium text-ms-blue bg-ms-blue/10 px-3 py-1 rounded-full">Candidatar-se</span>
+                </div>
               </div>
             </div>
           </div>
