@@ -11,7 +11,7 @@ import {
   Search, SlidersHorizontal, Heart, Bell, Menu, X, Briefcase, Home as HomeIcon, User, LogOut, FileText,
   Settings, MapPin, Monitor, Banknote, Stethoscope, Megaphone, Scale, GraduationCap, HardHat, Wrench,
   MessageSquare, Zap, Users, Clock, ChevronDown, Newspaper, BookOpen, HeartHandshake, MessageCircle,
-  Sparkles, Bookmark, BadgeCheck, Upload
+  Sparkles, Bookmark, BadgeCheck, Upload, LogIn
 } from 'lucide-react'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import InstallPWA from '@/components/InstallPWA'
@@ -479,6 +479,24 @@ export default function HomePage() {
     </div>
   )
 
+  const mobileTopNav = [
+    { key: 'home', label: 'Início', href: '/', icon: HomeIcon },
+    { key: 'vagas', label: 'Vagas', href: '/vagas/', icon: Search },
+    { key: 'rapido', label: 'Rápido', href: '/trabalho-rapido/', icon: Zap, accent: true },
+    { key: 'anuncios', label: 'Anunciar', href: '/anuncios/', icon: Megaphone },
+    { key: 'pessoas', label: 'Pessoas', href: '/pessoas/', icon: Users },
+    { key: 'mensagens', label: 'Mensagens', href: '/mensagens/', icon: MessageSquare },
+    ...(isLoggedIn
+      ? [
+          { key: 'dashboard', label: 'Dashboard', href: `/dashboard/${userRole}/`, icon: Briefcase },
+          { key: 'perfil', label: 'Perfil', href: `/dashboard/${userRole}/?tab=perfil`, icon: User },
+        ]
+      : [
+          { key: 'entrar', label: 'Entrar', href: '/auth/login/', icon: LogIn },
+          { key: 'conta', label: 'Criar Conta', href: '/auth/registar/', icon: FileText },
+        ]),
+  ]
+
   const bottomNav = [
     { key: 'home', label: 'Início', href: '/', icon: HomeIcon },
     { key: 'vagas', label: 'Vagas', href: '/vagas/', icon: Search },
@@ -530,10 +548,10 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Top header */}
-      <header className="sticky top-0 bg-white z-50 px-4 py-3 shadow-sm lg:hidden">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <button className="p-1 -ml-2" onClick={() => setShowMenu(true)}><Menu size={22} className="text-ms-dark" /></button>
+      {/* Top header — estilo Facebook: navegação sempre visível */}
+      <header className="sticky top-0 bg-white z-50 shadow-sm lg:hidden">
+        <div className="max-w-3xl mx-auto flex items-center justify-between px-4 py-2.5">
+          <button className="p-1 -ml-2" onClick={() => setShowMenu(true)} aria-label="Menu completo"><Menu size={22} className="text-ms-dark" /></button>
           <Link href="/" className="flex items-center">
             <Logo variant="full" className="h-8 w-auto" />
           </Link>
@@ -550,6 +568,17 @@ export default function HomePage() {
             )}
           </div>
         </div>
+        <nav className="flex items-center gap-1 overflow-x-auto px-3 pb-1.5 no-scrollbar scrollbar-hide border-t border-ms-border/60">
+          {mobileTopNav.map((item) => {
+            const Icon = item.icon
+            return (
+              <Link key={item.key} href={item.href} className={`flex flex-col items-center justify-center gap-0.5 min-w-[54px] py-1.5 px-1 rounded-lg flex-shrink-0 active:bg-ms-surface ${item.accent ? 'text-ms-blue' : 'text-ms-dark'}`}>
+                <Icon size={19} />
+                <span className="text-[9px] font-medium whitespace-nowrap">{item.label}</span>
+              </Link>
+            )
+          })}
+        </nav>
       </header>
 
       <main className="max-w-3xl lg:max-w-6xl mx-auto px-4 pt-4 lg:pt-6">
