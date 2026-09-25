@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
-import { useRouter, usePathname } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
 import { parseCV } from '@/lib/ai'
 import { sortByMatch } from '@/lib/match'
@@ -68,7 +68,6 @@ const stripHtml = (html?: string) => (html || '').replace(/<[^>]*>/g, '').trim()
 export default function HomePage() {
   const { config } = useSiteConfig()
   const router = useRouter()
-  const pathname = usePathname()
   const [searchQuery, setSearchQuery] = useState('')
   const [searchLoc, setSearchLoc] = useState('')
   const [searchNivel, setSearchNivel] = useState('')
@@ -497,16 +496,10 @@ export default function HomePage() {
         ]),
   ]
 
-  const bottomNav = [
-    { key: 'home', label: 'Início', href: '/', icon: HomeIcon },
-    { key: 'vagas', label: 'Vagas', href: '/vagas/', icon: Search },
-    { key: 'candidaturas', label: 'Candidaturas', href: isLoggedIn ? `/dashboard/${userRole}/?tab=candidaturas` : '/auth/login/', icon: FileText },
-    { key: 'mensagens', label: 'Mensagens', href: '/mensagens/', icon: MessageSquare },
-    { key: 'perfil', label: 'Perfil', href: isLoggedIn ? `/dashboard/${userRole}/?tab=perfil` : '/auth/login/', icon: User },
-  ]
+  const desktopNav = mobileTopNav.filter(item => !['entrar', 'conta'].includes(item.key))
 
   return (
-    <div className="min-h-screen bg-ms-surface pb-24 lg:pb-0 lg:pl-60">
+    <div className="min-h-screen bg-ms-surface pb-8">
       {/* Mobile Menu Overlay */}
       {showMenu && (
         <div className="fixed inset-0 z-[60] lg:hidden">
@@ -593,18 +586,6 @@ export default function HomePage() {
               <span className="mx-1.5 text-ms-border">·</span>
               <span className="font-semibold text-ms-blue">{heroStats.novas}</span> novas esta semana
             </p>
-          </div>
-          <div className="relative hidden lg:block">
-            <button onClick={() => setShowNotif(!showNotif)} className="w-10 h-10 bg-white border border-ms-border rounded-full flex items-center justify-center relative hover:bg-ms-surface">
-              <Bell size={20} className="text-ms-dark" />
-              {notifications.length > 0 && <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full" />}
-            </button>
-            {showNotif && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowNotif(false)} />
-                <NotificationDropdown />
-              </>
-            )}
           </div>
         </div>
 
@@ -1014,60 +995,49 @@ export default function HomePage() {
         </div>
       </main>
 
-      {/* Bottom Nav (mobile) */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-ms-border z-50 lg:hidden">
-        <div className="flex items-center justify-around py-2 px-2 max-w-md mx-auto">
-          {bottomNav.map(item => {
-            const Icon = item.icon
-            const active = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href.replace(/\?.*$/, '')))
-            return (
-              <Link key={item.key} href={item.href} className="flex flex-col items-center gap-0.5 py-1 px-2 min-w-[56px]">
-                <Icon size={22} className={active ? 'text-ms-blue' : 'text-gray-400'} />
-                <span className={`text-[10px] ${active ? 'text-ms-blue font-medium' : 'text-gray-400'}`}>{item.label}</span>
-              </Link>
-            )
-          })}
-        </div>
-      </nav>
-
-      {/* Desktop sidebar */}
-      <aside className="hidden lg:flex lg:flex-col w-60 h-screen fixed left-0 top-0 bg-white border-r border-ms-border z-40">
-        <div className="p-6 border-b border-ms-border">
-          <Link href="/" className="flex items-center gap-2">
-            <Logo iconClassName="h-8 w-8" textClassName="text-ms-blue" />
+      {/* Desktop top nav — estilo Facebook */}
+      <header className="hidden lg:block sticky top-0 bg-white z-50 border-b border-ms-border shadow-sm">
+        <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-2 gap-4">
+          <Link href="/" className="flex items-center flex-shrink-0">
+            <Logo variant="full" className="h-8 w-auto" />
           </Link>
+          <nav className="flex items-center gap-0.5 overflow-x-auto no-scrollbar scrollbar-hide">
+            {desktopNav.map((item) => {
+              const Icon = item.icon
+              return (
+                <Link key={item.key} href={item.href} className={`flex flex-col items-center justify-center gap-0.5 min-w-[64px] py-1.5 px-2 rounded-lg hover:bg-ms-surface flex-shrink-0 ${item.accent ? 'text-ms-blue' : 'text-ms-dark'}`}>
+                  <Icon size={19} />
+                  <span className="text-[10px] font-medium whitespace-nowrap">{item.label}</span>
+                </Link>
+              )
+            })}
+          </nav>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="relative">
+              <button onClick={() => setShowNotif(!showNotif)} className="w-9 h-9 bg-ms-surface border border-ms-border rounded-full flex items-center justify-center relative hover:bg-ms-border" aria-label="Notificações">
+                <Bell size={18} className="text-ms-dark" />
+                {notifications.length > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />}
+              </button>
+              {showNotif && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowNotif(false)} />
+                  <NotificationDropdown />
+                </>
+              )}
+            </div>
+            {isLoggedIn ? (
+              <button onClick={handleLogout} title="Terminar Sessão" aria-label="Terminar Sessão" className="w-9 h-9 bg-ms-surface border border-ms-border rounded-full flex items-center justify-center hover:bg-red-50 hover:border-red-200">
+                <LogOut size={18} className="text-ms-red" />
+              </button>
+            ) : (
+              <>
+                <Link href="/auth/login/" className="text-xs font-bold text-ms-blue border border-ms-blue rounded-xl px-4 py-2 hover:bg-ms-blue/5">Entrar</Link>
+                <Link href="/auth/registar/" className="text-xs font-bold text-white bg-ms-blue rounded-xl px-4 py-2 hover:bg-blue-700">Criar Conta</Link>
+              </>
+            )}
+          </div>
         </div>
-        {isLoggedIn && (
-          <div className="px-6 py-4 border-b border-ms-border">
-            <p className="text-sm font-medium text-ms-dark">{userName || 'Utilizador'}</p>
-            <p className="text-xs text-ms-gray capitalize">{userRole}</p>
-          </div>
-        )}
-        <nav className="flex-1 py-4 px-3">
-          <Link href="/" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium bg-ms-purple-light text-ms-purple mb-1"><HomeIcon size={18} /> Início</Link>
-          <Link href="/vagas/" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface mb-1"><Search size={18} /> Pesquisar</Link>
-          <Link href="/trabalho-rapido/" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-orange-500 hover:bg-orange-50 mb-1"><Zap size={18} /> Trabalho Rápido</Link>
-          <Link href="/anuncios/" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface mb-1"><Megaphone size={18} /> Anunciar</Link>
-          {isLoggedIn ? (
-            <>
-              <Link href={`/dashboard/${userRole}/`} className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface mb-1"><Briefcase size={18} /> Dashboard</Link>
-              <Link href={`/dashboard/${userRole}/?tab=perfil`} className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface mb-1"><User size={18} /> Perfil</Link>
-              <Link href="/pessoas/" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface mb-1"><Users size={18} /> Pessoas</Link>
-              <Link href="/mensagens/" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface mb-1"><MessageSquare size={18} /> Mensagens</Link>
-            </>
-          ) : (
-            <>
-              <Link href="/auth/login/" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface mb-1"><User size={18} /> Entrar</Link>
-              <Link href="/auth/registar/" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-ms-gray hover:bg-ms-surface mb-1"><FileText size={18} /> Registar</Link>
-            </>
-          )}
-        </nav>
-        {isLoggedIn && (
-          <div className="p-4 border-t border-ms-border">
-            <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-ms-red hover:bg-red-50 transition-colors"><LogOut size={18} /> Terminar Sessão</button>
-          </div>
-        )}
-      </aside>
+      </header>
 
       <InstallPWA />
     </div>
