@@ -246,9 +246,11 @@ export default function VagasPage() {
   const sortedExternal = sortByMatch(filteredExternal, profile)
 
   const uniqueLocations = useMemo(() => {
+    const counts = new Map<string, number>()
+    vagas.forEach(v => { if (v.localizacao) counts.set(v.localizacao, (counts.get(v.localizacao) || 0) + 1) })
+    allExternal.forEach(j => { if (j.location) counts.set(j.location, (counts.get(j.location) || 0) + 1) })
     const locs = new Set<string>(DEFAULT_LOCATIONS)
-    vagas.forEach(v => { if (v.localizacao) locs.add(v.localizacao) })
-    allExternal.forEach(j => { if (j.location) locs.add(j.location) })
+    counts.forEach((n, loc) => { if (n >= 8 && loc.length <= 22) locs.add(loc) })
     return Array.from(locs).sort()
   }, [vagas, allExternal])
 
