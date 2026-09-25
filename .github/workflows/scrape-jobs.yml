@@ -2,7 +2,7 @@ name: Atualizar vagas de Angola
 
 on:
   schedule:
-    - cron: '0 */3 * * *'  # a cada 3h para não perder vagas do mesmo dia
+    - cron: '15,45 * * * *'  # duas vezes por hora, 24/7, para apanhar vagas do mesmo dia
   workflow_dispatch:
     inputs:
       max_pages:
@@ -41,17 +41,21 @@ jobs:
         run: npm ci --no-audit --no-fund
 
       - name: Recolher vagas (angolaemprego.com)
+        continue-on-error: true
         env:
           MAX_PAGES: ${{ github.event.inputs.max_pages || '50' }}
           CONCURRENCY: '4'
+          MAX_AGE_DAYS: '90'
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GROQ_API_KEY_FALLBACK: ${{ secrets.GROQ_API_KEY_FALLBACK }}
         run: |
           node scripts/ingest-angolaemprego.mjs --json
 
       - name: Recolher vagas via RSS (same-day)
+        continue-on-error: true
         env:
           CONCURRENCY: '4'
+          MAX_AGE_DAYS: '90'
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GROQ_API_KEY_FALLBACK: ${{ secrets.GROQ_API_KEY_FALLBACK }}
         run: |
@@ -62,6 +66,7 @@ jobs:
         env:
           CAREERJET_API_KEY: ${{ secrets.CAREERJET_API_KEY }}
           CAREERJET_REFERER: 'https://mosalo.eu.cc/'
+          MAX_AGE_DAYS: '90'
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GROQ_API_KEY_FALLBACK: ${{ secrets.GROQ_API_KEY_FALLBACK }}
         run: |
@@ -70,8 +75,9 @@ jobs:
       - name: Recolher vagas do Jobartis
         continue-on-error: true
         env:
-          MAX_PAGES: '5'
+          MAX_PAGES: '15'
           CONCURRENCY: '2'
+          MAX_AGE_DAYS: '90'
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GROQ_API_KEY_FALLBACK: ${{ secrets.GROQ_API_KEY_FALLBACK }}
         run: |
@@ -80,8 +86,9 @@ jobs:
       - name: Recolher vagas do Ango Emprego
         continue-on-error: true
         env:
-          MAX_JOBS: '300'
+          MAX_JOBS: '500'
           CONCURRENCY: '4'
+          MAX_AGE_DAYS: '90'
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GROQ_API_KEY_FALLBACK: ${{ secrets.GROQ_API_KEY_FALLBACK }}
         run: |
@@ -90,8 +97,9 @@ jobs:
       - name: Recolher vagas do Empregos Yoyota
         continue-on-error: true
         env:
-          MAX_JOBS: '300'
+          MAX_JOBS: '500'
           CONCURRENCY: '4'
+          MAX_AGE_DAYS: '90'
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GROQ_API_KEY_FALLBACK: ${{ secrets.GROQ_API_KEY_FALLBACK }}
         run: |
