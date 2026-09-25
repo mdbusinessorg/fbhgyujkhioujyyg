@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { ArrowLeft, MapPin, Clock, Linkedin, Send, MessageCircle, LogIn, Mail, Sparkles } from 'lucide-react'
+import { ArrowLeft, MapPin, Clock, Linkedin, Send, MessageCircle, LogIn, Mail, Sparkles, Share2, Check } from 'lucide-react'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import Logo from '@/components/Logo'
 
@@ -17,6 +17,18 @@ function ExternaContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [candidate, setCandidate] = useState<any>(null)
   const [preparingEmail, setPreparingEmail] = useState(false)
+  const [linkCopied, setLinkCopied] = useState(false)
+
+  const shareJob = () => {
+    const url = window.location.href
+    if (navigator.share) {
+      navigator.share({ title: job?.title || 'Vaga', url }).catch(() => {})
+    } else if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).catch(() => {})
+    }
+    setLinkCopied(true)
+    setTimeout(() => setLinkCopied(false), 2000)
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -145,6 +157,30 @@ function ExternaContent() {
               <span className="text-[11px] font-medium text-green-700 bg-green-50 px-3 py-1 rounded-full">{job.salary}</span>
             )}
           </div>
+          <button
+            onClick={shareJob}
+            className="inline-flex items-center gap-1.5 mt-3 text-xs font-medium text-ms-gray border border-ms-border rounded-full px-3 py-1.5 hover:text-ms-blue hover:border-ms-blue"
+          >
+            {linkCopied ? <><Check size={13} className="text-green-600" /> Link copiado</> : <><Share2 size={13} /> Partilhar</>}
+          </button>
+        </div>
+
+        {/* Grelha de especificações (estilo Mirantes) */}
+        <div className="bg-ms-surface rounded-2xl p-4 mb-6 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
+          {job.location && (
+            <div><p className="text-[10px] text-ms-gray uppercase tracking-wide">Localização</p><p className="text-xs font-medium text-ms-dark mt-0.5">{job.location}</p></div>
+          )}
+          {job.tipo_contrato && (
+            <div><p className="text-[10px] text-ms-gray uppercase tracking-wide">Tipo de contrato</p><p className="text-xs font-medium text-ms-dark mt-0.5">{job.tipo_contrato}</p></div>
+          )}
+          {job.modalidade && (
+            <div><p className="text-[10px] text-ms-gray uppercase tracking-wide">Modalidade</p><p className="text-xs font-medium text-ms-dark mt-0.5">{job.modalidade}</p></div>
+          )}
+          {job.category && job.category !== 'Outro' && (
+            <div><p className="text-[10px] text-ms-gray uppercase tracking-wide">Categoria</p><p className="text-xs font-medium text-ms-dark mt-0.5">{job.category}</p></div>
+          )}
+          <div><p className="text-[10px] text-ms-gray uppercase tracking-wide">Salário</p><p className="text-xs font-medium text-ms-dark mt-0.5">{job.salary || 'Não especificado'}</p></div>
+          <div><p className="text-[10px] text-ms-gray uppercase tracking-wide">Candidatura</p><p className="text-xs font-medium text-ms-dark mt-0.5">{isMailtoApply ? 'E-mail' : job.apply_url ? 'Site oficial' : 'Ver descrição'}</p></div>
         </div>
 
         {job.description && (
@@ -182,8 +218,8 @@ function ExternaContent() {
           </div>
         )}
 
-        <p className="text-[11px] text-ms-gray text-center mb-2">
-          {isMailtoApply ? 'Candidatura por email diretamente ao recrutador.' : 'Candidatura no site oficial da empresa / recrutador.'}
+        <p className="inline-flex items-center gap-1.5 text-[11px] text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mb-2">
+          {isMailtoApply ? 'Vaga externa — a tua candidatura vai por e-mail directamente ao recrutador.' : 'Vaga externa — a tua candidatura é feita no site oficial da empresa / recrutador.'}
         </p>
       </main>
 

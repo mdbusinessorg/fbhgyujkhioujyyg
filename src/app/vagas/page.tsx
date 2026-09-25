@@ -3,10 +3,10 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { Search, SlidersHorizontal, Heart, Briefcase, ArrowLeft, Home as HomeIcon, User, Star, MapPin, Globe, Building2, X, Filter, ChevronDown, MessageCircle, LogIn } from 'lucide-react'
+import { Search, SlidersHorizontal, Heart, Briefcase, ArrowLeft, Home as HomeIcon, User, Star, MapPin, Globe, Building2, X, Filter, ChevronDown, MessageCircle, LogIn, Check, Share2, Info } from 'lucide-react'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import Logo from '@/components/Logo'
-import { sortByMatch } from '@/lib/match'
+import { sortByMatch, computeJobMatchScore } from '@/lib/match'
 
 const EXT_PAGE_SIZE = 20
 const THREE_WEEKS = 21 * 24 * 60 * 60 * 1000
@@ -63,6 +63,9 @@ export default function VagasPage() {
   const [showFilters, setShowFilters] = useState(false)
   const [onlyToday, setOnlyToday] = useState(false)
   const [hideOld, setHideOld] = useState(false)
+  const [onlyApply, setOnlyApply] = useState(false)
+  const [onlySalary, setOnlySalary] = useState(false)
+  const [sharedId, setSharedId] = useState('')
   const [source, setSource] = useState<'mosalo' | 'externas'>('externas')
   const [allExternal, setAllExternal] = useState<any[]>([])
   const [extLoaded, setExtLoaded] = useState(false)
@@ -180,6 +183,31 @@ export default function VagasPage() {
     return null
   }
 
+  const normalizeContract = (raw: string | null | undefined, text: string) => {
+    const t = (raw || '').toLowerCase()
+    if (t.includes('estágio') || t.includes('estagi')) return 'Estágio'
+    if (t.includes('trainee')) return 'Trainee'
+    if (t.includes('freelancer') || t.includes('serviço') || t.includes('servico') || t.includes('consultor')) return 'Freelancer'
+    if (t.includes('determinado') || t.includes('tempor')) return 'Temporário'
+    if (t.includes('efetiv') || t.includes('efectiv') || t.includes('indeterminado') || t.includes('integral') || t.includes('full')) return 'Efetivo'
+    return detectContractType(text)
+  }
+
+  const matchPct = (job: any) => (isLoggedIn && profile ? computeJobMatchScore(job, profile) : 0)
+
+  const shareJob = (e: React.MouseEvent, path: string, title: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const url = `${window.location.origin}${path}`
+    if (navigator.share) {
+      navigator.share({ title, url }).catch(() => {})
+    } else if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).catch(() => {})
+    }
+    setSharedId(path)
+    setTimeout(() => setSharedId(''), 2000)
+  }
+
   const filteredExternal = allExternal.filter((j) => {
     if (hideOld && isOlderThan3Weeks(j)) return false
     if (onlyToday && !isTodayDate(jobDate(j))) return false
@@ -188,9 +216,11 @@ export default function VagasPage() {
     const cat = activeFilter === 'Todas' ? null : getCategoryByKey(activeFilter)
     const matchCat = activeFilter === 'Todas' || (!!cat && (j.category === cat.external || j.category?.includes(cat.external) || cat.external?.includes(j.category)))
     const text = `${j.title || ''} ${j.excerpt || ''}`
-    const matchContract = activeContract === 'Todos' || detectContractType(text) === activeContract
-    const matchModality = activeModality === 'Todas' || detectModality(text) === activeModality
+    const matchContract = activeContract === 'Todos' || normalizeContract(j.tipo_contrato, text) === activeContract
+    const matchModality = activeModality === 'Todas' || detectModality(`${j.modalidade || ''} ${text}`) === activeModality
     const matchLocation = activeLocation === 'Todas' || j.location === activeLocation
+    if (onlyApply && !j.has_apply) return false
+    if (onlySalary && !j.salary) return false
     return matchSearch && matchCat && matchContract && matchModality && matchLocation
   })
   const stripHtml = (html: string) => (html || '').replace(/<[^>]*>/g, '').trim()
@@ -208,6 +238,7 @@ export default function VagasPage() {
     const matchContract = activeContract === 'Todos' || detectContractType(text) === activeContract
     const matchModality = activeModality === 'Todas' || detectModality(text) === activeModality
     const matchLocation = activeLocation === 'Todas' || v.localizacao === activeLocation
+    if (onlySalary && !v.salario) return false
     return matchSearch && matchFilter && matchContract && matchModality && matchLocation
   })
 
@@ -266,6 +297,13 @@ export default function VagasPage() {
               <span className="inline-flex items-center gap-1 text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">NOVA</span>
             </div>
           )}
+          <button
+            onClick={(e) => shareJob(e, `/vagas/detalhe/?id=${v.id}`, v.titulo)}
+            className="absolute bottom-2 right-2 inline-flex items-center gap-1 text-[10px] text-ms-gray hover:text-ms-blue bg-white/80 border border-ms-border rounded-full px-2 py-1"
+            aria-label="Partilhar vaga"
+          >
+            {sharedId === `/vagas/detalhe/?id=${v.id}` ? <><Check size={11} className="text-green-600" /> Copiado</> : <><Share2 size={11} /> Partilhar</>}
+          </button>
           <div className="flex items-start gap-3">
             <CompanyLogo company={v.empresa_nome} size={40} rounded="rounded-full" className="border border-ms-border" />
             <div className="flex-1 min-w-0 pr-16">
@@ -287,6 +325,9 @@ export default function VagasPage() {
                 )}
                 {v.salario && (
                   <span className="text-[11px] font-medium text-green-700 bg-green-100 px-2 py-0.5 rounded-full">{v.salario}</span>
+                )}
+                {matchPct(v) >= 40 && (
+                  <span className="text-[10px] font-bold text-white bg-ms-blue px-2 py-0.5 rounded-full">{matchPct(v)}% match</span>
                 )}
               </div>
               <div className="flex items-center justify-between mt-2">
@@ -310,6 +351,13 @@ export default function VagasPage() {
               <span className="inline-flex items-center gap-1 text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">NOVA</span>
             </div>
           )}
+          <button
+            onClick={(e) => shareJob(e, `/vagas/externa/?id=${j.id}`, j.title)}
+            className="absolute bottom-2 right-2 inline-flex items-center gap-1 text-[10px] text-ms-gray hover:text-ms-blue bg-white/90 border border-ms-border rounded-full px-2 py-1 z-10"
+            aria-label="Partilhar vaga"
+          >
+            {sharedId === `/vagas/externa/?id=${j.id}` ? <><Check size={11} className="text-green-600" /> Copiado</> : <><Share2 size={11} /> Partilhar</>}
+          </button>
           <div className="flex items-start gap-3">
             <CompanyLogo company={j.company} logoUrl={j.logo_url} size={40} rounded="rounded-lg" className="border border-ms-border" />
             <div className="flex-1 min-w-0">
@@ -324,11 +372,16 @@ export default function VagasPage() {
                 {j.location && <span className="inline-flex items-center gap-0.5 text-[11px] text-ms-gray"><MapPin size={10} /> {j.location}</span>}
                 {j.salary && <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">{j.salary}</span>}
                 {j.category && j.category !== 'Outro' && <span className="text-[10px] text-ms-blue bg-ms-blue/10 px-2 py-0.5 rounded-full">{j.category}</span>}
+                {j.modalidade && <span className="text-[10px] text-ms-dark bg-ms-surface border border-ms-border px-2 py-0.5 rounded-full">{j.modalidade}</span>}
                 {(j.score || 0) >= 20 && <span className="text-[10px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">Destaque</span>}
+                {matchPct(j) >= 40 && <span className="text-[10px] font-bold text-white bg-ms-blue px-2 py-0.5 rounded-full">{matchPct(j)}% match</span>}
               </div>
+              <p className="inline-flex items-center gap-1 mt-2 text-[10px] text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-2 py-1">
+                <Info size={10} /> Vaga externa — a candidatura é feita na fonte oficial da empresa
+              </p>
               <div className="flex items-center justify-between mt-2">
                 <span className="text-[11px] text-ms-gray">{getTimeAgo(j.first_seen_at || j.posted_at)}</span>
-                <span className="text-[11px] font-medium text-ms-blue bg-ms-blue/10 px-3 py-1 rounded-full">Ver detalhes</span>
+                <span className="text-[11px] font-medium text-ms-blue bg-ms-blue/10 px-3 py-1 rounded-full">Candidatar-se</span>
               </div>
             </div>
           </div>
@@ -336,6 +389,24 @@ export default function VagasPage() {
       </Link>
     )
   }
+
+  const FilterGroup = ({ title, options, value, onChange }: { title: string; options: string[]; value: string; onChange: (v: string) => void }) => (
+    <div>
+      <p className="text-[11px] font-semibold text-ms-gray uppercase tracking-wide mb-2">{title}</p>
+      <div className="space-y-0.5 max-h-44 overflow-y-auto">
+        {['Todas', ...options].map((o) => (
+          <button key={o} onClick={() => onChange(o)} className="flex items-center gap-2 w-full text-left py-1">
+            <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${value === o ? 'bg-ms-blue border-ms-blue' : 'bg-white border-ms-border'}`}>
+              {value === o && <Check size={11} className="text-white" />}
+            </span>
+            <span className={`text-xs ${value === o ? 'text-ms-dark font-medium' : 'text-ms-gray'}`}>{o}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+
+  const resultsCount = source === 'externas' ? filteredExternal.length : filteredVagas.length
 
   return (
     <div className="min-h-screen bg-white pb-20 lg:pb-0">
@@ -352,7 +423,7 @@ export default function VagasPage() {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 pt-4">
+      <main className="max-w-6xl mx-auto px-4 pt-4">
         {/* Search */}
         <div className="flex items-center gap-2 bg-ms-surface rounded-full px-4 py-3 mb-4 border-2 border-ms-blue/10 focus-within:border-ms-blue">
           <Search size={18} className="text-ms-gray flex-shrink-0" />
@@ -395,6 +466,42 @@ export default function VagasPage() {
           </div>
         )}
 
+        <div className="lg:flex lg:gap-6 lg:items-start">
+          {/* Desktop filters sidebar (estilo Mirantes) */}
+          <aside className="hidden lg:block w-60 flex-shrink-0">
+            <div className="bg-ms-surface rounded-2xl p-4 space-y-5 sticky top-20">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-ms-dark flex items-center gap-1"><Filter size={14} /> Todos os filtros</span>
+                <button
+                  onClick={() => { setActiveContract('Todos'); setActiveModality('Todas'); setActiveLocation('Todas'); setSearchQuery(''); setActiveFilter('Todas'); setOnlyApply(false); setOnlySalary(false) }}
+                  className="text-[10px] text-ms-blue font-medium flex items-center gap-0.5"
+                >
+                  <X size={10} /> Limpar
+                </button>
+              </div>
+              <FilterGroup title="Localização" options={uniqueLocations} value={activeLocation} onChange={setActiveLocation} />
+              <FilterGroup title="Modalidade" options={MODALIDADES.filter(m => m !== 'Todas')} value={activeModality} onChange={setActiveModality} />
+              <FilterGroup title="Tipo de contrato" options={CONTRATOS.filter(c => c !== 'Todos')} value={activeContract} onChange={setActiveContract} />
+              <div className="space-y-2 pt-3 border-t border-ms-border">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${onlyApply ? 'bg-ms-blue border-ms-blue' : 'bg-white border-ms-border'}`}>
+                    {onlyApply && <Check size={11} className="text-white" />}
+                  </span>
+                  <input type="checkbox" checked={onlyApply} onChange={(e) => setOnlyApply(e.target.checked)} className="sr-only" />
+                  <span className="text-xs text-ms-dark">Com candidatura directa</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${onlySalary ? 'bg-ms-blue border-ms-blue' : 'bg-white border-ms-border'}`}>
+                    {onlySalary && <Check size={11} className="text-white" />}
+                  </span>
+                  <input type="checkbox" checked={onlySalary} onChange={(e) => setOnlySalary(e.target.checked)} className="sr-only" />
+                  <span className="text-xs text-ms-dark">Com salário anunciado</span>
+                </label>
+              </div>
+            </div>
+          </aside>
+          <div className="flex-1 min-w-0">
+
         {/* Source toggle: MÔ SALO vs External (CareerJet) */}
         <div className="flex gap-2 mb-4 bg-ms-surface rounded-xl p-1">
           <button
@@ -422,6 +529,16 @@ export default function VagasPage() {
               >
                 <X size={10} /> Limpar
               </button>
+            </div>
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-1.5 text-xs text-ms-dark cursor-pointer">
+                <input type="checkbox" checked={onlyApply} onChange={(e) => setOnlyApply(e.target.checked)} className="w-4 h-4 accent-ms-blue" />
+                Com candidatura directa
+              </label>
+              <label className="flex items-center gap-1.5 text-xs text-ms-dark cursor-pointer">
+                <input type="checkbox" checked={onlySalary} onChange={(e) => setOnlySalary(e.target.checked)} className="w-4 h-4 accent-ms-blue" />
+                Com salário anunciado
+              </label>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
@@ -507,10 +624,11 @@ export default function VagasPage() {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Globe size={16} className="text-ms-blue" />
-                <h2 className="text-sm font-semibold text-ms-dark">Vagas de Angola</h2>
+                <h2 className="text-sm font-semibold text-ms-dark">Vagas de Emprego em Angola</h2>
               </div>
               <button onClick={() => { setExtLoaded(false); setAllExternal([]); loadExternalJobs() }} className="text-xs text-ms-blue font-medium">Actualizar</button>
             </div>
+            <p className="text-xs text-ms-gray mb-1">{filteredExternal.length} vagas encontradas</p>
             <p className="text-xs text-ms-gray mb-4">Lê o resumo de cada vaga sem precisar abrir. Ao candidatar, vais direto à fonte oficial da empresa.</p>
 
             {loadingExternal ? (
@@ -586,7 +704,10 @@ export default function VagasPage() {
         {/* Normal jobs */}
         <section>
           {normais.length > 0 && (
-            <h2 className="text-sm font-semibold text-ms-dark mb-3">Todas as Vagas</h2>
+            <>
+              <h2 className="text-sm font-semibold text-ms-dark mb-1">Todas as Vagas</h2>
+              <p className="text-xs text-ms-gray mb-3">{filteredVagas.length} vagas encontradas</p>
+            </>
           )}
           <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
             {normais.map(v => <JobCard key={v.id} v={v} variant="normal" />)}
@@ -602,6 +723,8 @@ export default function VagasPage() {
           </div>
         )}
         </>)}
+          </div>
+        </div>
       </main>
 
       {/* Bottom Nav */}
