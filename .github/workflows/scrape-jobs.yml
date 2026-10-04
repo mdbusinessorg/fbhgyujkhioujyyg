@@ -91,6 +91,7 @@ jobs:
           MAX_AGE_DAYS: '90'
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GROQ_API_KEY_FALLBACK: ${{ secrets.GROQ_API_KEY_FALLBACK }}
+          JINA_API_KEY: ${{ secrets.JINA_API_KEY }}
         run: |
           node scripts/ingest-angoemprego.mjs --json
 

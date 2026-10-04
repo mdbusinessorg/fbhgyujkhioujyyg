@@ -17,9 +17,12 @@ async function fetchViaJina(url, attempt = 0) {
     const wait = JINA_MIN_GAP_MS - (Date.now() - jinaLastAt)
     if (wait > 0) await new Promise((r) => setTimeout(r, wait))
     jinaLastAt = Date.now()
-    const res = await fetch(`https://r.jina.ai/${url}`, {
-      headers: { 'User-Agent': UA, 'X-Return-Format': 'html', Accept: 'text/html' },
-    })
+    // Com JINA_API_KEY (tier gratuito em jina.ai) o limite passa a ser por
+    // chave e não por IP partilhado — nos GitHub runners o free sem chave
+    // esgota-se quase sempre.
+    const headers = { 'User-Agent': UA, 'X-Return-Format': 'html', Accept: 'text/html' }
+    if (process.env.JINA_API_KEY) headers.Authorization = `Bearer ${process.env.JINA_API_KEY}`
+    const res = await fetch(`https://r.jina.ai/${url}`, { headers })
     if (!res.ok) throw new Error(`HTTP ${res.status} via jina`)
     const text = await res.text()
     if (!text || text.length < 100) throw new Error('jina: resposta vazia')
@@ -39,11 +42,22 @@ async function fetchViaJina(url, attempt = 0) {
   }
 }
 
+// Páginas de challenge do Cloudflare devolvem 200 com HTML de "Just a moment"
+// — não são conteúdo real e não podem ser aceites como resposta.
+function isChallengePage(text) {
+  return /<title>\s*Just a moment\s*<\/title>|challenge-platform|cf_chl_opt|__cf_chl/i.test(text)
+}
+
 export async function fetchHtml(url, retries = 2) {
   for (let i = 0; i <= retries; i++) {
     const res = await fetch(url, { headers: { 'User-Agent': UA, Accept: 'text/html' } })
-    if (res.ok) return res.text()
-    if (res.status === 403 || res.status === 503) {
+    let text = ''
+    if (res.ok) {
+      text = await res.text()
+      if (!isChallengePage(text)) return text
+      // Cloudflare challenge — segue para os fallbacks como se fosse 403
+    }
+    if (res.status === 403 || res.status === 503 || isChallengePage(text)) {
       // 1º: proxy próprio em Netlify Functions — corre em IPs AWS, que os
       // boards não bloqueiam (bloqueiam os IPs dos GitHub Actions runners).
       const proxyBase = process.env.MOSALO_PROXY || 'https://mosalo.eu.cc/.netlify/functions/fetch-proxy'
@@ -52,8 +66,8 @@ export async function fetchHtml(url, retries = 2) {
           headers: { 'User-Agent': UA, Accept: 'text/html' },
         })
         if (proxied.ok) {
-          const text = await proxied.text()
-          if (text && text.length > 100) return text
+          const ptext = await proxied.text()
+          if (ptext && ptext.length > 100 && !isChallengePage(ptext)) return ptext
         }
       } catch (e) {
         console.warn(`[fetchHtml] netlify proxy falhou para ${url}: ${e.message}`)

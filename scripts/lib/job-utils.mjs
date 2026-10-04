@@ -62,6 +62,8 @@ export function decodeEntities(s) {
     .replace(/&aacute;/g, 'á').replace(/&eacute;/g, 'é').replace(/&iacute;/g, 'í')
     .replace(/&oacute;/g, 'ó').replace(/&uacute;/g, 'ú').replace(/&atilde;/g, 'ã')
     .replace(/&ccedil;/g, 'ç').replace(/&ecirc;/g, 'ê').replace(/&ocirc;/g, 'ô')
+    .replace(/&#0?(\d+);/g, (_, n) => String.fromCharCode(Number(n) || 32))
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCharCode(parseInt(h, 16) || 32))
 }
 
 export function stripTags(html) {
