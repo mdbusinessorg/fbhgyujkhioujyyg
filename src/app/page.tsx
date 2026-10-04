@@ -3,14 +3,15 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
+import { parseCV } from '@/lib/ai'
 import { sortByMatch } from '@/lib/match'
 import { social } from '@/lib/social'
 import {
   Search, Heart, Bell, Menu, X, Briefcase, User, LogOut, FileText,
   Star, MapPin, Monitor, Banknote, Stethoscope, Megaphone, Scale, GraduationCap, HardHat, Wrench,
   MessageSquare, Zap, Users, Clock, ChevronDown, Newspaper, BookOpen, HeartHandshake, MessageCircle,
-  Building2, TrendingUp, Mail, Phone, ArrowRight, LayoutDashboard, Globe
+  Building2, TrendingUp, Mail, Phone, ArrowRight, LayoutDashboard, Globe, Upload, Sparkles
 } from 'lucide-react'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import InstallPWA from '@/components/InstallPWA'
@@ -131,6 +132,9 @@ export default function HomePage() {
   const [favorites, setFavorites] = useState<string[]>([])
   const [noticias, setNoticias] = useState<any[]>([])
   const [navScrolled, setNavScrolled] = useState(false)
+  const [cvUploading, setCvUploading] = useState(false)
+  const [cvMsg, setCvMsg] = useState('')
+  const cvInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const onScroll = () => setNavScrolled(window.scrollY > 40)
@@ -383,6 +387,39 @@ export default function HomePage() {
   }
 
   const jobHref = (job: any) => job.source === 'external' ? `/vagas/externa/?id=${encodeURIComponent(job.id)}` : `/vagas/detalhe/?id=${job.id}`
+
+  const handleCvFile = async (file: File) => {
+    if (!isLoggedIn || !userId) { router.push('/auth/login/'); return }
+    setCvUploading(true)
+    setCvMsg('A carregar o CV...')
+    try {
+      const path = `${userId}/${Date.now()}-${file.name}`
+      const { error: upErr } = await supabase.storage.from(STORAGE_BUCKET).upload(path, file)
+      if (upErr) throw upErr
+      const url = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`
+      const docs = [...(profile?.documentos || []), url].slice(-2)
+
+      setCvMsg('A ler o CV com IA...')
+      const parsed = await parseCV(url)
+      await supabase.from('profiles').upsert({
+        user_id: userId,
+        documentos: docs,
+        area: parsed.area || profile?.area || null,
+        localizacao: parsed.localizacao || profile?.localizacao || null,
+        nivel_academico: parsed.nivel_academico || profile?.nivel_academico || null,
+        bio: parsed.bio || profile?.bio || null,
+        experiencias: parsed.experiencias || profile?.experiencias || null,
+        competencias: parsed.competencias || profile?.competencias || null,
+      }, { onConflict: 'user_id' })
+      if (parsed.nome) await supabase.from('users').update({ nome: parsed.nome }).eq('id', userId)
+      setProfile((p: any) => ({ ...(p || {}), documentos: docs, area: parsed.area || p?.area, localizacao: parsed.localizacao || p?.localizacao, competencias: parsed.competencias || p?.competencias }))
+      setCvMsg(parsed.error ? 'CV guardado. A mostrar vagas...' : 'Perfil criado! A mostrar vagas para ti...')
+      setTimeout(() => router.push('/vagas/'), 800)
+    } catch (e) {
+      setCvMsg('Não foi possível carregar o CV. Tenta novamente.')
+    }
+    setCvUploading(false)
+  }
 
   const heroStats = useMemo(() => {
     const companies = new Set<string>()
@@ -803,7 +840,7 @@ export default function HomePage() {
 
       {/* ===== CTA cards ===== */}
       <section className="pb-20 sm:pb-28">
-        <div className="max-w-7xl mx-auto px-5 sm:px-8 grid sm:grid-cols-2 gap-6">
+        <div className="max-w-7xl mx-auto px-5 sm:px-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <Reveal variant="fade-left">
             <Link href="/trabalho-rapido/" className="neo-card block rounded-3xl p-8 sm:p-10 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #fd9a05 0%, #e07f00 100%)' }}>
               <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-white/10 rounded-full" />
@@ -822,6 +859,42 @@ export default function HomePage() {
               <p className="text-sm text-white/60 mb-6 max-w-sm">Completa o teu perfil e deixa as empresas encontrarem-te. Match inteligente incluído.</p>
               <span className="inline-flex items-center gap-2 text-[12px] font-bold uppercase tracking-wider text-[#fd9a05] border border-[#fd9a05]/40 px-4 py-2 rounded-full">Criar perfil <ArrowRight size={13} /></span>
             </Link>
+          </Reveal>
+          <Reveal variant="fade-right" delay={200} className="sm:col-span-2 lg:col-span-1">
+            <div className="neo-card rounded-3xl p-8 sm:p-10 relative overflow-hidden bg-[#1c1c1c] border border-white/10 h-full">
+              <div className="absolute -top-10 -left-10 w-40 h-40 bg-[#fd9a05]/10 rounded-full" />
+              <Sparkles size={32} className="text-[#fd9a05] mb-5" />
+              <h3 className="neo-font-heading text-2xl font-semibold mb-3">Match com IA</h3>
+              <p className="text-sm text-white/60 mb-6">Carrega o teu CV e a IA encontra as vagas ideais para ti.</p>
+              <input
+                ref={cvInputRef}
+                type="file"
+                accept=".pdf,.doc,.docx,.txt"
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleCvFile(f); e.target.value = '' }}
+              />
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  onClick={() => { if (isLoggedIn) cvInputRef.current?.click(); else router.push('/auth/login/') }}
+                  disabled={cvUploading}
+                  className="inline-flex items-center gap-2 text-[12px] font-bold uppercase tracking-wider text-[#fd9a05] border-2 border-dashed border-[#fd9a05]/50 px-4 py-2.5 rounded-full hover:bg-[#fd9a05]/10 transition-colors disabled:opacity-60"
+                >
+                  <Upload size={14} /> {cvUploading ? cvMsg : 'Carregar CV'}
+                </button>
+                <button
+                  onClick={() => {
+                    if (!isLoggedIn) { router.push('/auth/login/'); return }
+                    if (profile?.documentos?.length) router.push('/vagas/')
+                    else cvInputRef.current?.click()
+                  }}
+                  disabled={cvUploading}
+                  className="neo-btn-orange inline-flex items-center gap-2 text-[12px] font-bold uppercase tracking-wider text-[#121212] px-4 py-2.5 rounded-full disabled:opacity-60"
+                >
+                  Encontrar Match
+                </button>
+              </div>
+              {cvMsg && !cvUploading && <p className="text-[11px] text-white/50 mt-4">{cvMsg}</p>}
+            </div>
           </Reveal>
         </div>
       </section>

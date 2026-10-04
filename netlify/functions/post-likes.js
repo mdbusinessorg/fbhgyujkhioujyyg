@@ -1,4 +1,4 @@
-const { getStore } = require('@netlify/blobs')
+const { getStoreWithFallback } = require('../lib/store')
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -9,10 +9,7 @@ const headers = {
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' }
 
-  const store = getStore('post-likes', {
-    siteID: process.env.NETLIFY_BLOBS_SITE_ID,
-    token: process.env.NETLIFY_BLOBS_TOKEN,
-  })
+  const store = getStoreWithFallback('post-likes')
 
   if (event.httpMethod === 'GET') {
     const postId = event.queryStringParameters?.post_id

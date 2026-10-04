@@ -5,7 +5,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { getCompanyLogoUrl } from './company-logos.mjs'
 import { enrichJobDescription, extractJobFields } from './groq.mjs'
-import { stripTags } from './job-utils.mjs'
+import { stripTags, cleanJobDescription } from './job-utils.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 export const ROOT = join(__dirname, '..', '..')
@@ -146,7 +146,13 @@ export async function writeJson(jobs, { dataDir, indexPath }) {
     // dir didn't exist yet
   }
 
-  const enriched = jobs.map((j) => ({ ...j, logo_url: getCompanyLogoUrl(j.company, j.logo_url) }))
+  const enriched = jobs.map((j) => ({
+    ...j,
+    description: cleanJobDescription(j.description),
+    description_enriched: cleanJobDescription(j.description_enriched),
+    excerpt: cleanJobDescription(j.excerpt),
+    logo_url: getCompanyLogoUrl(j.company, j.logo_url),
+  }))
 
   const index = enriched.map((j) => ({
     id: j.id,

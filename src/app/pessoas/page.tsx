@@ -439,7 +439,7 @@ function PessoasPageContent() {
               <p className="text-sm text-ms-gray">Ainda não há publicações nesta comunidade.</p>
             </div>
           ) : (
-            communityFeed.map(post => <FeedCard key={post.id} post={post} currentUser={currentUser} onDelete={handleDelete} onUpdate={handleUpdatePost} />)
+            communityFeed.map(post => <FeedCard key={post.id} post={post} currentUser={currentUser} onDelete={handleDelete} onUpdate={handleUpdatePost} isFollowing={isFollowing(post.user_id)} onFollow={handleFollow} />)
           )}
         </div>
       )
@@ -494,7 +494,11 @@ function PessoasPageContent() {
           <p className="text-xs text-white/90 mt-1">O que há de novo na tua área hoje?</p>
         </div>
       )}
-      {currentUser && activeTab !== 'descobrir' && activeTab !== 'comunidades' && <PostComposer currentUser={{ ...currentUser, area: currentProfile?.area }} postedToday={postedToday} onPosted={handlePosted} />}
+      {currentUser && activeTab !== 'descobrir' && activeTab !== 'comunidades' && (
+        <div id="post-composer" className="scroll-mt-32">
+          <PostComposer currentUser={{ ...currentUser, area: currentProfile?.area }} postedToday={postedToday} onPosted={handlePosted} />
+        </div>
+      )}
       {activeTab === 'rede' && renderPendingRequests()}
       {activeTab !== 'descobrir' && activeTab !== 'comunidades' && renderNetworkCTA()}
       {loadingFeed ? (
@@ -505,7 +509,7 @@ function PessoasPageContent() {
           <p className="text-sm text-ms-gray">Ainda não há publicações nesta secção.</p>
         </div>
       ) : (
-        feed.map(post => <FeedCard key={post.id} post={post} currentUser={currentUser} onDelete={handleDelete} onUpdate={handleUpdatePost} />)
+        feed.map(post => <FeedCard key={post.id} post={post} currentUser={currentUser} onDelete={handleDelete} onUpdate={handleUpdatePost} isFollowing={isFollowing(post.user_id)} onFollow={handleFollow} />)
       )}
     </div>
   )
@@ -757,6 +761,25 @@ function PessoasPageContent() {
         <div className="min-w-0">
           {activeTab === 'para-ti' && <StoryBar currentUser={currentUser} people={people} />}
 
+          {/* Quick actions — like the reference: Add / Job openings / Communities / Pinned */}
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-3 -mx-4 px-4">
+            <button
+              onClick={() => { setActiveTab('para-ti'); setTimeout(() => document.getElementById('post-composer')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50) }}
+              className="flex-shrink-0 flex items-center gap-1.5 bg-ms-blue text-white text-xs font-semibold px-4 py-2 rounded-full shadow-sm active:scale-95 transition-all"
+            >
+              <Sparkles size={13} /> Publicar
+            </button>
+            <button onClick={() => setActiveTab('vagas-em-alta')} className={`flex-shrink-0 text-xs font-semibold px-4 py-2 rounded-full border transition-all ${activeTab === 'vagas-em-alta' ? 'bg-ms-blue text-white border-ms-blue' : 'bg-white text-ms-dark border-ms-border'}`}>
+              Vagas ({feedTotal || feed.length || 0})
+            </button>
+            <button onClick={() => setActiveTab('comunidades')} className={`flex-shrink-0 text-xs font-semibold px-4 py-2 rounded-full border transition-all ${activeTab === 'comunidades' ? 'bg-ms-blue text-white border-ms-blue' : 'bg-white text-ms-dark border-ms-border'}`}>
+              Comunidades
+            </button>
+            <button onClick={() => setActiveTab('rede')} className={`flex-shrink-0 text-xs font-semibold px-4 py-2 rounded-full border transition-all ${activeTab === 'rede' ? 'bg-ms-blue text-white border-ms-blue' : 'bg-white text-ms-dark border-ms-border'}`}>
+              A minha rede
+            </button>
+          </div>
+
           <div className="bg-white border border-ms-border rounded-2xl p-1.5 mb-4 shadow-sm sticky top-[60px] z-40">
             <div className="flex items-center overflow-x-auto no-scrollbar">
               {TAB_CONFIG.map(t => {
@@ -779,10 +802,17 @@ function PessoasPageContent() {
 
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-ms-border z-50 lg:hidden">
         <div className="flex items-center justify-around py-2 px-2 max-w-md mx-auto">
-          <Link href="/" className="flex flex-col items-center gap-0.5 py-1"><Home size={22} className="text-ms-gray" /><span className="text-[10px] text-ms-gray">Início</span></Link>
-          <Link href="/vagas/" className="flex flex-col items-center gap-0.5 py-1"><Search size={22} className="text-ms-gray" /><span className="text-[10px] text-ms-gray">Vagas</span></Link>
-          <Link href="/pessoas/" className="flex flex-col items-center gap-0.5 py-1"><Users size={22} className="text-ms-blue" /><span className="text-[10px] text-ms-blue font-medium">Pessoas</span></Link>
-          <Link href={isLoggedIn && currentUser ? `/dashboard/${currentUser.role}/?tab=perfil` : '/auth/login/'} className="flex flex-col items-center gap-0.5 py-1"><User size={22} className="text-ms-gray" /><span className="text-[10px] text-ms-gray">Perfil</span></Link>
+          <Link href="/" className="flex flex-col items-center gap-0.5 py-1 px-2"><Home size={22} className="text-ms-gray" /><span className="text-[10px] text-ms-gray">Início</span></Link>
+          <button onClick={() => setActiveTab('rede')} className={`flex flex-col items-center gap-0.5 py-1 px-2 ${activeTab === 'rede' ? 'text-ms-blue' : 'text-ms-gray'}`}><Users size={22} /><span className="text-[10px]">Rede</span></button>
+          <button
+            onClick={() => { setActiveTab('para-ti'); setTimeout(() => document.getElementById('post-composer')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50) }}
+            className="-mt-6 w-14 h-14 rounded-full bg-ms-blue text-white flex items-center justify-center shadow-lg shadow-ms-blue/40 border-4 border-ms-surface active:scale-95 transition-transform"
+            aria-label="Nova publicação"
+          >
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+          <Link href="/mensagens/" className="flex flex-col items-center gap-0.5 py-1 px-2 text-ms-gray"><MessageSquare size={22} /><span className="text-[10px]">Mensagens</span></Link>
+          <Link href="/vagas/" className="flex flex-col items-center gap-0.5 py-1 px-2 text-ms-gray"><Briefcase size={22} /><span className="text-[10px]">Vagas</span></Link>
         </div>
       </nav>
     </div>

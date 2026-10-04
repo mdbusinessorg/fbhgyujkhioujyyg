@@ -2,7 +2,7 @@ name: Atualizar vagas de Angola
 
 on:
   schedule:
-    - cron: '0 */3 * * *'  # a cada 3h para não perder vagas do mesmo dia
+    - cron: '15,45 * * * *'  # duas vezes por hora, 24/7, para apanhar vagas do mesmo dia
   workflow_dispatch:
     inputs:
       max_pages:
@@ -41,17 +41,23 @@ jobs:
         run: npm ci --no-audit --no-fund
 
       - name: Recolher vagas (angolaemprego.com)
+        continue-on-error: true
         env:
           MAX_PAGES: ${{ github.event.inputs.max_pages || '50' }}
           CONCURRENCY: '4'
+          MAX_AGE_DAYS: '90'
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_API_KEY_FALLBACK: ${{ secrets.GROQ_API_KEY_FALLBACK }}
         run: |
           node scripts/ingest-angolaemprego.mjs --json
 
       - name: Recolher vagas via RSS (same-day)
+        continue-on-error: true
         env:
           CONCURRENCY: '4'
+          MAX_AGE_DAYS: '90'
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_API_KEY_FALLBACK: ${{ secrets.GROQ_API_KEY_FALLBACK }}
         run: |
           node scripts/ingest-rss.mjs
 
@@ -60,25 +66,44 @@ jobs:
         env:
           CAREERJET_API_KEY: ${{ secrets.CAREERJET_API_KEY }}
           CAREERJET_REFERER: 'https://mosalo.eu.cc/'
+          MAX_AGE_DAYS: '90'
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_API_KEY_FALLBACK: ${{ secrets.GROQ_API_KEY_FALLBACK }}
         run: |
           node scripts/ingest-careerjet.mjs
 
       - name: Recolher vagas do Jobartis
         continue-on-error: true
         env:
-          MAX_PAGES: '5'
+          MAX_PAGES: '15'
           CONCURRENCY: '2'
+          MAX_AGE_DAYS: '90'
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_API_KEY_FALLBACK: ${{ secrets.GROQ_API_KEY_FALLBACK }}
         run: |
           node scripts/ingest-jobartis.mjs --json
 
-      - name: Sincronizar novas vagas com Supabase
+      - name: Recolher vagas do Ango Emprego
+        continue-on-error: true
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MAX_JOBS: '500'
+          CONCURRENCY: '4'
+          MAX_AGE_DAYS: '90'
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_API_KEY_FALLBACK: ${{ secrets.GROQ_API_KEY_FALLBACK }}
         run: |
-          node scripts/sync-external-jobs-to-supabase.mjs
+          node scripts/ingest-angoemprego.mjs --json
+
+      - name: Recolher vagas do Empregos Yoyota
+        continue-on-error: true
+        env:
+          MAX_JOBS: '500'
+          CONCURRENCY: '4'
+          MAX_AGE_DAYS: '90'
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_API_KEY_FALLBACK: ${{ secrets.GROQ_API_KEY_FALLBACK }}
+        run: |
+          node scripts/ingest-yoyota.mjs --json
 
       - name: Commit se houver alterações
         run: |
@@ -92,6 +117,14 @@ jobs:
             git commit -m "chore(vagas): atualização automática de vagas"
             git push
           fi
+
+      - name: Sincronizar novas vagas com Supabase
+        continue-on-error: true
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          node scripts/sync-external-jobs-to-supabase.mjs
 
       - name: Upload artifact para depuração
         if: ${{ failure() }}

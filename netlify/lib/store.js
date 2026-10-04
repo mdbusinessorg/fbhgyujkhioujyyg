@@ -43,6 +43,13 @@ function createLocalStore(storeName) {
 }
 
 function getStoreWithFallback(name) {
+  // Em runtime Netlify o contexto de blobs é injectado automaticamente —
+  // credenciais manuais em env vars podem estar desactualizadas.
+  if (process.env.NETLIFY || process.env.NETLIFY_BLOBS_CONTEXT) {
+    try {
+      return getStore(name)
+    } catch {}
+  }
   if (process.env.NETLIFY_BLOBS_SITE_ID && process.env.NETLIFY_BLOBS_TOKEN) {
     return getStore(name, {
       siteID: process.env.NETLIFY_BLOBS_SITE_ID,

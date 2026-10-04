@@ -122,6 +122,54 @@ export default function NotificationsBell() {
     }
   }
 
+  const [tab, setTab] = useState<'todas' | 'pessoas' | 'vagas'>('todas')
+
+  const PEOPLE_TYPES = ['network_request', 'network_accepted', 'message']
+  const JOB_TYPES = ['job_match', 'vaga_expiring']
+  const filtered = notifications.filter(n =>
+    tab === 'todas' ? true : tab === 'pessoas' ? PEOPLE_TYPES.includes(n.type) : JOB_TYPES.includes(n.type)
+  )
+  const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0)
+  const fresh = filtered.filter(n => !n.read || new Date(n.created_at) >= startOfToday)
+  const older = filtered.filter(n => n.read && new Date(n.created_at) < startOfToday)
+
+  const fmtDate = (iso: string) => {
+    const d = new Date(iso)
+    const sameDay = d >= startOfToday
+    return sameDay
+      ? d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
+      : d.toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })
+  }
+
+  const renderItem = (n: Notification) => {
+    const avatar = getAvatarUrl(n.sender?.avatar_url)
+    return (
+      <div key={n.id} className={`flex gap-3 p-3 rounded-2xl border ${n.read ? 'bg-white border-ms-border/60' : 'bg-blue-50 border-blue-100'}`}>
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-ms-blue to-ms-purple flex items-center justify-center flex-shrink-0 overflow-hidden text-white">
+          {avatar ? <img src={avatar} alt="" className="w-full h-full object-cover" /> : <UserPlus size={18} />}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-sm font-semibold text-ms-dark">{n.title}</p>
+            <span className="text-[10px] text-ms-gray whitespace-nowrap">{fmtDate(n.created_at)}</span>
+          </div>
+          <p className="text-xs text-ms-gray mt-0.5">{n.body}</p>
+          <div className="flex items-center gap-2 mt-2">
+            {n.type === 'network_request' && (
+              <>
+                <button onClick={() => handleAccept(n)} className="flex items-center gap-1 px-3 py-1.5 bg-ms-blue text-white text-xs font-medium rounded-lg hover:bg-blue-700"><Check size={12} /> Aceitar</button>
+                <button onClick={() => handleReject(n)} className="px-3 py-1.5 text-xs font-medium text-ms-gray hover:text-red-500">Rejeitar</button>
+              </>
+            )}
+            {n.type !== 'network_request' && (
+              <button onClick={() => handleOpen(n)} className="flex items-center gap-1 px-3 py-1.5 bg-ms-surface text-ms-dark text-xs font-medium rounded-lg hover:bg-ms-purple-light hover:text-ms-purple"><MessageSquare size={12} /> Ver</button>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (loading || !userId) return null
 
   return (
@@ -136,39 +184,39 @@ export default function NotificationsBell() {
       {open && (
         <div className="fixed inset-0 z-[100] bg-black/40 flex items-end sm:items-center justify-center" onClick={() => setOpen(false)}>
           <div ref={modalRef} className="bg-white w-full max-w-md sm:rounded-2xl rounded-t-2xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-4 border-b border-ms-border">
+            <div className="flex items-center justify-between p-4 pb-2 border-b border-ms-border">
               <h2 className="text-base font-bold text-ms-dark">Notificações</h2>
               <button onClick={() => setOpen(false)} className="p-1 text-ms-gray hover:text-ms-dark"><X size={20} /></button>
             </div>
-            <div className="overflow-y-auto p-4 space-y-3">
-              {notifications.length === 0 ? (
+            <div className="flex gap-2 px-4 py-3 border-b border-ms-border">
+              {([['todas', 'Todas'], ['pessoas', 'Pessoas'], ['vagas', 'Vagas']] as const).map(([k, label]) => (
+                <button
+                  key={k}
+                  onClick={() => setTab(k)}
+                  className={`text-xs font-semibold px-4 py-1.5 rounded-full transition-colors ${tab === k ? 'bg-ms-blue text-white' : 'bg-ms-surface text-ms-gray hover:text-ms-dark'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="overflow-y-auto p-4 space-y-4">
+              {filtered.length === 0 ? (
                 <div className="text-center py-10 text-ms-gray text-sm">Nenhuma notificação</div>
               ) : (
-                notifications.map(n => {
-                  const avatar = getAvatarUrl(n.sender?.avatar_url)
-                  return (
-                    <div key={n.id} className={`flex gap-3 p-3 rounded-2xl border ${n.read ? 'bg-white border-ms-border/60' : 'bg-blue-50 border-blue-100'}`}>
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-ms-blue to-ms-purple flex items-center justify-center flex-shrink-0 overflow-hidden text-white">
-                        {avatar ? <img src={avatar} alt="" className="w-full h-full object-cover" /> : <UserPlus size={18} />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-ms-dark">{n.title}</p>
-                        <p className="text-xs text-ms-gray mt-0.5">{n.body}</p>
-                        <div className="flex items-center gap-2 mt-2">
-                          {n.type === 'network_request' && (
-                            <>
-                              <button onClick={() => handleAccept(n)} className="flex items-center gap-1 px-3 py-1.5 bg-ms-blue text-white text-xs font-medium rounded-lg hover:bg-blue-700"><Check size={12} /> Aceitar</button>
-                              <button onClick={() => handleReject(n)} className="px-3 py-1.5 text-xs font-medium text-ms-gray hover:text-red-500">Rejeitar</button>
-                            </>
-                          )}
-                          {n.type !== 'network_request' && (
-                            <button onClick={() => handleOpen(n)} className="flex items-center gap-1 px-3 py-1.5 bg-ms-surface text-ms-dark text-xs font-medium rounded-lg hover:bg-ms-purple-light hover:text-ms-purple"><MessageSquare size={12} /> Ver</button>
-                          )}
-                        </div>
-                      </div>
+                <>
+                  {fresh.length > 0 && (
+                    <div>
+                      <p className="text-[11px] font-bold text-ms-dark mb-2">Novas</p>
+                      <div className="space-y-2">{fresh.map(renderItem)}</div>
                     </div>
-                  )
-                })
+                  )}
+                  {older.length > 0 && (
+                    <div>
+                      <p className="text-[11px] font-bold text-ms-dark mb-2">Anteriores</p>
+                      <div className="space-y-2">{older.map(renderItem)}</div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>

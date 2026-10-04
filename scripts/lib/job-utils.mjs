@@ -92,6 +92,32 @@ export function extractSalary(text) {
   return ''
 }
 
+// Removes promotional/footer boilerplate that aggregators append to job
+// posts (social CTAs, tag lists, disclaimers) keeping only the job content.
+export function cleanJobDescription(html) {
+  if (!html) return ''
+  const markers = [
+    /como\s+candidatar/i,
+    /fique\s+atento/i,
+    /conte[uú]dos\s+[uú]teis/i,
+    /aviso\s+importante/i,
+    /tagged\s+as/i,
+    /^\s*<p[^>]*>\s*tags?\s*:/i,
+    /encontre\s+aqui\s+as\s+melhores\s+vagas/i,
+    /n[aã]o\s+recrutamos\s+ningu[eé]m/i,
+    /inscreva[\s-]*se\s+no\s+canal/i,
+    /siga[\s-]*nos\s+no/i,
+    /receba\s+mais\s+vagas\s+no\s+nosso\s+telegram/i,
+    /candidaturas\s+encerram/i,
+  ]
+  let cut = html.length
+  for (const re of markers) {
+    const m = html.search(re)
+    if (m >= 0 && m < cut) cut = m
+  }
+  return html.slice(0, cut).trim()
+}
+
 export function sanitizeHtml(html) {
   if (!html) return ''
   let out = html

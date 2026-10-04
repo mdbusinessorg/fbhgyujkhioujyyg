@@ -1,7 +1,9 @@
-const { getStore } = require('@netlify/blobs')
+const { getStoreWithFallback } = require('../lib/store')
+const { emailConfigured, sendEmail, buildJobsHtml, MAX_EMAILS_PER_RUN } = require('../lib/email')
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://gwnjigmsuqasvotsksmk.supabase.co'
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_d0CD9GsxB4rDVh-SmQUikA_owJjXbAQ'
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY
 const SITE_URL = process.env.URL || process.env.DEPLOY_PRIME_URL || process.env.DEPLOY_URL || 'https://mosalo.eu.cc'
 
 const headers = {
@@ -13,8 +15,8 @@ const headers = {
 async function supabaseRest(path) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1${path}`, {
     headers: {
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
       'Content-Type': 'application/json',
     },
   })
@@ -67,23 +69,32 @@ function computeMatchScore(job, profile) {
   if (profile.bio && text.includes(normalize(profile.bio))) score += 5
 
   if (job.salario || job.salary) score += 5
+  if (job.apply_url || job.has_apply) score += 5
   if (job.is_prioritaria) score += 15
 
   return Math.min(score, 100)
 }
 
+function jobKey(job) {
+  return normalize(`${job.titulo || job.title || ''}|${job.empresa || job.company || ''}`)
+}
+
+function selectJobsForProfile(newJobs, profile, limit = 4) {
+  const seen = new Set()
+  return newJobs
+    .map((job) => ({ job, score: computeMatchScore(job, profile) }))
+    .filter((s) => s.score >= 25 && !seen.has(jobKey(s.job)) && (seen.add(jobKey(s.job)), true))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((s) => ({ ...s, job: { ...s.job, _match: s.score } }))
+}
+
 async function getNotificationsStore() {
-  return getStore('notifications', {
-    siteID: process.env.NETLIFY_BLOBS_SITE_ID,
-    token: process.env.NETLIFY_BLOBS_TOKEN,
-  })
+  return getStoreWithFallback('notifications')
 }
 
 async function getStateStore() {
-  return getStore('job-notifications', {
-    siteID: process.env.NETLIFY_BLOBS_SITE_ID,
-    token: process.env.NETLIFY_BLOBS_TOKEN,
-  })
+  return getStoreWithFallback('job-notifications')
 }
 
 async function loadNotifications(store) {
@@ -108,11 +119,20 @@ async function fetchProfiles() {
   return profiles.filter(p => p.user_id)
 }
 
+async function fetchUserEmails() {
+  const users = await supabaseRest('/users?select=id,email,nome&limit=2000')
+  const map = new Map()
+  for (const u of users || []) {
+    if (u.id && u.email) map.set(u.id, { email: u.email, nome: u.nome || '' })
+  }
+  return map
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' }
 
   try {
-    const [jobs, profiles] = await Promise.all([fetchExternalJobs(), fetchProfiles()])
+    const [jobs, profiles, userEmails] = await Promise.all([fetchExternalJobs(), fetchProfiles(), fetchUserEmails()])
     const stateStore = await getStateStore()
     const notifStore = await getNotificationsStore()
 
@@ -140,13 +160,10 @@ exports.handler = async (event) => {
 
     const notifications = await loadNotifications(notifStore)
     let created = 0
+    const emailsToSend = []
 
     for (const profile of profiles) {
-      const scored = newJobs
-        .map((job) => ({ job, score: computeMatchScore(job, profile) }))
-        .filter((s) => s.score >= 25)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 3)
+      const scored = selectJobsForProfile(newJobs, profile, 4)
 
       if (scored.length === 0) continue
 
@@ -172,14 +189,40 @@ exports.handler = async (event) => {
         created_at: new Date().toISOString(),
       })
       created++
+
+      const contact = userEmails.get(profile.user_id)
+      if (contact?.email) {
+        emailsToSend.push({ contact, scored })
+      }
     }
 
     await saveNotifications(notifStore, notifications)
 
+    let emailed = 0
+    if (emailConfigured()) {
+      for (const { contact, scored } of emailsToSend.slice(0, MAX_EMAILS_PER_RUN)) {
+        try {
+          const jobList = scored.map((s) => s.job)
+          const subject = scored.length === 1
+            ? `Nova vaga para ti: ${scored[0].job.titulo || scored[0].job.title}`
+            : `${scored.length} novas vagas no MÔ SALO`
+          await sendEmail({
+            to: contact,
+            subject: subject.slice(0, 120),
+            html: buildJobsHtml({ nome: contact.nome, jobs: jobList, siteUrl: SITE_URL }),
+          })
+          emailed++
+          await new Promise((r) => setTimeout(r, 120))
+        } catch (e) {
+          console.error(`email para ${contact.email} falhou:`, e.message || e)
+        }
+      }
+    }
+
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ ok: true, new: newJobs.length, notifications: created }),
+      body: JSON.stringify({ ok: true, new: newJobs.length, notifications: created, emailed }),
     }
   } catch (err) {
     console.error('Erro notify-new-jobs:', err)

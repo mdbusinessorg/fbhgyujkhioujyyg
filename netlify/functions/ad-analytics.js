@@ -1,4 +1,4 @@
-const { getStore } = require('@netlify/blobs')
+const { getStoreWithFallback } = require('../lib/store')
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -7,10 +7,7 @@ const headers = {
 }
 
 async function getStoreInstance() {
-  return getStore('ad-analytics', {
-    siteID: process.env.NETLIFY_BLOBS_SITE_ID,
-    token: process.env.NETLIFY_BLOBS_TOKEN,
-  })
+  return getStoreWithFallback('ad-analytics')
 }
 
 async function getStats(store) {
