@@ -68,7 +68,7 @@ async function scrape(previousById = new Map(), deadIds = new Set()) {
 
 async function main() {
   const previousById = await loadPrevious(DATA_DIR)
-  const deadIds = await loadDead(DATA_DIR)
+  const deadIds = await loadDead()
   const raw = await scrape(previousById, deadIds)
   const freshJobs = raw.filter((j) => j && !j.__error && j.title)
   const errors = raw.filter((j) => j && j.__error).length
@@ -77,7 +77,7 @@ async function main() {
   // removidos que nunca vão voltar; sem isto cada corrida buscava-os de novo.
   const goneIds = entries_to_dead(raw)
   if (goneIds.length) {
-    await markDead(DATA_DIR, goneIds)
+    await markDead(goneIds)
     console.log(`yoyota dead-marked=${goneIds.length}`)
   }
 

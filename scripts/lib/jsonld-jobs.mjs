@@ -12,7 +12,7 @@ let jinaQueue = Promise.resolve()
 let jinaLastAt = 0
 const JINA_MIN_GAP_MS = 3200
 
-async function fetchViaJina(url) {
+async function fetchViaJina(url, attempt = 0) {
   const run = jinaQueue.then(async () => {
     const wait = JINA_MIN_GAP_MS - (Date.now() - jinaLastAt)
     if (wait > 0) await new Promise((r) => setTimeout(r, wait))
@@ -26,7 +26,17 @@ async function fetchViaJina(url) {
     return text
   })
   jinaQueue = run.catch(() => {})
-  return run
+  try {
+    return await run
+  } catch (e) {
+    // Em runners partilhados o r.jina.ai pode rate-limitar por IP — uma segunda
+    // tentativa alguns segundos depois costuma passar.
+    if (attempt < 1) {
+      await new Promise((r) => setTimeout(r, 6000))
+      return fetchViaJina(url, attempt + 1)
+    }
+    throw e
+  }
 }
 
 export async function fetchHtml(url, retries = 2) {
@@ -34,8 +44,14 @@ export async function fetchHtml(url, retries = 2) {
     const res = await fetch(url, { headers: { 'User-Agent': UA, Accept: 'text/html' } })
     if (res.ok) return res.text()
     if (res.status === 403 || res.status === 503) {
-      // Alguns boards bloqueiam IPs de datacenter (GitHub runners) — fallback via
-      // proxy público que devolve o HTML/XML cru (JSON-LD intacto).
+      // r.jina.ai com X-Return-Format: html devolve HTML limpo que mantém os
+      // blocos JSON-LD — chega aos sites que bloqueiam IPs de datacenter.
+      try {
+        return await fetchViaJina(url)
+      } catch (e) {
+        console.warn(`[fetchHtml] jina falhou para ${url}: ${e.message}`)
+      }
+      // Último recurso: proxy público que devolve o HTML/XML cru.
       try {
         const alt = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`, {
           headers: { 'User-Agent': UA, Accept: 'text/html' },
@@ -44,15 +60,8 @@ export async function fetchHtml(url, retries = 2) {
           const text = await alt.text()
           if (text && text.length > 100) return text
         }
-      } catch {
-        // proxy indisponível — segue para o jina
-      }
-      // r.jina.ai com X-Return-Format: html devolve HTML limpo que mantém os
-      // blocos JSON-LD — chega aos sites que bloqueiam IPs de datacenter.
-      try {
-        return await fetchViaJina(url)
-      } catch {
-        // jina também falhou — devolve o erro original
+      } catch (e) {
+        console.warn(`[fetchHtml] allorigins falhou para ${url}: ${e.message}`)
       }
     }
     if (res.status === 429 && i < retries) {
