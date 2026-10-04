@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { askSupport } from '@/lib/ai'
-import Logo from '@/components/Logo'
+import AppHeader from '@/components/AppHeader'
 import BottomNav from '@/components/BottomNav'
 import { ArrowLeft, Send, Bot, User, Sparkles } from 'lucide-react'
 
@@ -76,15 +76,11 @@ export default function SuportePage() {
 
   return (
     <div className="min-h-screen bg-ms-surface pb-20">
-      <header className="sticky top-0 bg-white z-40 border-b border-ms-border">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
-          <button onClick={() => router.back()} className="p-1 text-ms-dark hover:text-ms-purple"><ArrowLeft size={22} /></button>
-          <Link href="/" className="flex items-center"><Logo variant="full" className="h-7 w-auto" /></Link>
-          <div className="ml-auto flex items-center gap-1 text-sm font-semibold text-ms-dark">
-            <Sparkles size={16} className="text-ms-purple" /> Assistente IA
-          </div>
-        </div>
-      </header>
+      <AppHeader />
+      <div className="max-w-3xl mx-auto px-4 pt-3 flex items-center justify-between">
+        <button onClick={() => router.back()} className="inline-flex items-center gap-1.5 text-xs font-semibold text-ms-gray hover:text-ms-blue"><ArrowLeft size={14} /> Voltar</button>
+        <span className="flex items-center gap-1 text-xs font-semibold text-ms-dark"><Sparkles size={14} className="text-ms-purple" /> Assistente IA</span>
+      </div>
 
       <main className="max-w-3xl mx-auto px-4 pt-4">
         <div className="bg-gradient-to-br from-ms-purple to-[#9B7BFF] rounded-2xl p-4 text-white mb-4">

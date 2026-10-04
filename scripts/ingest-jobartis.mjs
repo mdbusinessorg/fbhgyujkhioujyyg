@@ -24,7 +24,9 @@ const MAX_AGE_DAYS = parseInt(process.env.MAX_AGE_DAYS || '60', 10)
 const DATA_DIR = join(ROOT, 'public', 'vagas-data')
 const INDEX_PATH = join(ROOT, 'public', 'external-jobs.json')
 
-async function scrape({ maxPages = MAX_PAGES, concurrency = CONCURRENCY } = {}) {
+const jobartisId = (url) => url.split('/').pop().replace(/[^a-z0-9-]/gi, '').slice(0, 120)
+
+async function scrape({ maxPages = MAX_PAGES, concurrency = CONCURRENCY, previousById = new Map() } = {}) {
   const seen = new Set()
   const all = []
   let errors = 0
@@ -41,8 +43,16 @@ async function scrape({ maxPages = MAX_PAGES, concurrency = CONCURRENCY } = {}) 
     entries.forEach((e) => seen.add(e.url))
     if (entries.length === 0) continue
 
+    // Só buscar vagas novas — o proxy de detalhe é lento e martelar a fonte
+    // com URLs já conhecidas causava bloqueios.
+    const freshEntries = entries.filter((e) => !previousById.has(jobartisId(e.url)))
+    if (freshEntries.length === 0) {
+      console.log(`page ${page}: ${entries.length} urls, 0 novos (já conhecidos)`)
+      continue
+    }
+
     const jobs = (await mapPool(
-      entries,
+      freshEntries,
       async (entry) => {
         try {
           const html = await fetchHtml(jinaProxy(entry.url))
@@ -57,9 +67,9 @@ async function scrape({ maxPages = MAX_PAGES, concurrency = CONCURRENCY } = {}) 
       800
     )).filter((j) => j && !j.__error && j.title)
 
-    errors += entries.length - jobs.length
+    errors += freshEntries.length - jobs.length
     all.push(...jobs)
-    console.log(`page ${page}: ${entries.length} urls, ${jobs.length} parsed (total ${all.length})`)
+    console.log(`page ${page}: ${entries.length} urls, ${freshEntries.length} novos, ${jobs.length} parsed (total ${all.length})`)
   }
 
   const byId = new Map()
@@ -69,7 +79,7 @@ async function scrape({ maxPages = MAX_PAGES, concurrency = CONCURRENCY } = {}) 
 
 async function main() {
   const previousById = JSON_MODE ? await loadPrevious(DATA_DIR) : new Map()
-  const { jobs: freshJobs, errors } = await scrape()
+  const { jobs: freshJobs, errors } = await scrape({ previousById })
 
   const enrichedFresh = JSON_MODE ? await enrichFreshJobs(freshJobs, previousById) : freshJobs
   const jobs = JSON_MODE ? mergeWithPrevious(enrichedFresh, previousById, MAX_AGE_DAYS) : enrichedFresh

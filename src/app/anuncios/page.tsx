@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
 import { useSiteConfig } from '@/components/SiteConfigProvider'
 import PaidAdsCarousel from '@/components/PaidAdsCarousel'
-import Logo from '@/components/Logo'
+import AppHeader from '@/components/AppHeader'
 import { Megaphone, Upload, ArrowLeft, MessageCircle, CheckCircle, AlertCircle, Clock } from 'lucide-react'
 
 export default function AnunciosPage() {
@@ -110,13 +110,13 @@ export default function AnunciosPage() {
 
   return (
     <div className="min-h-screen bg-ms-surface pb-24">
-      <header className="sticky top-0 bg-white z-50 px-4 py-3 shadow-sm">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <button onClick={() => router.back()} className="p-1 -ml-2 text-ms-dark"><ArrowLeft size={22} /></button>
-          <Link href="/" className="flex items-center"><Logo variant="full" className="h-7 w-auto" /></Link>
-          <div className="w-8" />
-        </div>
-      </header>
+      <AppHeader />
+
+      <div className="max-w-3xl mx-auto px-4 pt-3">
+        <button onClick={() => router.back()} className="inline-flex items-center gap-1.5 text-xs font-semibold text-ms-gray hover:text-ms-blue">
+          <ArrowLeft size={14} /> Voltar
+        </button>
+      </div>
 
       <main className="max-w-3xl mx-auto px-4 pt-6">
         <div className="bg-gradient-to-br from-ms-blue to-ms-purple rounded-3xl p-6 text-white mb-6">

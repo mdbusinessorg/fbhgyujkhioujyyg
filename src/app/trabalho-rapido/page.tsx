@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
-import { ArrowLeft, Plus, MapPin, Clock, Phone, Zap, X, MessageSquare, Search, Upload, CheckCircle, CreditCard, Lock, ShieldCheck, Timer, Users, Star, Gift, Flame, ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
+import { Plus, MapPin, Clock, Phone, Zap, X, MessageSquare, Search, Upload, CheckCircle, CreditCard, Lock, ShieldCheck, Timer, Users, Star, Gift, Flame, ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
+import AppHeader from '@/components/AppHeader'
 
 const CATEGORIAS = [
   { key: 'all', label: 'Todos' },
@@ -274,23 +275,20 @@ export default function TrabalhoRapidoPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-28">
-      <header className="sticky top-0 bg-white/95 backdrop-blur-xl border-b border-white/40 px-4 py-3 z-40">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/" className="p-1"><ArrowLeft size={20} className="text-gray-700" /></Link>
-            <div className="flex items-center gap-1.5">
-              <Zap size={18} className="text-orange-500" />
-              <h1 className="font-semibold text-gray-900">Trabalho Rápido</h1>
-            </div>
-          </div>
-          <button
-            onClick={() => { isLoggedIn ? setShowForm(true) : router.push('/auth/login/') }}
-            className="flex items-center gap-1 px-3 py-1.5 bg-orange-500 text-white text-xs font-medium rounded-lg hover:bg-orange-600 transition-colors"
-          >
-            <Plus size={14} /> Publicar
-          </button>
+      <AppHeader />
+
+      <div className="max-w-2xl mx-auto px-4 pt-3 flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <Zap size={18} className="text-orange-500" />
+          <h1 className="font-semibold text-gray-900">Trabalho Rápido</h1>
         </div>
-      </header>
+        <button
+          onClick={() => { isLoggedIn ? setShowForm(true) : router.push('/auth/login/') }}
+          className="flex items-center gap-1 px-3 py-1.5 bg-orange-500 text-white text-xs font-medium rounded-lg hover:bg-orange-600 transition-colors"
+        >
+          <Plus size={14} /> Publicar
+        </button>
+      </div>
 
       {/* Hero / Value prop */}
       <div className="bg-gradient-to-br from-orange-500 via-orange-500 to-amber-500 text-white px-4 py-6">

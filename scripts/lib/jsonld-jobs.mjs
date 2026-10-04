@@ -9,6 +9,21 @@ export async function fetchHtml(url, retries = 2) {
   for (let i = 0; i <= retries; i++) {
     const res = await fetch(url, { headers: { 'User-Agent': UA, Accept: 'text/html' } })
     if (res.ok) return res.text()
+    if (res.status === 403 || res.status === 503) {
+      // Alguns boards bloqueiam IPs de datacenter (GitHub runners) — fallback via
+      // proxy público que devolve o HTML/XML cru (JSON-LD intacto).
+      try {
+        const alt = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`, {
+          headers: { 'User-Agent': UA, Accept: 'text/html' },
+        })
+        if (alt.ok) {
+          const text = await alt.text()
+          if (text && text.length > 100) return text
+        }
+      } catch {
+        // proxy indisponível — segue para o erro original
+      }
+    }
     if (res.status === 429 && i < retries) {
       await new Promise((r) => setTimeout(r, 1500 * (i + 1)))
       continue

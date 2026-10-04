@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { social, type Connection } from '@/lib/social'
 import { ArrowLeft, Send, MessageSquare, User, Search, Check, X, Users, ImagePlus, UserPlus } from 'lucide-react'
 import NotificationsBell from '@/components/NotificationsBell'
+import AppHeader from '@/components/AppHeader'
 
 interface Conversation {
   id: string
@@ -283,14 +284,13 @@ function MensagensContent() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col lg:flex-row">
-      <div className={`${activeConv ? 'hidden lg:flex' : 'flex'} flex-col w-full lg:w-80 lg:border-r border-gray-100 h-screen`}>
+    <div className="min-h-screen bg-white flex flex-col">
+      <AppHeader />
+      <div className="flex-1 flex flex-col lg:flex-row min-h-0">
+      <div className={`${activeConv ? 'hidden lg:flex' : 'flex'} flex-col w-full lg:w-80 lg:border-r border-gray-100 h-[calc(100dvh-92px)] lg:h-[calc(100dvh-57px)]`}>
         <header className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 z-10">
           <div className="flex items-center justify-between gap-3 mb-3">
-            <div className="flex items-center gap-3">
-              <Link href="/" className="p-1"><ArrowLeft size={20} className="text-gray-700" /></Link>
-              <h1 className="font-semibold text-gray-900">Mensagens</h1>
-            </div>
+            <h1 className="font-semibold text-gray-900">Mensagens</h1>
             <NotificationsBell />
           </div>
           <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 mb-3">
@@ -380,7 +380,7 @@ function MensagensContent() {
       </div>
 
       {activeConv ? (
-        <div className="flex-1 flex flex-col h-screen">
+        <div className="flex-1 flex flex-col h-[calc(100dvh-92px)] lg:h-[calc(100dvh-57px)]">
           <header className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 z-10 flex items-center gap-3">
             <button onClick={() => setActiveConv(null)} className="lg:hidden p-1">
               <ArrowLeft size={20} className="text-gray-700" />
@@ -452,6 +452,7 @@ function MensagensContent() {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }

@@ -51,9 +51,10 @@ async function jobUrls() {
     .slice(0, MAX_JOBS)
 }
 
-async function scrape() {
-  const entries = await jobUrls()
-  console.log(`angoemprego urls=${entries.length}`)
+async function scrape(previousById = new Map()) {
+  const allEntries = await jobUrls()
+  const entries = allEntries.filter(({ loc }) => !previousById.has(`ae-${pathSlug(loc)}`))
+  console.log(`angoemprego urls=${allEntries.length} new_candidates=${entries.length}`)
 
   return mapPool(
     entries,
@@ -79,7 +80,7 @@ async function scrape() {
 
 async function main() {
   const previousById = await loadPrevious(DATA_DIR)
-  const raw = await scrape()
+  const raw = await scrape(previousById)
   const freshJobs = raw.filter((j) => j && !j.__error && j.title)
   const errors = raw.filter((j) => j && j.__error).length
 

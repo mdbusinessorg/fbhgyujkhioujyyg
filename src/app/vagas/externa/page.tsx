@@ -6,7 +6,8 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { ArrowLeft, MapPin, Clock, Linkedin, Send, MessageCircle, LogIn, Mail, Sparkles, Share2, Check } from 'lucide-react'
 import { CompanyLogo } from '@/components/CompanyLogo'
-import Logo from '@/components/Logo'
+import AppHeader from '@/components/AppHeader'
+import { recordExternalApply, hasAppliedTo } from '@/lib/candidacies'
 
 function ExternaContent() {
   const searchParams = useSearchParams()
@@ -18,6 +19,13 @@ function ExternaContent() {
   const [candidate, setCandidate] = useState<any>(null)
   const [preparingEmail, setPreparingEmail] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
+  const [alreadyApplied, setAlreadyApplied] = useState(false)
+
+  const markApplied = (via: 'site_oficial' | 'email') => {
+    if (!job) return
+    recordExternalApply({ job_id: job.id || jobId || '', title: job.title, company: job.company, logo_url: job.logo_url, location: job.location, via })
+    setAlreadyApplied(true)
+  }
 
   const shareJob = () => {
     const url = window.location.href
@@ -36,6 +44,7 @@ function ExternaContent() {
       try {
         const res = await fetch(`/vagas-data/${encodeURIComponent(jobId)}.json`, { cache: 'no-store' })
         if (res.ok) setJob(await res.json())
+        setAlreadyApplied(hasAppliedTo(jobId))
       } catch {
         // ignore — handled by not-found state below
       }
@@ -87,6 +96,7 @@ function ExternaContent() {
     } catch {}
     setPreparingEmail(false)
     const address = job.apply_url.replace(/^mailto:/i, '').split('?')[0]
+    markApplied('email')
     window.location.href = `mailto:${address}?subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(email.body)}`
   }
 
@@ -123,20 +133,13 @@ function ExternaContent() {
 
   return (
     <div className="min-h-screen bg-white pb-28">
-      {/* Top Nav */}
-      <header className="sticky top-0 bg-white border-b border-ms-border z-50 px-4 py-3">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <Link href="/vagas/" aria-label="Voltar às vagas">
-            <ArrowLeft size={20} className="text-ms-dark" />
-          </Link>
-          <Link href="/" aria-label="MÔ SALO — página inicial">
-            <Logo variant="full" className="h-8 w-auto" />
-          </Link>
-          <Link href="/vagas/" className="text-ms-blue text-xs font-bold">
-            Vagas
-          </Link>
-        </div>
-      </header>
+      <AppHeader />
+
+      <div className="max-w-3xl mx-auto px-4 pt-3">
+        <Link href="/vagas/" className="inline-flex items-center gap-1.5 text-xs font-semibold text-ms-gray hover:text-ms-blue">
+          <ArrowLeft size={14} /> Voltar às vagas
+        </Link>
+      </div>
 
       <main className="max-w-3xl mx-auto px-4 pt-6">
         <div className="text-center mb-6">
@@ -225,6 +228,11 @@ function ExternaContent() {
 
       {/* Sticky bottom apply bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-ms-border p-4 z-50">
+        {alreadyApplied && (
+          <p className="max-w-3xl mx-auto inline-flex items-center gap-1.5 text-[11px] font-semibold text-green-700 bg-green-50 border border-green-100 rounded-lg px-3 py-1.5 mb-2">
+            <Check size={12} /> Candidatura registada — vê em <Link href="/candidaturas/" className="underline">Minhas candidaturas</Link>
+          </p>
+        )}
         <div className="max-w-3xl mx-auto flex flex-col sm:flex-row gap-3">
           {job.apply_url && isMailtoApply ? (
             <button
@@ -243,6 +251,7 @@ function ExternaContent() {
               href={job.apply_url}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => markApplied('site_oficial')}
               className="flex-1 bg-ms-blue text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
             >
               <Send size={16} /> Candidatar no site oficial

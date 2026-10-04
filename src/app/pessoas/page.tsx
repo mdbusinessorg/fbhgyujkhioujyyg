@@ -7,8 +7,8 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { social, type Post } from '@/lib/social'
 import ProfileAvatar from '@/components/ProfileAvatar'
-import NotificationsBell from '@/components/NotificationsBell'
 import Logo from '@/components/Logo'
+import AppHeader from '@/components/AppHeader'
 import FeedCard from '@/components/FeedCard'
 import PostComposer from '@/components/PostComposer'
 import StoryBar from '@/components/StoryBar'
@@ -16,7 +16,7 @@ import {
   MessageSquare, Users, User, Home, Search, Bell, Hash, Globe,
   Sparkles, TrendingUp, Building2, UserPlus, Check, X, MapPin, Briefcase,
   Filter, SlidersHorizontal, Eye, Zap, BookOpen, ChevronRight,
-  Menu, LayoutDashboard, Megaphone, Crown, LifeBuoy
+  LayoutDashboard, Megaphone, Crown, LifeBuoy
 } from 'lucide-react'
 
 interface PersonResult {
@@ -726,32 +726,8 @@ function PessoasPageContent() {
   )
 
   return (
-    <div className="min-h-screen bg-ms-surface pb-24 lg:pb-0">
-      <header className="sticky top-0 bg-white z-50 px-4 py-3 shadow-sm">
-        <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <button onClick={() => setDrawerOpen(true)} className="lg:hidden p-1.5 -ml-1 text-ms-dark rounded-lg hover:bg-ms-surface flex-shrink-0" aria-label="Abrir menu"><Menu size={22} /></button>
-            <Link href="/" className="flex items-center max-w-[120px] flex-shrink-0"><Logo variant="full" className="h-7 w-auto max-w-full" /></Link>
-            <div className="hidden md:flex items-center relative w-64">
-              <Search className="absolute left-3 text-ms-gray" size={15} />
-              <input
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                onFocus={() => setActiveTab('descobrir')}
-                placeholder="Procurar profissionais..."
-                className="w-full bg-ms-surface rounded-full pl-9 pr-4 py-2 text-xs text-ms-dark placeholder:text-ms-gray outline-none focus:ring-2 focus:ring-ms-blue/20"
-              />
-            </div>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <NotificationsBell />
-            <Link href="/mensagens/" className="p-2 text-ms-dark hover:text-ms-blue rounded-full bg-ms-surface"><MessageSquare size={20} /></Link>
-            {currentUser && (
-              <Link href={`/pessoas/perfil/?id=${currentUser.id}`} className="hidden sm:block"><ProfileAvatar url={currentUser.avatar_url} name={currentUser.nome} size={34} /></Link>
-            )}
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-ms-surface pb-8">
+      <AppHeader />
 
       {renderMobileDrawer()}
 
@@ -763,6 +739,9 @@ function PessoasPageContent() {
 
           {/* Quick actions — like the reference: Add / Job openings / Communities / Pinned */}
           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-3 -mx-4 px-4">
+            <button onClick={() => setDrawerOpen(true)} className="lg:hidden flex-shrink-0 w-9 h-9 rounded-full overflow-hidden border border-ms-border bg-white" aria-label="Abrir menu do perfil">
+              <ProfileAvatar url={currentUser?.avatar_url} name={currentUser?.nome || 'Visitante'} size={34} />
+            </button>
             <button
               onClick={() => { setActiveTab('para-ti'); setTimeout(() => document.getElementById('post-composer')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50) }}
               className="flex-shrink-0 flex items-center gap-1.5 bg-ms-blue text-white text-xs font-semibold px-4 py-2 rounded-full shadow-sm active:scale-95 transition-all"
@@ -780,7 +759,7 @@ function PessoasPageContent() {
             </button>
           </div>
 
-          <div className="bg-white border border-ms-border rounded-2xl p-1.5 mb-4 shadow-sm sticky top-[60px] z-40">
+          <div className="bg-white border border-ms-border rounded-2xl p-1.5 mb-4 shadow-sm sticky top-[86px] lg:top-[57px] z-40">
             <div className="flex items-center overflow-x-auto no-scrollbar">
               {TAB_CONFIG.map(t => {
                 const Icon = t.icon
@@ -799,22 +778,6 @@ function PessoasPageContent() {
 
         {renderRightSidebar()}
       </main>
-
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-ms-border z-50 lg:hidden">
-        <div className="flex items-center justify-around py-2 px-2 max-w-md mx-auto">
-          <Link href="/" className="flex flex-col items-center gap-0.5 py-1 px-2"><Home size={22} className="text-ms-gray" /><span className="text-[10px] text-ms-gray">Início</span></Link>
-          <button onClick={() => setActiveTab('rede')} className={`flex flex-col items-center gap-0.5 py-1 px-2 ${activeTab === 'rede' ? 'text-ms-blue' : 'text-ms-gray'}`}><Users size={22} /><span className="text-[10px]">Rede</span></button>
-          <button
-            onClick={() => { setActiveTab('para-ti'); setTimeout(() => document.getElementById('post-composer')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50) }}
-            className="-mt-6 w-14 h-14 rounded-full bg-ms-blue text-white flex items-center justify-center shadow-lg shadow-ms-blue/40 border-4 border-ms-surface active:scale-95 transition-transform"
-            aria-label="Nova publicação"
-          >
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
-          </button>
-          <Link href="/mensagens/" className="flex flex-col items-center gap-0.5 py-1 px-2 text-ms-gray"><MessageSquare size={22} /><span className="text-[10px]">Mensagens</span></Link>
-          <Link href="/vagas/" className="flex flex-col items-center gap-0.5 py-1 px-2 text-ms-gray"><Briefcase size={22} /><span className="text-[10px]">Vagas</span></Link>
-        </div>
-      </nav>
     </div>
   )
 }

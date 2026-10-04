@@ -1,17 +1,14 @@
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
-import Logo from '@/components/Logo'
+import AppHeader from '@/components/AppHeader'
 
 export default function GuiaPage() {
   return (
     <div className="min-h-screen bg-white">
-      <header className="sticky top-0 bg-white border-b border-ms-border z-50 px-4 py-3">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <Link href="/"><ArrowLeft size={20} className="text-ms-dark" /></Link>
-          <Logo variant="full" className="h-8 w-auto" />
-          <div className="w-5" />
-        </div>
-      </header>
+      <AppHeader />
+      <div className="max-w-3xl mx-auto px-4 pt-3">
+        <Link href="/" className="inline-flex items-center gap-1.5 text-xs font-semibold text-ms-gray hover:text-ms-blue"><ArrowLeft size={14} /> Voltar ao início</Link>
+      </div>
       <main className="max-w-3xl mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold text-ms-dark mb-4">Guia de Utilização</h1>
         <div className="space-y-4 text-sm text-ms-gray">

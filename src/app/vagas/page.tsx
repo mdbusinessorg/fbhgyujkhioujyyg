@@ -3,9 +3,9 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { Search, SlidersHorizontal, Heart, Briefcase, ArrowLeft, Home as HomeIcon, User, Star, MapPin, Globe, Building2, X, Filter, ChevronDown, MessageCircle, LogIn, Check, Share2, Info } from 'lucide-react'
+import { Search, SlidersHorizontal, Briefcase, Star, MapPin, Globe, Building2, X, Filter, ChevronDown, MessageCircle, LogIn, Check, Share2, Info } from 'lucide-react'
 import { CompanyLogo } from '@/components/CompanyLogo'
-import Logo from '@/components/Logo'
+import AppHeader from '@/components/AppHeader'
 import { sortByMatch, computeJobMatchScore } from '@/lib/match'
 
 const EXT_PAGE_SIZE = 20
@@ -416,19 +416,8 @@ export default function VagasPage() {
   const resultsCount = source === 'externas' ? filteredExternal.length : filteredVagas.length
 
   return (
-    <div className="min-h-screen bg-white pb-20 lg:pb-0">
-      {/* Top Nav */}
-      <header className="sticky top-0 bg-white border-b border-ms-border z-50 px-4 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <ArrowLeft size={20} className="text-ms-dark" />
-          </Link>
-          <Logo variant="full" className="h-8 w-auto" />
-          <button>
-            <Heart size={20} className="text-ms-gray" />
-          </button>
-        </div>
-      </header>
+    <div className="min-h-screen bg-white">
+      <AppHeader />
 
       <main className="max-w-6xl mx-auto px-4 pt-4">
         {/* Search */}
@@ -733,28 +722,6 @@ export default function VagasPage() {
           </div>
         </div>
       </main>
-
-      {/* Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-ms-border z-50 lg:hidden">
-        <div className="flex items-center justify-around py-2 px-4 max-w-md mx-auto">
-          <Link href="/" className="flex flex-col items-center gap-0.5 py-1">
-            <HomeIcon size={22} className="text-gray-400" />
-            <span className="text-[10px] text-gray-400">Início</span>
-          </Link>
-          <Link href="/vagas/" className="flex flex-col items-center gap-0.5 py-1">
-            <Search size={22} className="text-ms-blue" />
-            <span className="text-[10px] text-ms-blue font-medium">Pesquisar</span>
-          </Link>
-          <Link href={isLoggedIn ? `/dashboard/${userRole}/` : '/auth/login/'} className="flex flex-col items-center gap-0.5 py-1">
-            <Briefcase size={22} className="text-gray-400" />
-            <span className="text-[10px] text-gray-400">Dashboard</span>
-          </Link>
-          <Link href={isLoggedIn ? `/dashboard/${userRole}/?tab=perfil` : '/auth/login/'} className="flex flex-col items-center gap-0.5 py-1">
-            <User size={22} className="text-gray-400" />
-            <span className="text-[10px] text-gray-400">Perfil</span>
-          </Link>
-        </div>
-      </nav>
     </div>
   )
 }

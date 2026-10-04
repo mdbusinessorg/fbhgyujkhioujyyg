@@ -25,7 +25,7 @@ const MAX_AGE_DAYS = parseInt(process.env.MAX_AGE_DAYS || '60', 10)
 const DATA_DIR = join(ROOT, 'public', 'vagas-data')
 const INDEX_PATH = join(ROOT, 'public', 'external-jobs.json')
 
-async function scrape({ maxPages = MAX_PAGES, startPage = START_PAGE, concurrency = CONCURRENCY } = {}) {
+async function scrape({ maxPages = MAX_PAGES, startPage = START_PAGE, concurrency = CONCURRENCY, previousById = new Map() } = {}) {
   const seen = new Set()
   const all = []
   let errors = 0
@@ -42,14 +42,22 @@ async function scrape({ maxPages = MAX_PAGES, startPage = START_PAGE, concurrenc
     urls.forEach((u) => seen.add(u))
     if (urls.length === 0) continue
 
-    const jobs = (await mapPool(urls, async (u) => {
+    // Só buscar páginas de vagas que ainda não existem no store — evita
+    // martelar a fonte com centenas de pedidos repetidos a cada corrida.
+    const freshUrls = urls.filter((u) => !previousById.has(slugOf(u)))
+    if (freshUrls.length === 0) {
+      console.log(`page ${page}: ${urls.length} urls, 0 novos (já conhecidos)`)
+      continue
+    }
+
+    const jobs = (await mapPool(freshUrls, async (u) => {
       const html = await fetchHtml(u)
       return { ...parseJob(html, u), id: slugOf(u) }
     }, concurrency)).filter((j) => j && !j.__error && j.title)
 
-    errors += urls.length - jobs.length
+    errors += freshUrls.length - jobs.length
     all.push(...jobs)
-    console.log(`page ${page}: ${urls.length} urls, ${jobs.length} parsed (total ${all.length})`)
+    console.log(`page ${page}: ${urls.length} urls, ${freshUrls.length} novos, ${jobs.length} parsed (total ${all.length})`)
   }
 
   const byId = new Map()
@@ -59,7 +67,7 @@ async function scrape({ maxPages = MAX_PAGES, startPage = START_PAGE, concurrenc
 
 async function main() {
   const previousById = JSON_MODE ? await loadPrevious(DATA_DIR) : new Map()
-  const { jobs: freshJobs, errors } = await scrape()
+  const { jobs: freshJobs, errors } = await scrape({ previousById })
 
   const enrichedFresh = JSON_MODE ? await enrichFreshJobs(freshJobs, previousById) : freshJobs
   const jobs = JSON_MODE ? mergeWithPrevious(enrichedFresh, previousById, MAX_AGE_DAYS) : enrichedFresh
