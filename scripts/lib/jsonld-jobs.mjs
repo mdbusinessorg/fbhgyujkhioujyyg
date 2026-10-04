@@ -44,8 +44,22 @@ export async function fetchHtml(url, retries = 2) {
     const res = await fetch(url, { headers: { 'User-Agent': UA, Accept: 'text/html' } })
     if (res.ok) return res.text()
     if (res.status === 403 || res.status === 503) {
-      // r.jina.ai com X-Return-Format: html devolve HTML limpo que mantém os
-      // blocos JSON-LD — chega aos sites que bloqueiam IPs de datacenter.
+      // 1º: proxy próprio em Netlify Functions — corre em IPs AWS, que os
+      // boards não bloqueiam (bloqueiam os IPs dos GitHub Actions runners).
+      const proxyBase = process.env.MOSALO_PROXY || 'https://mosalo.eu.cc/.netlify/functions/fetch-proxy'
+      try {
+        const proxied = await fetch(`${proxyBase}?url=${encodeURIComponent(url)}`, {
+          headers: { 'User-Agent': UA, Accept: 'text/html' },
+        })
+        if (proxied.ok) {
+          const text = await proxied.text()
+          if (text && text.length > 100) return text
+        }
+      } catch (e) {
+        console.warn(`[fetchHtml] netlify proxy falhou para ${url}: ${e.message}`)
+      }
+      // 2º: r.jina.ai com X-Return-Format: html devolve HTML limpo que mantém
+      // os blocos JSON-LD — chega a alguns sites que bloqueiam datacenters.
       try {
         return await fetchViaJina(url)
       } catch (e) {
