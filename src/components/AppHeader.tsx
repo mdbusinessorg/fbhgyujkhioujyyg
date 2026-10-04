@@ -103,7 +103,7 @@ export default function AppHeader({ searchDefault = '' }: { searchDefault?: stri
     { key: 'conta', label: 'Criar Conta', href: '/auth/registar/', icon: FileText },
   ]
   const mobileNav = user ? authedNav : guestNav
-  const desktopNav = authedNav
+  const desktopNav = user ? authedNav : PUBLIC_NAV
 
   const isActive = (item: NavItem) => (item.match ? item.match(pathname) : false)
 
