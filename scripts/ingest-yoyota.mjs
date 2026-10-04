@@ -10,6 +10,7 @@
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { fetchHtml, extractJobPostings, jobFromLd, pathSlug, parseSitemap } from './lib/jsonld-jobs.mjs'
+import { loadDead, markDead, isGoneError } from './lib/dead-urls.mjs'
 import { decodeEntities, stripTags } from './lib/job-utils.mjs'
 import { loadPrevious, mergeWithPrevious, writeJson, enrichFreshJobs, mapPool } from './lib/merge-jobs.mjs'
 
@@ -34,10 +35,10 @@ async function jobUrls() {
     .slice(0, MAX_JOBS)
 }
 
-async function scrape(previousById = new Map()) {
+async function scrape(previousById = new Map(), deadIds = new Set()) {
   const allEntries = await jobUrls()
-  const entries = allEntries.filter(({ loc }) => !previousById.has(`yy-${pathSlug(loc)}`))
-  console.log(`yoyota urls=${allEntries.length} new_candidates=${entries.length}`)
+  const entries = allEntries.filter(({ loc }) => !previousById.has(`yy-${pathSlug(loc)}`) && !deadIds.has(`yy-${pathSlug(loc)}`))
+  console.log(`yoyota urls=${allEntries.length} new_candidates=${entries.length} dead_skipped=${deadIds.size}`)
 
   return mapPool(
     entries,
@@ -57,7 +58,7 @@ async function scrape(previousById = new Map()) {
           id: `yy-${pathSlug(loc)}`,
         })
       } catch (e) {
-        return { __error: String(e) }
+        return { __error: String(e), __loc: loc }
       }
     },
     CONCURRENCY,
@@ -67,9 +68,18 @@ async function scrape(previousById = new Map()) {
 
 async function main() {
   const previousById = await loadPrevious(DATA_DIR)
-  const raw = await scrape(previousById)
+  const deadIds = await loadDead(DATA_DIR)
+  const raw = await scrape(previousById, deadIds)
   const freshJobs = raw.filter((j) => j && !j.__error && j.title)
   const errors = raw.filter((j) => j && j.__error).length
+
+  // URLs mortas (404) ficam na dead-list — o sitemap da Yoyota mantém links
+  // removidos que nunca vão voltar; sem isto cada corrida buscava-os de novo.
+  const goneIds = entries_to_dead(raw)
+  if (goneIds.length) {
+    await markDead(DATA_DIR, goneIds)
+    console.log(`yoyota dead-marked=${goneIds.length}`)
+  }
 
   if (DRY_RUN) {
     console.log(JSON.stringify(freshJobs.slice(0, 3), null, 2))
@@ -83,6 +93,13 @@ async function main() {
 
   console.log(`yoyota parsed=${freshJobs.length} errors=${errors} new=${newCount} total=${jobs.length}`)
   await writeJson(jobs, { dataDir: DATA_DIR, indexPath: INDEX_PATH })
+}
+
+// Extrai o id das entradas que devolveram 404 definitivo.
+function entries_to_dead(raw) {
+  return raw
+    .filter((j) => j && j.__error && isGoneError(j.__error) && j.__loc)
+    .map((j) => `yy-${pathSlug(j.__loc)}`)
 }
 
 main().catch((e) => {

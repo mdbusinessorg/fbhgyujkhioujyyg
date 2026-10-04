@@ -5,6 +5,30 @@ import { decodeEntities, sanitizeHtml, stripTags, inferCategory, extractSalary, 
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36'
 
+// Chamadas ao r.jina.ai passam por uma fila serializada — o tier gratuito
+// permite ~20 req/min, por isso cada pedido espera pelo menos ~3.2s depois
+// do anterior, independentemente da concorrência dos workers.
+let jinaQueue = Promise.resolve()
+let jinaLastAt = 0
+const JINA_MIN_GAP_MS = 3200
+
+async function fetchViaJina(url) {
+  const run = jinaQueue.then(async () => {
+    const wait = JINA_MIN_GAP_MS - (Date.now() - jinaLastAt)
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait))
+    jinaLastAt = Date.now()
+    const res = await fetch(`https://r.jina.ai/${url}`, {
+      headers: { 'User-Agent': UA, 'X-Return-Format': 'html', Accept: 'text/html' },
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status} via jina`)
+    const text = await res.text()
+    if (!text || text.length < 100) throw new Error('jina: resposta vazia')
+    return text
+  })
+  jinaQueue = run.catch(() => {})
+  return run
+}
+
 export async function fetchHtml(url, retries = 2) {
   for (let i = 0; i <= retries; i++) {
     const res = await fetch(url, { headers: { 'User-Agent': UA, Accept: 'text/html' } })
@@ -21,7 +45,14 @@ export async function fetchHtml(url, retries = 2) {
           if (text && text.length > 100) return text
         }
       } catch {
-        // proxy indisponível — segue para o erro original
+        // proxy indisponível — segue para o jina
+      }
+      // r.jina.ai com X-Return-Format: html devolve HTML limpo que mantém os
+      // blocos JSON-LD — chega aos sites que bloqueiam IPs de datacenter.
+      try {
+        return await fetchViaJina(url)
+      } catch {
+        // jina também falhou — devolve o erro original
       }
     }
     if (res.status === 429 && i < retries) {
@@ -137,6 +168,19 @@ export function parseSitemap(xml) {
   let m
   while ((m = re.exec(xml)) !== null) {
     entries.push({ loc: m[1].trim(), lastmod: (m[2] || '').trim() })
+  }
+  if (entries.length) return entries
+  // Formato alternativo devolvido pelo r.jina.ai (X-Return-Format: html):
+  // <a href="URL">URL</a><br><time>ISO</time> em vez de <url><loc>…
+  const linkRe = /<a\s+href="(https?:\/\/[^"]+)"[^>]*>/gi
+  const seen = new Set()
+  while ((m = linkRe.exec(xml)) !== null) {
+    const loc = m[1].trim()
+    if (seen.has(loc)) continue
+    seen.add(loc)
+    const after = xml.slice(m.index, m.index + 400)
+    const t = after.match(/<time[^>]*>([^<]+)<\/time>/i)
+    entries.push({ loc, lastmod: (t?.[1] || '').trim() })
   }
   return entries
 }
