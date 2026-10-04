@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Inter+Tight:wght@400;500;600;700;800&display=swap');
 
 @layer base {
   html {
@@ -100,4 +100,211 @@ html {
 @keyframes slideIn {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(0); }
+}
+
+/* ===== Neoteric-style motion ===== */
+:root {
+  --neo-orange: #fd9a05;
+  --neo-dark: #121212;
+  --neo-ease: cubic-bezier(0, 0, 0.58, 1);
+  --neo-ease-out: cubic-bezier(0, 0.5, 0, 1);
+}
+
+.neo-font-heading {
+  font-family: 'Inter Tight', -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* scroll reveal */
+.neo-reveal {
+  opacity: 0;
+  transform: translateY(48px);
+  transition: opacity 0.9s var(--neo-ease), transform 0.9s var(--neo-ease);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+.neo-reveal.fade-scale {
+  transform: scale(0.85);
+}
+.neo-reveal.fade-left {
+  transform: translateX(-48px);
+}
+.neo-reveal.fade-right {
+  transform: translateX(48px);
+}
+.neo-reveal.fade-in {
+  transform: none;
+}
+.neo-reveal.in-view {
+  opacity: 1;
+  transform: none;
+}
+
+/* headline word stagger (splitting-style) */
+.neo-hero-word {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+}
+.neo-hero-word > span {
+  display: inline-block;
+  transform: translateY(110%);
+  animation: neoWordUp 0.9s var(--neo-ease-out) forwards;
+  animation-delay: var(--word-delay, 0ms);
+}
+@keyframes neoWordUp {
+  to { transform: translateY(0); }
+}
+
+/* caption lines grow */
+.neo-caption-line {
+  display: inline-block;
+  width: 48px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.4);
+  transform: scaleX(0);
+  animation: neoLineGrow 0.8s var(--neo-ease) forwards;
+}
+@keyframes neoLineGrow {
+  to { transform: scaleX(1); }
+}
+
+/* hero fade-in group */
+.neo-fade-up {
+  opacity: 0;
+  transform: translateY(24px);
+  animation: neoFadeUp 0.9s var(--neo-ease) forwards;
+  animation-delay: var(--fade-delay, 0ms);
+}
+@keyframes neoFadeUp {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* marquee */
+@keyframes neoMarquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.neo-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: neoMarquee 40s linear infinite;
+}
+.neo-marquee-track:hover {
+  animation-play-state: paused;
+}
+.neo-marquee-outline {
+  -webkit-text-stroke: 1px rgba(255, 255, 255, 0.25);
+  color: transparent;
+}
+
+/* scroll-down indicator */
+@keyframes neoScrollDown {
+  0% { transform: translateY(0); opacity: 1; }
+  70% { transform: translateY(14px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 0; }
+}
+.neo-scroll-dot {
+  animation: neoScrollDown 2.2s var(--neo-ease) infinite;
+}
+
+/* floating shape parallax-ish drift */
+@keyframes neoDrift {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-18px) rotate(3deg); }
+}
+.neo-drift {
+  animation: neoDrift 9s ease-in-out infinite;
+}
+
+/* feature card hover fill (features-2 style) */
+.neo-feature {
+  position: relative;
+  overflow: hidden;
+}
+.neo-feature::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  opacity: 1;
+  transition: opacity 0.27s var(--neo-ease), background 0.27s var(--neo-ease);
+  z-index: 0;
+}
+.neo-feature:hover::before {
+  background: rgba(255, 255, 255, 0.06);
+}
+.neo-feature > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* navbar transition */
+.neo-nav {
+  transition: background 0.35s var(--neo-ease), box-shadow 0.35s var(--neo-ease), backdrop-filter 0.35s var(--neo-ease);
+}
+.neo-nav.scrolled {
+  background: rgba(18, 18, 18, 0.92);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* underline grow on nav links */
+.neo-link {
+  position: relative;
+}
+.neo-link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -4px;
+  width: 100%;
+  height: 1px;
+  background: var(--neo-orange);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s var(--neo-ease);
+}
+.neo-link:hover::after {
+  transform: scaleX(1);
+}
+
+/* orange CTA */
+.neo-btn-orange {
+  background: var(--neo-orange);
+  transition: transform 0.3s var(--neo-ease), box-shadow 0.3s var(--neo-ease), filter 0.3s var(--neo-ease);
+}
+.neo-btn-orange:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(253, 154, 5, 0.35);
+  filter: brightness(1.05);
+}
+
+/* card lift */
+.neo-card {
+  transition: transform 0.35s var(--neo-ease), box-shadow 0.35s var(--neo-ease);
+}
+.neo-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.25);
+}
+
+/* image zoom on card hover */
+.neo-card-img {
+  transition: transform 0.6s var(--neo-ease);
+}
+.neo-card:hover .neo-card-img {
+  transform: scale(1.06);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .neo-reveal, .neo-hero-word > span, .neo-fade-up, .neo-caption-line {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .neo-marquee-track, .neo-scroll-dot, .neo-drift {
+    animation: none !important;
+  }
 }
