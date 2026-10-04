@@ -1,6 +1,8 @@
 const { getStoreWithFallback } = require('../lib/store')
 const { emailConfigured, sendEmail, buildJobsHtml, MAX_EMAILS_PER_RUN } = require('../lib/email')
 
+const MAX_WEEKLY_EMAILS = parseInt(process.env.MAX_WEEKLY_EMAILS || '30', 10)
+
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://gwnjigmsuqasvotsksmk.supabase.co'
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_d0CD9GsxB4rDVh-SmQUikA_owJjXbAQ'
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY
@@ -79,6 +81,28 @@ function jobKey(job) {
   return normalize(`${job.titulo || job.title || ''}|${job.empresa || job.company || ''}`)
 }
 
+function shuffle(arr) {
+  const a = arr.slice()
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    const t = a[i]; a[i] = a[j]; a[j] = t
+  }
+  return a
+}
+
+function isThursdayLuanda() {
+  return new Date(Date.now() + 60 * 60 * 1000).getUTCDay() === 4
+}
+
+function isoWeekKey(d) {
+  const date = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()))
+  const day = date.getUTCDay() || 7
+  date.setUTCDate(date.getUTCDate() + 4 - day)
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1))
+  const week = Math.ceil((((date - yearStart) / 86400000) + 1) / 7)
+  return `${date.getUTCFullYear()}-W${String(week).padStart(2, '0')}`
+}
+
 function selectJobsForProfile(newJobs, profile, limit = 4) {
   const seen = new Set()
   return newJobs
@@ -151,56 +175,71 @@ exports.handler = async (event) => {
     } else {
       newJobs = jobs.filter((j) => !seenSet.has(j.id))
     }
-    if (newJobs.length === 0) {
-      return { statusCode: 200, headers, body: JSON.stringify({ ok: true, new: 0, notifications: 0 }) }
-    }
-
     const allIds = jobs.map((j) => j.id)
     await stateStore.set('seen-ids', JSON.stringify(allIds))
 
     const notifications = await loadNotifications(notifStore)
     let created = 0
-    const emailsToSend = []
 
-    for (const profile of profiles) {
-      const scored = selectJobsForProfile(newJobs, profile, 4)
+    if (newJobs.length > 0) {
+      for (const profile of profiles) {
+        const scored = selectJobsForProfile(newJobs, profile, 4)
 
-      if (scored.length === 0) continue
+        if (scored.length === 0) continue
 
-      const titles = scored.map((s) => s.job.titulo || s.job.title).filter(Boolean).join(', ')
-      const title = scored.length === 1 ? 'Nova vaga para ti' : `${scored.length} novas vagas para ti`
-      const body = scored.length === 1
-        ? `Encontrámos uma vaga que combina contigo: ${titles}.`
-        : `Encontrámos vagas que combinam contigo: ${titles}.`
+        const titles = scored.map((s) => s.job.titulo || s.job.title).filter(Boolean).join(', ')
+        const title = scored.length === 1 ? 'Nova vaga para ti' : `${scored.length} novas vagas para ti`
+        const body = scored.length === 1
+          ? `Encontrámos uma vaga que combina contigo: ${titles}.`
+          : `Encontrámos vagas que combinam contigo: ${titles}.`
 
-      notifications.push({
-        id: crypto.randomUUID(),
-        user_id: profile.user_id,
-        type: 'job_match',
-        title,
-        body,
-        data: {
-          job_ids: scored.map((s) => s.job.id),
-          job_titles: scored.map((s) => s.job.titulo || s.job.title),
-          scores: scored.map((s) => s.score),
-        },
-        sender: { id: 'mosalo-bot', nome: 'MÔ SALO', role: 'admin' },
-        read: false,
-        created_at: new Date().toISOString(),
-      })
-      created++
-
-      const contact = userEmails.get(profile.user_id)
-      if (contact?.email) {
-        emailsToSend.push({ contact, scored })
+        notifications.push({
+          id: crypto.randomUUID(),
+          user_id: profile.user_id,
+          type: 'job_match',
+          title,
+          body,
+          data: {
+            job_ids: scored.map((s) => s.job.id),
+            job_titles: scored.map((s) => s.job.titulo || s.job.title),
+            scores: scored.map((s) => s.score),
+          },
+          sender: { id: 'mosalo-bot', nome: 'MÔ SALO', role: 'admin' },
+          read: false,
+          created_at: new Date().toISOString(),
+        })
+        created++
       }
+
+      await saveNotifications(notifStore, notifications)
     }
 
-    await saveNotifications(notifStore, notifications)
-
     let emailed = 0
-    if (emailConfigured()) {
-      for (const { contact, scored } of emailsToSend.slice(0, MAX_EMAILS_PER_RUN)) {
+    const weekKey = isoWeekKey(new Date())
+    const emailWeek = await stateStore.get('email-week')
+    if (emailConfigured() && isThursdayLuanda() && emailWeek !== weekKey) {
+      await stateStore.set('email-week', weekKey)
+
+      const weeklyJobs = jobs.filter((j) => isRecent(j, 7 * 24))
+      const emailedRaw = (await stateStore.get('emailed-user-ids')) || '[]'
+      let emailedIds = []
+      try { emailedIds = JSON.parse(emailedRaw) } catch {}
+      const emailedSet = new Set(emailedIds)
+
+      const candidates = []
+      for (const profile of profiles) {
+        const contact = userEmails.get(profile.user_id)
+        if (!contact?.email) continue
+        const scored = selectJobsForProfile(weeklyJobs, profile, 4)
+        if (scored.length === 0) continue
+        candidates.push({ contact, scored, userId: profile.user_id, fresh: !emailedSet.has(profile.user_id) })
+      }
+
+      const fresh = shuffle(candidates.filter((c) => c.fresh))
+      const rest = shuffle(candidates.filter((c) => !c.fresh))
+      const batch = [...fresh, ...rest].slice(0, Math.min(MAX_WEEKLY_EMAILS, MAX_EMAILS_PER_RUN))
+
+      for (const { contact, scored } of batch) {
         try {
           const jobList = scored.map((s) => s.job)
           const subject = scored.length === 1
@@ -217,6 +256,10 @@ exports.handler = async (event) => {
           console.error(`email para ${contact.email} falhou:`, e.message || e)
         }
       }
+
+      emailedIds.push(...batch.map((b) => b.userId))
+      const deduped = [...new Set(emailedIds)]
+      await stateStore.set('emailed-user-ids', JSON.stringify(deduped.slice(-500)))
     }
 
     return {
