@@ -7,7 +7,7 @@
   node_bundler = "esbuild"
 
 [functions."notify-new-jobs"]
-  schedule = "*/30 * * * *"
+  schedule = "0 9,18 * * *"
 
 [functions."daily-triggers"]
   schedule = "0 7 * * *"
@@ -16,7 +16,7 @@
   schedule = "0 8 * * *"
 
 [functions."trigger-scrape"]
-  schedule = "5 * * * *"
+  schedule = "5 */6 * * *"
 
 [[headers]]
   for = "/external-jobs.json"
