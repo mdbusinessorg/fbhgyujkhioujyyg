@@ -554,6 +554,36 @@ export default function HomePage() {
         </section>
         </Reveal>
 
+        {/* IA Match — visível no mobile (no desktop fica na sidebar) */}
+        <Reveal variant="fade-scale" delay={40}>
+        <section className="lg:hidden bg-gradient-to-br from-ms-blue to-ms-purple rounded-3xl p-5 mb-6 text-white">
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles size={18} />
+            <h3 className="text-base font-bold">Deixa a IA encontrar a tua vaga ideal</h3>
+          </div>
+          <p className="text-xs text-white/80 mb-4">Carrega o teu CV e recebe correspondências instantâneas.</p>
+          <button
+            onClick={() => { if (isLoggedIn) cvInputRef.current?.click(); else router.push('/auth/login/') }}
+            disabled={cvUploading}
+            className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-white/40 rounded-2xl py-4 text-white/90 text-xs mb-3 hover:border-white/70 transition-colors disabled:opacity-60"
+          >
+            <Upload size={18} /> {cvUploading ? cvMsg : 'Carrega o CV aqui'}
+          </button>
+          <button
+            onClick={() => {
+              if (!isLoggedIn) { router.push('/auth/login/'); return }
+              if (profile?.documentos?.length) router.push('/vagas/')
+              else cvInputRef.current?.click()
+            }}
+            disabled={cvUploading}
+            className="w-full bg-white text-ms-blue text-sm font-bold py-3 rounded-2xl hover:bg-blue-50 transition-colors disabled:opacity-60"
+          >
+            Encontrar Match
+          </button>
+          {cvMsg && !cvUploading && <p className="text-[11px] text-white/80 text-center mt-2">{cvMsg}</p>}
+        </section>
+        </Reveal>
+
         <div className="lg:grid lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-6">
         {/* Sidebar (desktop) */}
         <aside className="hidden lg:flex flex-col gap-4 mb-6 lg:mb-0">
