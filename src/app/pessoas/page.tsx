@@ -15,7 +15,7 @@ import StoryBar from '@/components/StoryBar'
 import {
   MessageSquare, Users, User, Home, Search, Bell, Hash, Globe,
   Sparkles, TrendingUp, Building2, UserPlus, Check, X, MapPin, Briefcase,
-  Filter, SlidersHorizontal, Eye, Zap, BookOpen, ChevronRight,
+  Filter, SlidersHorizontal, Eye, Zap, BookOpen,
   LayoutDashboard, Megaphone, Crown, LifeBuoy
 } from 'lucide-react'
 
@@ -69,6 +69,7 @@ function PessoasPageContent() {
 
   const [requests, setRequests] = useState<ConnectionRequest[]>([])
   const [follows, setFollows] = useState<{ following_id: string }[]>([])
+  const [followersCount, setFollowersCount] = useState(0)
   const [memberships, setMemberships] = useState<{ area: string; created_at: string }[]>([])
   const [allMemberships, setAllMemberships] = useState<{ user_id: string; area: string; created_at: string }[]>([])
 
@@ -107,6 +108,10 @@ function PessoasPageContent() {
       const data = await social.getFollows(userId)
       setFollows(data)
     } catch { setFollows([]) }
+    try {
+      const followers = await social.getFollowers(userId)
+      setFollowersCount(followers.length)
+    } catch { setFollowersCount(0) }
   }, [])
 
   const loadMyMemberships = useCallback(async (userId: string) => {
@@ -488,12 +493,6 @@ function PessoasPageContent() {
 
   const renderFeed = () => (
     <div className="space-y-4">
-      {activeTab === 'para-ti' && currentUser && (
-        <div className="bg-gradient-to-r from-ms-blue to-ms-purple rounded-2xl p-4 text-white shadow-md">
-          <h2 className="text-base font-bold">Bom dia, {currentUser.nome?.split(' ')[0]} 👋</h2>
-          <p className="text-xs text-white/90 mt-1">O que há de novo na tua área hoje?</p>
-        </div>
-      )}
       {currentUser && activeTab !== 'descobrir' && activeTab !== 'comunidades' && (
         <div id="post-composer" className="scroll-mt-32">
           <PostComposer currentUser={{ ...currentUser, area: currentProfile?.area }} postedToday={postedToday} onPosted={handlePosted} />
@@ -533,8 +532,6 @@ function PessoasPageContent() {
       .slice(0, 5)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [people, requests, follows, currentProfile, currentUser])
-
-  const trendingCommunities = useMemo(() => communities.slice(0, 4), [communities])
 
   const drawerLinks = [
     { href: '/', label: 'Página Inicial', icon: Home, cls: 'text-ms-blue font-semibold' },
@@ -617,40 +614,23 @@ function PessoasPageContent() {
 
   const renderLeftSidebar = () => (
     <aside className="hidden lg:block space-y-4 sticky top-[80px] self-start">
-      <div className="bg-white rounded-2xl border border-ms-border shadow-sm overflow-hidden">
-        <div className="h-16 bg-gradient-to-r from-ms-blue to-ms-purple" />
-        <div className="px-4 pb-4 -mt-7">
-          <Link href={currentUser ? `/pessoas/perfil/?id=${currentUser.id}` : '/auth/login/'} className="inline-block ring-4 ring-white rounded-full">
-            <ProfileAvatar url={currentUser?.avatar_url} name={currentUser?.nome || 'Visitante'} size={56} />
-          </Link>
-          <h3 className="text-sm font-bold text-ms-dark mt-2 truncate">{currentUser?.nome || 'Bem-vindo ao MÔ SALO'}</h3>
-          <p className="text-[11px] text-ms-gray truncate">
-            {currentUser
-              ? `${currentUser.role === 'recrutador' ? 'Recrutador' : 'Talento'}${currentProfile?.area ? ` • ${currentProfile.area}` : ''}${currentProfile?.localizacao ? ` • ${currentProfile.localizacao}` : ''}`
-              : 'Cria o teu perfil profissional e conecta-te.'}
-          </p>
-          {currentUser ? (
-            <div className="grid grid-cols-3 gap-1 mt-3 pt-3 border-t border-ms-border text-center">
-              <div><p className="text-sm font-bold text-ms-dark">{connectionsCount}</p><p className="text-[10px] text-ms-gray">Conexões</p></div>
-              <div><p className="text-sm font-bold text-ms-dark">{follows.length}</p><p className="text-[10px] text-ms-gray">A seguir</p></div>
-              <div><p className="text-sm font-bold text-ms-dark">{memberships.length}</p><p className="text-[10px] text-ms-gray">Grupos</p></div>
-            </div>
-          ) : (
-            <Link href="/auth/registar/" className="mt-3 block text-center text-xs font-bold py-2 bg-ms-blue text-white rounded-xl hover:bg-blue-700">Criar conta grátis</Link>
-          )}
-        </div>
+      <div className="bg-white rounded-2xl border border-ms-border shadow-sm p-4">
+        <h4 className="text-xs font-bold text-ms-dark flex items-center gap-1.5"><Building2 size={13} className="text-ms-blue" /> Páginas</h4>
+        <p className="text-[11px] text-ms-gray mt-1.5">Empresas e recrutadores a contratar em Angola.</p>
+        <Link href="/empresas/" className="mt-3 block text-center text-xs font-bold py-2 bg-ms-surface text-ms-blue rounded-xl hover:bg-ms-blue/10">Ver mais páginas</Link>
       </div>
 
-      {currentUser && memberships.length > 0 && (
-        <div className="bg-white rounded-2xl border border-ms-border shadow-sm p-4">
-          <h4 className="text-xs font-bold text-ms-dark mb-2 flex items-center gap-1.5"><Hash size={13} className="text-ms-blue" /> Os meus grupos</h4>
-          <div className="space-y-1">
-            {memberships.slice(0, 5).map(m => (
+      <div className="bg-white rounded-2xl border border-ms-border shadow-sm p-4">
+        <h4 className="text-xs font-bold text-ms-dark flex items-center gap-1.5"><Hash size={13} className="text-ms-blue" /> Comunidades</h4>
+        {currentUser && memberships.length > 0 && (
+          <div className="space-y-1 mt-2">
+            {memberships.slice(0, 4).map(m => (
               <button key={m.area} onClick={() => { setActiveTab('comunidades'); setCommunityArea(m.area) }} className="w-full text-left text-xs text-ms-gray hover:text-ms-blue hover:bg-ms-surface rounded-lg px-2 py-1.5 truncate">{m.area}</button>
             ))}
           </div>
-        </div>
-      )}
+        )}
+        <button onClick={() => { setActiveTab('comunidades'); setCommunityArea(null) }} className="mt-3 w-full text-center text-xs font-bold py-2 bg-ms-surface text-ms-blue rounded-xl hover:bg-ms-blue/10">Todas as comunidades</button>
+      </div>
 
       <div className="bg-white rounded-2xl border border-ms-border shadow-sm p-2">
         <Link href="/vagas/" className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-ms-gray hover:bg-ms-surface hover:text-ms-dark"><Briefcase size={15} /> Vagas de emprego</Link>
@@ -688,29 +668,18 @@ function PessoasPageContent() {
         )}
       </div>
 
-      <div className="bg-white rounded-2xl border border-ms-border shadow-sm p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h4 className="text-xs font-bold text-ms-dark flex items-center gap-1.5"><TrendingUp size={13} className="text-ms-purple" /> Comunidades em alta</h4>
-          <button onClick={() => { setActiveTab('comunidades'); setCommunityArea(null) }} className="text-[10px] font-bold text-ms-blue hover:underline">Ver todas</button>
+      {currentUser && (
+        <div className="bg-white rounded-2xl border border-ms-border shadow-sm p-4">
+          <h4 className="text-xs font-bold text-ms-dark flex items-center gap-1.5"><Briefcase size={13} className="text-ms-blue" /> Minhas Candidaturas</h4>
+          <Link href="/candidaturas/" className="mt-3 block text-center text-xs font-bold py-2 bg-ms-surface text-ms-blue rounded-xl hover:bg-ms-blue/10">Ver mais candidaturas</Link>
         </div>
-        {trendingCommunities.length === 0 ? (
-          <p className="text-[11px] text-ms-gray">Ainda sem comunidades.</p>
-        ) : (
-          <div className="space-y-1">
-            {trendingCommunities.map(c => (
-              <button key={c.area} onClick={() => { setActiveTab('comunidades'); setCommunityArea(c.area) }} className="w-full flex items-center justify-between gap-2 px-2 py-2 rounded-xl hover:bg-ms-surface text-left">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-7 h-7 rounded-lg bg-ms-purple-light flex items-center justify-center flex-shrink-0"><Hash size={13} className="text-ms-blue" /></div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-ms-dark truncate">{c.area}</p>
-                    <p className="text-[10px] text-ms-gray">{c.members} {c.members === 1 ? 'membro' : 'membros'}</p>
-                  </div>
-                </div>
-                <ChevronRight size={14} className="text-ms-gray flex-shrink-0" />
-              </button>
-            ))}
-          </div>
-        )}
+      )}
+
+      <div className="bg-white rounded-2xl border border-ms-border shadow-sm p-4">
+        <h4 className="text-xs font-bold text-ms-dark mb-3 flex items-center gap-1.5"><MessageSquare size={13} className="text-ms-blue" /> Mensagens</h4>
+        <button onClick={() => router.push('/mensagens/')} className="w-full flex items-center gap-2 bg-ms-surface rounded-xl px-3 py-2.5 text-xs text-ms-gray hover:ring-2 hover:ring-ms-blue/20 text-left">
+          <Search size={13} /> Pesquisar mensagens
+        </button>
       </div>
 
       <Link href="/premium/" className="block bg-gradient-to-br from-ms-blue to-ms-purple rounded-2xl p-4 text-white shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
@@ -731,7 +700,28 @@ function PessoasPageContent() {
 
       {renderMobileDrawer()}
 
-      <main className="max-w-6xl mx-auto px-4 pt-4 lg:grid lg:grid-cols-[240px_minmax(0,1fr)_280px] lg:gap-5 lg:items-start">
+      <main className="max-w-6xl mx-auto px-4 pt-4">
+        {currentUser && (
+          <div className="bg-gradient-to-r from-ms-blue to-ms-purple rounded-2xl p-5 lg:p-7 mb-4 lg:mb-5 text-white shadow-md lg:flex lg:items-center lg:justify-between lg:gap-6">
+            <div className="min-w-0">
+              <h1 className="text-xl lg:text-3xl font-extrabold leading-tight">Que bom ter-te de volta, {currentUser.nome?.split(' ')[0]}!</h1>
+              <p className="text-xs lg:text-sm text-white/90 mt-1.5">Continua a tirar o melhor do que preparámos para ti.</p>
+            </div>
+            <div className="mt-4 lg:mt-0 bg-white rounded-2xl p-3 lg:p-4 flex items-center gap-4 lg:min-w-[340px] shadow-sm flex-shrink-0">
+              <Link href={`/pessoas/perfil/?id=${currentUser.id}`} className="flex items-center gap-3 min-w-0 flex-1">
+                <ProfileAvatar url={currentUser.avatar_url} name={currentUser.nome} size={44} />
+                <span className="text-sm font-bold text-ms-dark truncate">{currentUser.nome}</span>
+              </Link>
+              <div className="grid grid-cols-3 gap-3 text-center border-l border-ms-border pl-4 flex-shrink-0">
+                <div><p className="text-sm font-extrabold text-ms-dark">{connectionsCount}</p><p className="text-[9px] text-ms-gray">Contactos</p></div>
+                <div><p className="text-sm font-extrabold text-ms-dark">{follows.length}</p><p className="text-[9px] text-ms-gray">A seguir</p></div>
+                <div><p className="text-sm font-extrabold text-ms-dark">{followersCount}</p><p className="text-[9px] text-ms-gray">Seguidores</p></div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="lg:grid lg:grid-cols-[240px_minmax(0,1fr)_280px] lg:gap-5 lg:items-start">
         {renderLeftSidebar()}
 
         <div className="min-w-0">
@@ -777,6 +767,7 @@ function PessoasPageContent() {
         </div>
 
         {renderRightSidebar()}
+        </div>
       </main>
     </div>
   )

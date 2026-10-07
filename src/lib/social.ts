@@ -136,6 +136,9 @@ export const social = {
   getFollows: (follower_id: string): Promise<Follow[]> =>
     api(`/follows?follower_id=${follower_id}`),
 
+  getFollowers: (following_id: string): Promise<Follow[]> =>
+    api(`/follows?following_id=${following_id}`),
+
   follow: (follower_id: string, following_id: string): Promise<{ ok: boolean }> =>
     api('/follows', { method: 'POST', body: JSON.stringify({ follower_id, following_id }) }),
 
