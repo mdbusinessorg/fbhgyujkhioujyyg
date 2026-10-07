@@ -53,19 +53,19 @@ export default function Hero() {
 
           <div className="flex flex-wrap justify-center gap-6 sm:gap-10">
             <Link href="/auth/login/" className="flex flex-col items-center gap-2 group">
-              <div className="w-16 h-16 bg-white rounded-[26px] shadow-ios-sm flex items-center justify-center group-hover:shadow-ios group-hover:-translate-y-1 transition-all">
+              <div className="w-16 h-16 bg-white rounded-[26px] shadow-ios-sm flex items-center justify-center group-hover:shadow-ios transition-all">
                 <User size={24} className="text-ms-blue" />
               </div>
               <span className="text-xs font-medium text-ms-gray">Entrar</span>
             </Link>
             <Link href="/vagas/" className="flex flex-col items-center gap-2 group">
-              <div className="w-16 h-16 bg-white rounded-[26px] shadow-ios-sm flex items-center justify-center group-hover:shadow-ios group-hover:-translate-y-1 transition-all">
+              <div className="w-16 h-16 bg-white rounded-[26px] shadow-ios-sm flex items-center justify-center group-hover:shadow-ios transition-all">
                 <Briefcase size={24} className="text-ms-purple" />
               </div>
               <span className="text-xs font-medium text-ms-gray">Ver Vagas</span>
             </Link>
             <Link href="/auth/registar/" className="flex flex-col items-center gap-2 group">
-              <div className="w-16 h-16 bg-white rounded-[26px] shadow-ios-sm flex items-center justify-center group-hover:shadow-ios group-hover:-translate-y-1 transition-all">
+              <div className="w-16 h-16 bg-white rounded-[26px] shadow-ios-sm flex items-center justify-center group-hover:shadow-ios transition-all">
                 <Building2 size={24} className="text-ms-blue" />
               </div>
               <span className="text-xs font-medium text-ms-gray">Recrutar</span>

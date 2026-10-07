@@ -20,7 +20,7 @@ export default function HowItWorks() {
             const Icon = step.icon
             return (
               <div key={i} className="text-center group">
-                <div className="w-16 h-16 bg-gradient-to-br from-ms-blue/10 to-ms-purple/10 rounded-3xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform shadow-ios-sm">
+                <div className="w-16 h-16 bg-gradient-to-br from-ms-blue/10 to-ms-purple/10 rounded-3xl flex items-center justify-center mx-auto mb-4 transition-transform shadow-ios-sm">
                   <Icon size={28} className="text-ms-blue" />
                 </div>
                 <span className="inline-flex items-center justify-center w-6 h-6 bg-ms-blue text-white text-xs font-bold rounded-full mb-2">{i + 1}</span>

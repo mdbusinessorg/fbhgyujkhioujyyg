@@ -38,8 +38,8 @@ export default function Categories() {
             const Icon = cat.icon
             return (
               <Link key={cat.name} href={`/vagas/?area=${encodeURIComponent(cat.name)}`}>
-                <div className="card p-4 text-center hover:-translate-y-1 cursor-pointer group">
-                  <div className={`w-12 h-12 rounded-2xl ${cat.color} flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform`}>
+                <div className="card p-4 text-center cursor-pointer group">
+                  <div className={`w-12 h-12 rounded-2xl ${cat.color} flex items-center justify-center mx-auto mb-3 transition-transform`}>
                     <Icon size={22} />
                   </div>
                   <h3 className="font-medium text-sm text-ms-dark mb-1 leading-tight">{cat.name}</h3>

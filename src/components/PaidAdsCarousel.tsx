@@ -119,7 +119,7 @@ export default function PaidAdsCarousel() {
               <img
                 src={ad.image_url}
                 alt={ad.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                className="w-full h-full object-cover transition-transform duration-500"
               />
               <span className="absolute top-3 left-3 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-white bg-gradient-to-r from-ms-blue to-ms-purple px-2.5 py-1 rounded-full shadow-sm">
                 Anúncio Pago

@@ -27,7 +27,7 @@ export default function JobCard({
 }: JobCardProps) {
   return (
     <Link href={`/vagas/detalhe/?id=${id}`}>
-      <div className={`card p-5 hover:-translate-y-1 cursor-pointer relative group shadow-ios-sm hover:shadow-ios ${is_prioritaria ? 'border-ms-blue/20 bg-ms-purple-light/50' : ''}`}>
+      <div className={`card p-5 cursor-pointer relative group shadow-ios-sm hover:shadow-ios ${is_prioritaria ? 'border-ms-blue/20 bg-ms-purple-light/50' : ''}`}>
         {is_prioritaria && (
           <div className="absolute top-3 right-3">
             <span className="badge bg-ms-blue/10 text-ms-blue flex items-center gap-1">

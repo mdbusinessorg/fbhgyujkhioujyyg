@@ -275,26 +275,16 @@ html {
   transition: transform 0.3s var(--neo-ease), box-shadow 0.3s var(--neo-ease), filter 0.3s var(--neo-ease);
 }
 .neo-btn-orange:hover {
-  transform: translateY(-2px);
   box-shadow: 0 12px 32px rgba(253, 154, 5, 0.35);
   filter: brightness(1.05);
 }
 
-/* card lift */
+/* card — sem movimento (estilo LinkedIn): hover apenas reforça a sombra */
 .neo-card {
-  transition: transform 0.35s var(--neo-ease), box-shadow 0.35s var(--neo-ease);
+  transition: box-shadow 0.3s var(--neo-ease);
 }
 .neo-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.25);
-}
-
-/* image zoom on card hover */
-.neo-card-img {
-  transition: transform 0.6s var(--neo-ease);
-}
-.neo-card:hover .neo-card-img {
-  transform: scale(1.06);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
 @media (prefers-reduced-motion: reduce) {

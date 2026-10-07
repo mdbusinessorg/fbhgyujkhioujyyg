@@ -218,7 +218,7 @@ export function ATS({ role, vagas, candidatos, onUpdate }: ATSProps) {
                     const score = scoreFor(c)
                     const isExpanded = expanded === c.id
                     return (
-                      <div key={c.id} className={`bg-white rounded-2xl p-3 border ${stage === 'concorrencia' ? 'border-amber-200 shadow-sm' : 'border-slate-100'} hover:shadow-md transition-all hover:-translate-y-0.5 group`}>
+                      <div key={c.id} className={`bg-white rounded-2xl p-3 border ${stage === 'concorrencia' ? 'border-amber-200 shadow-sm' : 'border-slate-100'} hover:shadow-md transition-all group`}>
                         <div className="flex items-start gap-2">
                           <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 flex-shrink-0">
                             <User size={16} strokeWidth={1.5} />
