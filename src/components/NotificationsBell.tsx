@@ -219,6 +219,12 @@ export default function NotificationsBell() {
                 </>
               )}
             </div>
+            <button
+              onClick={() => { setOpen(false); router.push('/notificacoes/') }}
+              className="w-full text-center text-xs font-semibold text-ms-blue py-3 border-t border-ms-border press"
+            >
+              Ver todas as notificações
+            </button>
           </div>
         </div>
       )}

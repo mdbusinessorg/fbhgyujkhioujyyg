@@ -4,10 +4,14 @@ import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { ArrowLeft, MapPin, Clock, Linkedin, Send, MessageCircle, LogIn, Mail, Sparkles, Share2, Check } from 'lucide-react'
+import { ArrowLeft, MapPin, Clock, Linkedin, Send, MessageCircle, LogIn, Mail, Sparkles, Share2, Check, Bookmark } from 'lucide-react'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import AppHeader from '@/components/AppHeader'
+import ApplySuccess from '@/components/ApplySuccess'
 import { recordExternalApply, hasAppliedTo } from '@/lib/candidacies'
+import { toast } from '@/lib/toast'
+import { useSavedJobs } from '@/lib/bookmarks'
+import { recordView } from '@/lib/recents'
 
 function ExternaContent() {
   const searchParams = useSearchParams()
@@ -20,11 +24,15 @@ function ExternaContent() {
   const [preparingEmail, setPreparingEmail] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
   const [alreadyApplied, setAlreadyApplied] = useState(false)
+  const [showSuccess, setShowSuccess] = useState(false)
+  const { keys: savedKeys, toggle: toggleSaved } = useSavedJobs()
+  const saved = !!jobId && savedKeys.has(`ext:${jobId}`)
 
   const markApplied = (via: 'site_oficial' | 'email') => {
     if (!job) return
     recordExternalApply({ job_id: job.id || jobId || '', title: job.title, company: job.company, logo_url: job.logo_url, location: job.location, via })
     setAlreadyApplied(true)
+    setShowSuccess(true)
   }
 
   const shareJob = () => {
@@ -33,6 +41,7 @@ function ExternaContent() {
       navigator.share({ title: job?.title || 'Vaga', url }).catch(() => {})
     } else if (navigator.clipboard) {
       navigator.clipboard.writeText(url).catch(() => {})
+      toast('Link copiado para a área de transferência', 'success')
     }
     setLinkCopied(true)
     setTimeout(() => setLinkCopied(false), 2000)
@@ -43,7 +52,11 @@ function ExternaContent() {
       if (!jobId) { setLoading(false); return }
       try {
         const res = await fetch(`/vagas-data/${encodeURIComponent(jobId)}.json`, { cache: 'no-store' })
-        if (res.ok) setJob(await res.json())
+        if (res.ok) {
+          const j = await res.json()
+          setJob(j)
+          recordView({ kind: 'ext', id: jobId, title: j.title || 'Vaga', company: j.company || '' })
+        }
         setAlreadyApplied(hasAppliedTo(jobId))
       } catch {
         // ignore — handled by not-found state below
@@ -257,6 +270,17 @@ function ExternaContent() {
               <Send size={16} /> Candidatar no site oficial
             </a>
           ) : null}
+          <button
+            onClick={() => {
+              if (!jobId || !job) return
+              const nowSaved = toggleSaved({ key: `ext:${jobId}`, kind: 'ext', id: jobId, title: job.title || 'Vaga', company: job.company || '' })
+              toast(nowSaved ? 'Vaga guardada — encontra-a no filtro Guardadas' : 'Vaga removida das guardadas', nowSaved ? 'success' : 'info')
+            }}
+            className={`sm:flex-shrink-0 inline-flex items-center justify-center gap-1.5 border font-semibold py-3 px-4 rounded-xl press ${saved ? 'border-ms-blue bg-ms-blue/10 text-ms-blue' : 'border-ms-border text-ms-dark hover:bg-ms-surface'}`}
+          >
+            <Bookmark size={16} className={saved ? 'fill-ms-blue' : ''} />
+            {saved ? 'Guardada' : 'Guardar'}
+          </button>
           <a
             href={linkedinUrl}
             target="_blank"
@@ -273,6 +297,13 @@ function ExternaContent() {
           <p className="text-[11px] text-ms-gray text-center mt-2">A IA escreve a mensagem com base no teu perfil (em inglês se a empresa for estrangeira) — revê e anexa o CV antes de enviar.</p>
         )}
       </div>
+
+      <ApplySuccess
+        open={showSuccess}
+        onClose={() => setShowSuccess(false)}
+        title="Candidatura Registada!"
+        message={`A tua candidatura para ${job.title} foi registada — fica atenta às respostas de ${job.company || 'a empresa'}.`}
+      />
     </div>
   )
 }

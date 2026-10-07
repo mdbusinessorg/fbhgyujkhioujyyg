@@ -3,10 +3,14 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { Search, SlidersHorizontal, Briefcase, Star, MapPin, Globe, Building2, X, Filter, ChevronDown, MessageCircle, LogIn, Check, Share2, Info } from 'lucide-react'
-import { CompanyLogo } from '@/components/CompanyLogo'
+import { Search, SlidersHorizontal, Briefcase, Star, Globe, X, MessageCircle, LogIn, History, Eye, BookmarkCheck, Filter } from 'lucide-react'
 import AppHeader from '@/components/AppHeader'
+import JobListCard from '@/components/JobListCard'
+import FilterSheet from './FilterSheet'
 import { sortByMatch, computeJobMatchScore } from '@/lib/match'
+import { useSavedJobs } from '@/lib/bookmarks'
+import { useRecents, recordSearch } from '@/lib/recents'
+import { toast } from '@/lib/toast'
 
 const EXT_PAGE_SIZE = 20
 const THREE_WEEKS = 21 * 24 * 60 * 60 * 1000
@@ -65,7 +69,6 @@ export default function VagasPage() {
   const [hideOld, setHideOld] = useState(false)
   const [onlyApply, setOnlyApply] = useState(false)
   const [onlySalary, setOnlySalary] = useState(false)
-  const [sharedId, setSharedId] = useState('')
   const [source, setSource] = useState<'mosalo' | 'externas'>('externas')
   const [allExternal, setAllExternal] = useState<any[]>([])
   const [extLoaded, setExtLoaded] = useState(false)
@@ -75,7 +78,16 @@ export default function VagasPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userRole, setUserRole] = useState('candidato')
   const [profile, setProfile] = useState<any>(null)
+  const [vagasLoaded, setVagasLoaded] = useState(false)
+  const [savedOnly, setSavedOnly] = useState(false)
+  const { keys: savedKeys, toggle: toggleSaved } = useSavedJobs()
+  const { searches: recentSearches, views: recentViews, clearSearch: removeSearchTerm } = useRecents()
   const recentesRef = useRef<HTMLElement>(null)
+
+  const saveJob = (kind: 'int' | 'ext', j: any) => {
+    const nowSaved = toggleSaved({ key: `${kind}:${j.id}`, kind, id: j.id, title: j.titulo || j.title || 'Vaga', company: j.empresa_nome || j.company || '' })
+    toast(nowSaved ? 'Vaga guardada nas tuas guardadas' : 'Vaga removida das guardadas', nowSaved ? 'success' : 'info')
+  }
 
   const syncUserFromSession = async (session: any) => {
     if (session?.user?.email) {
@@ -102,6 +114,7 @@ export default function VagasPage() {
       if (data) {
         setVagas(data)
       }
+      setVagasLoaded(true)
     }
     init()
 
@@ -195,20 +208,8 @@ export default function VagasPage() {
 
   const matchPct = (job: any) => (isLoggedIn && profile ? computeJobMatchScore(job, profile) : 0)
 
-  const shareJob = (e: React.MouseEvent, path: string, title: string) => {
-    e.preventDefault()
-    e.stopPropagation()
-    const url = `${window.location.origin}${path}`
-    if (navigator.share) {
-      navigator.share({ title, url }).catch(() => {})
-    } else if (navigator.clipboard) {
-      navigator.clipboard.writeText(url).catch(() => {})
-    }
-    setSharedId(path)
-    setTimeout(() => setSharedId(''), 2000)
-  }
-
   const filteredExternal = allExternal.filter((j) => {
+    if (savedOnly && !savedKeys.has(`ext:${j.id}`)) return false
     if (hideOld && isOlderThan3Weeks(j)) return false
     if (onlyToday && !isTodayDate(jobDate(j))) return false
     const kw = searchQuery.trim().toLowerCase()
@@ -226,6 +227,7 @@ export default function VagasPage() {
   const stripHtml = (html: string) => (html || '').replace(/<[^>]*>/g, '').trim()
 
   const filteredVagas = vagas.filter(v => {
+    if (savedOnly && !savedKeys.has(`int:${v.id}`)) return false
     if (hideOld && isOlderThan3Weeks(v)) return false
     if (onlyToday && !isTodayDate(jobDate(v))) return false
     const matchSearch = !searchQuery || v.titulo?.toLowerCase().includes(searchQuery.toLowerCase()) || v.empresa_nome?.toLowerCase().includes(searchQuery.toLowerCase()) || stripHtml(v.descricao || '').toLowerCase().includes(searchQuery.toLowerCase())
@@ -276,139 +278,81 @@ export default function VagasPage() {
   const olderExternal = sortedExternal.filter(j => !isRecent(j.first_seen_at))
   const extOlderPages = Math.max(1, Math.ceil(olderExternal.length / EXT_PAGE_SIZE))
 
-  const JobCard = ({ v, variant }: { v: any; variant: 'recent' | 'destaque' | 'normal' }) => {
-    const isDestaque = variant === 'destaque'
-    const isRecent = variant === 'recent'
-    const baseBg = isDestaque ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200' : isRecent ? 'bg-green-50 border-green-200' : 'bg-ms-surface'
-    const borderClass = isDestaque ? 'border-2' : isRecent ? 'border' : ''
-    const iconColor = isDestaque ? 'text-amber-600' : isRecent ? 'text-green-600' : 'text-ms-blue'
-    const iconBg = isDestaque ? 'bg-white border-amber-200' : isRecent ? 'bg-white border-green-200' : 'bg-white border-ms-border'
+  const JobCard = ({ v, variant, index = 0 }: { v: any; variant: 'recent' | 'destaque' | 'normal'; index?: number }) => (
+    <JobListCard
+      id={v.id}
+      href={`/vagas/detalhe/?id=${v.id}`}
+      title={v.titulo}
+      company={v.empresa_nome}
+      location={v.localizacao}
+      specs={[detectContractType(`${v.titulo} ${stripHtml(v.descricao || '')}`) || v.tipo_emprego, detectModality(`${v.titulo} ${stripHtml(v.descricao || '')}`), v.nivel_minimo, v.area]}
+      salary={v.salario}
+      timeAgo={getTimeAgo(v.created_at)}
+      matchPct={matchPct(v)}
+      isNew={variant === 'recent'}
+      isFeatured={variant === 'destaque'}
+      excerpt={stripHtml(v.descricao || '').slice(0, 220)}
+      loggedIn={isLoggedIn}
+      bookmarkKey={`int:${v.id}`}
+      saved={savedKeys.has(`int:${v.id}`)}
+      onToggleSave={() => saveJob('int', v)}
+      applyLabel="Candidatar"
+      index={index}
+    />
+  )
 
-    return (
-      <Link key={v.id} href={`/vagas/detalhe/?id=${v.id}`} className="block">
-        <div className={`${baseBg} ${borderClass} rounded-xl p-4 hover:shadow-md transition-shadow relative overflow-hidden`}>
-          {isDestaque && (
-            <div className="absolute top-2 right-2">
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
-                <Star size={10} className="fill-amber-500 text-amber-500" /> DESTAQUE
-              </span>
-            </div>
-          )}
-          {isRecent && (
-            <div className="absolute top-2 right-2">
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">NOVA</span>
-            </div>
-          )}
-          <div className="flex items-start gap-3">
-            <CompanyLogo company={v.empresa_nome} size={40} rounded="rounded-full" className="border border-ms-border" />
-            <div className="flex-1 min-w-0 pr-16">
-              <h3 className={`text-sm ${isDestaque ? 'font-semibold' : 'font-medium'} text-ms-dark line-clamp-2`}>{v.titulo}</h3>
-              <p className="text-xs text-ms-gray">{v.empresa_nome}</p>
-              {isLoggedIn ? (
-                <p className="text-xs text-ms-gray mt-1.5 line-clamp-3 sm:line-clamp-2">{stripHtml(v.descricao || '').slice(0, 220)}</p>
-              ) : (
-                <p className="text-xs text-ms-blue mt-1.5">Entre para ver a descrição completa</p>
-              )}
-              <div className="flex items-center gap-2 mt-2 flex-wrap">
-                {v.area && (
-                  <span className="text-[10px] text-ms-blue bg-ms-blue/10 px-2 py-0.5 rounded-full">{v.area}</span>
-                )}
-                {v.localizacao && (
-                  <span className="inline-flex items-center gap-0.5 text-[11px] text-ms-gray">
-                    <MapPin size={10} /> {v.localizacao}
-                  </span>
-                )}
-                {v.salario && (
-                  <span className="text-[11px] font-medium text-green-700 bg-green-100 px-2 py-0.5 rounded-full">{v.salario}</span>
-                )}
-                {matchPct(v) >= 40 && (
-                  <span className="text-[10px] font-bold text-white bg-ms-blue px-2 py-0.5 rounded-full">{matchPct(v)}% match</span>
-                )}
-              </div>
-              <div className="flex items-center justify-between mt-2">
-                <span className="text-[11px] text-ms-gray">{getTimeAgo(v.created_at)}</span>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={(e) => shareJob(e, `/vagas/detalhe/?id=${v.id}`, v.titulo)}
-                    className="inline-flex items-center gap-1 text-[10px] text-ms-gray hover:text-ms-blue border border-ms-border rounded-full px-2 py-1"
-                    aria-label="Partilhar vaga"
-                  >
-                    {sharedId === `/vagas/detalhe/?id=${v.id}` ? <><Check size={11} className="text-green-600" /> Copiado</> : <><Share2 size={11} /> Partilhar</>}
-                  </button>
-                  <span className="text-[11px] font-medium text-ms-blue bg-ms-blue/10 px-3 py-1 rounded-full">Candidatar</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Link>
-    )
-  }
+  const ExternalJobCard = ({ j, variant, index = 0 }: { j: any; variant: 'recent' | 'normal'; index?: number }) => (
+    <JobListCard
+      id={j.id}
+      href={`/vagas/externa/?id=${j.id}`}
+      title={j.title}
+      company={j.company}
+      logoUrl={j.logo_url}
+      location={j.location}
+      specs={[normalizeContract(j.tipo_contrato, `${j.title || ''} ${j.excerpt || ''}`), j.modalidade, j.category !== 'Outro' ? j.category : null]}
+      salary={j.salary}
+      timeAgo={getTimeAgo(j.first_seen_at || j.posted_at)}
+      matchPct={matchPct(j)}
+      isNew={variant === 'recent'}
+      isFeatured={(j.score || 0) >= 20}
+      isExternal
+      excerpt={stripHtml(j.excerpt || j.description || '')}
+      loggedIn={isLoggedIn}
+      bookmarkKey={`ext:${j.id}`}
+      saved={savedKeys.has(`ext:${j.id}`)}
+      onToggleSave={() => saveJob('ext', j)}
+      applyLabel="Candidatar-se"
+      index={index}
+    />
+  )
 
-  const ExternalJobCard = ({ j, variant }: { j: any; variant: 'recent' | 'normal' }) => {
-    const isRecent = variant === 'recent'
-    return (
-      <Link key={j.id} href={`/vagas/externa/?id=${j.id}`} className="block">
-        <div className={`bg-white border ${isRecent ? 'border-green-200' : 'border-ms-border'} rounded-xl p-4 hover:shadow-md hover:border-ms-blue/30 transition-all relative overflow-hidden`}>
-          {isRecent && (
-            <div className="absolute top-2 right-2">
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">NOVA</span>
-            </div>
-          )}
-
-          <div className="flex items-start gap-3">
-            <CompanyLogo company={j.company} logoUrl={j.logo_url} size={40} rounded="rounded-lg" className="border border-ms-border" />
-            <div className="flex-1 min-w-0">
-              <h3 className="text-base font-bold text-ms-dark leading-snug mb-1 line-clamp-2">{j.title}</h3>
-              {j.company && <p className="text-xs text-ms-gray mb-1">{j.company}</p>}
-              {isLoggedIn ? (
-                <p className="text-xs text-ms-gray mt-1 line-clamp-4 sm:line-clamp-2">{stripHtml(j.excerpt || j.description)}</p>
-              ) : (
-                <p className="text-xs text-ms-blue mt-1">Entre para ver a descrição completa</p>
-              )}
-              <div className="flex items-center gap-2 mt-2 flex-wrap">
-                {j.location && <span className="inline-flex items-center gap-0.5 text-[11px] text-ms-gray"><MapPin size={10} /> {j.location}</span>}
-                {j.salary && <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">{j.salary}</span>}
-                {j.category && j.category !== 'Outro' && <span className="text-[10px] text-ms-blue bg-ms-blue/10 px-2 py-0.5 rounded-full">{j.category}</span>}
-                {j.modalidade && <span className="text-[10px] text-ms-dark bg-ms-surface border border-ms-border px-2 py-0.5 rounded-full">{j.modalidade}</span>}
-                {(j.score || 0) >= 20 && <span className="text-[10px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">Destaque</span>}
-                {matchPct(j) >= 40 && <span className="text-[10px] font-bold text-white bg-ms-blue px-2 py-0.5 rounded-full">{matchPct(j)}% match</span>}
-              </div>
-              <p className="inline-flex items-center gap-1 mt-2 text-[10px] text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-2 py-1">
-                <Info size={10} /> Vaga externa — a candidatura é feita na fonte oficial da empresa
-              </p>
-              <div className="flex items-center justify-between mt-2">
-                <span className="text-[11px] text-ms-gray">{getTimeAgo(j.first_seen_at || j.posted_at)}</span>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={(e) => shareJob(e, `/vagas/externa/?id=${j.id}`, j.title)}
-                    className="inline-flex items-center gap-1 text-[10px] text-ms-gray hover:text-ms-blue border border-ms-border rounded-full px-2 py-1"
-                    aria-label="Partilhar vaga"
-                  >
-                    {sharedId === `/vagas/externa/?id=${j.id}` ? <><Check size={11} className="text-green-600" /> Copiado</> : <><Share2 size={11} /> Partilhar</>}
-                  </button>
-                  <span className="text-[11px] font-medium text-ms-blue bg-ms-blue/10 px-3 py-1 rounded-full">Candidatar-se</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Link>
-    )
-  }
-
-  const FilterGroup = ({ title, options, value, onChange }: { title: string; options: string[]; value: string; onChange: (v: string) => void }) => (
+  const FilterGroup = ({ title, options, value, onChange, allLabel = 'Todas' }: { title: string; options: string[]; value: string; onChange: (v: string) => void; allLabel?: string }) => (
     <div>
-      <p className="text-[11px] font-semibold text-ms-gray uppercase tracking-wide mb-2">{title}</p>
-      <div className="space-y-0.5 max-h-44 overflow-y-auto">
-        {['Todas', ...options].map((o) => (
-          <button key={o} onClick={() => onChange(o)} className="flex items-center gap-2 w-full text-left py-1">
-            <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${value === o ? 'bg-ms-blue border-ms-blue' : 'bg-white border-ms-border'}`}>
-              {value === o && <Check size={11} className="text-white" />}
-            </span>
-            <span className={`text-xs ${value === o ? 'text-ms-dark font-medium' : 'text-ms-gray'}`}>{o}</span>
+      <p className="text-[11px] font-bold text-ms-dark mb-2">{title}</p>
+      <div className="flex flex-wrap gap-1.5 max-h-44 overflow-y-auto">
+        {[allLabel, ...options].map((o) => (
+          <button key={o} onClick={() => onChange(o)} className={`chip-toggle text-[11px] font-medium px-2.5 py-1.5 rounded-full border ${value === o ? 'bg-ms-blue text-white border-ms-blue' : 'bg-white text-ms-gray border-ms-border'}`}>
+            {o}
           </button>
         ))}
+      </div>
+    </div>
+  )
+
+  const JobCardSkeleton = ({ index = 0 }: { index?: number }) => (
+    <div className="bg-white rounded-2xl border border-ms-border p-4 jobcard-enter" style={{ animationDelay: `${index * 60}ms` }}>
+      <div className="flex items-start gap-3">
+        <div className="skeleton w-[46px] h-[46px] rounded-xl" />
+        <div className="flex-1">
+          <div className="skeleton h-3.5 rounded w-3/4" />
+          <div className="skeleton h-3 rounded w-1/2 mt-2" />
+          <div className="skeleton h-2.5 rounded w-2/3 mt-2" />
+        </div>
+      </div>
+      <div className="skeleton h-3 rounded w-1/3 mt-4" />
+      <div className="flex items-center justify-between mt-3 pt-3 border-t border-ms-border/50">
+        <div className="skeleton h-3 rounded w-16" />
+        <div className="skeleton h-7 rounded-full w-24" />
       </div>
     </div>
   )
@@ -421,23 +365,37 @@ export default function VagasPage() {
 
       <main className="max-w-6xl mx-auto px-4 pt-4">
         {/* Search */}
-        <div className="flex items-center gap-2 bg-ms-surface rounded-full px-4 py-3 mb-4 border-2 border-ms-blue/10 focus-within:border-ms-blue">
+        <div className="flex items-center gap-2 bg-ms-surface rounded-full px-4 py-3 mb-2 border-2 border-ms-blue/10 focus-within:border-ms-blue">
           <Search size={18} className="text-ms-gray flex-shrink-0" />
           <input
             type="text"
             placeholder="título da vaga ou palavra-chave"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && source === 'externas') setExtPage(1) }}
+            onKeyDown={(e) => { if (e.key === 'Enter') { recordSearch(searchQuery); if (source === 'externas') setExtPage(1) } }}
             className="flex-1 bg-transparent outline-none text-sm text-ms-dark placeholder:text-ms-gray"
           />
           <button
-            onClick={() => setShowFilters(s => !s)}
-            className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${showFilters ? 'bg-ms-blue' : 'bg-ms-blue'}`}
+            onClick={() => setShowFilters(true)}
+            className="lg:hidden w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-ms-blue"
+            aria-label="Abrir filtros"
           >
             <SlidersHorizontal size={14} className="text-white" />
           </button>
         </div>
+
+        {/* Pesquisas recentes */}
+        {!searchQuery && recentSearches.length > 0 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-2 no-scrollbar">
+            <History size={13} className="text-ms-gray flex-shrink-0" />
+            {recentSearches.map((s) => (
+              <span key={s} className="inline-flex items-center gap-1 bg-ms-surface border border-ms-border text-xs text-ms-dark pl-3 pr-1.5 py-1.5 rounded-full whitespace-nowrap">
+                <button onClick={() => setSearchQuery(s)} className="font-medium">{s}</button>
+                <button onClick={() => removeSearchTerm(s)} className="text-ms-gray hover:text-red-500" aria-label={`Remover ${s}`}><X size={11} /></button>
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Guest CTA */}
         {!isLoggedIn && (
@@ -477,22 +435,14 @@ export default function VagasPage() {
               </div>
               <FilterGroup title="Localização" options={uniqueLocations} value={activeLocation} onChange={setActiveLocation} />
               <FilterGroup title="Modalidade" options={MODALIDADES.filter(m => m !== 'Todas')} value={activeModality} onChange={setActiveModality} />
-              <FilterGroup title="Tipo de contrato" options={CONTRATOS.filter(c => c !== 'Todos')} value={activeContract} onChange={setActiveContract} />
-              <div className="space-y-2 pt-3 border-t border-ms-border">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${onlyApply ? 'bg-ms-blue border-ms-blue' : 'bg-white border-ms-border'}`}>
-                    {onlyApply && <Check size={11} className="text-white" />}
-                  </span>
-                  <input type="checkbox" checked={onlyApply} onChange={(e) => setOnlyApply(e.target.checked)} className="sr-only" />
-                  <span className="text-xs text-ms-dark">Com candidatura directa</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${onlySalary ? 'bg-ms-blue border-ms-blue' : 'bg-white border-ms-border'}`}>
-                    {onlySalary && <Check size={11} className="text-white" />}
-                  </span>
-                  <input type="checkbox" checked={onlySalary} onChange={(e) => setOnlySalary(e.target.checked)} className="sr-only" />
-                  <span className="text-xs text-ms-dark">Com salário anunciado</span>
-                </label>
+              <FilterGroup title="Tipo de contrato" options={CONTRATOS.filter(c => c !== 'Todos')} value={activeContract} onChange={setActiveContract} allLabel="Todos" />
+              <div className="pt-3 border-t border-ms-border">
+                <p className="text-[11px] font-bold text-ms-dark mb-2">Extras</p>
+                <div className="flex flex-wrap gap-1.5">
+                  <button onClick={() => setOnlyApply(v => !v)} className={`chip-toggle text-[11px] font-medium px-2.5 py-1.5 rounded-full border ${onlyApply ? 'bg-ms-blue text-white border-ms-blue' : 'bg-white text-ms-gray border-ms-border'}`}>Candidatura directa</button>
+                  <button onClick={() => setOnlySalary(v => !v)} className={`chip-toggle text-[11px] font-medium px-2.5 py-1.5 rounded-full border ${onlySalary ? 'bg-ms-blue text-white border-ms-blue' : 'bg-white text-ms-gray border-ms-border'}`}>Com salário</button>
+                  <button onClick={() => setOnlyToday(v => !v)} className={`chip-toggle text-[11px] font-medium px-2.5 py-1.5 rounded-full border ${onlyToday ? 'bg-ms-blue text-white border-ms-blue' : 'bg-white text-ms-gray border-ms-border'}`}>Só de hoje</button>
+                </div>
               </div>
             </div>
           </aside>
@@ -514,66 +464,19 @@ export default function VagasPage() {
           </button>
         </div>
 
-        {/* Filters */}
-        {showFilters && (
-          <div className="bg-ms-surface rounded-xl p-3 mb-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-ms-dark flex items-center gap-1"><Filter size={14} /> Filtros</span>
-              <button
-                onClick={() => { setActiveContract('Todos'); setActiveModality('Todas'); setActiveLocation('Todas'); setSearchQuery(''); setActiveFilter('Todas') }}
-                className="text-[10px] text-ms-blue font-medium flex items-center gap-0.5"
-              >
-                <X size={10} /> Limpar
-              </button>
-            </div>
-            <div className="flex items-center gap-4">
-              <label className="flex items-center gap-1.5 text-xs text-ms-dark cursor-pointer">
-                <input type="checkbox" checked={onlyApply} onChange={(e) => setOnlyApply(e.target.checked)} className="w-4 h-4 accent-ms-blue" />
-                Com candidatura directa
-              </label>
-              <label className="flex items-center gap-1.5 text-xs text-ms-dark cursor-pointer">
-                <input type="checkbox" checked={onlySalary} onChange={(e) => setOnlySalary(e.target.checked)} className="w-4 h-4 accent-ms-blue" />
-                Com salário anunciado
-              </label>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="text-[10px] text-ms-gray mb-1 block">Tipo de contrato</label>
-                <div className="relative">
-                  <select value={activeContract} onChange={(e) => setActiveContract(e.target.value)} className="w-full appearance-none bg-white border border-ms-border rounded-lg px-3 py-2 text-xs text-ms-dark outline-none focus:border-ms-blue">
-                    {CONTRATOS.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                  <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-ms-gray pointer-events-none" />
-                </div>
-              </div>
-              <div>
-                <label className="text-[10px] text-ms-gray mb-1 block">Modalidade</label>
-                <div className="relative">
-                  <select value={activeModality} onChange={(e) => setActiveModality(e.target.value)} className="w-full appearance-none bg-white border border-ms-border rounded-lg px-3 py-2 text-xs text-ms-dark outline-none focus:border-ms-blue">
-                    {MODALIDADES.map(m => <option key={m} value={m}>{m}</option>)}
-                  </select>
-                  <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-ms-gray pointer-events-none" />
-                </div>
-              </div>
-              <div>
-                <label className="text-[10px] text-ms-gray mb-1 block">Localização</label>
-                <div className="relative">
-                  <select value={activeLocation} onChange={(e) => setActiveLocation(e.target.value)} className="w-full appearance-none bg-white border border-ms-border rounded-lg px-3 py-2 text-xs text-ms-dark outline-none focus:border-ms-blue">
-                    <option value="Todas">Todas</option>
-                    {uniqueLocations.map(loc => <option key={loc} value={loc}>{loc}</option>)}
-                  </select>
-                  <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-ms-gray pointer-events-none" />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Category chips */}
-        <div className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-hide">
+        <div className="flex gap-2 overflow-x-auto pb-3 mb-3 scrollbar-hide">
+          <button
+            onClick={() => setSavedOnly(v => !v)}
+            className={`chip-toggle inline-flex items-center gap-1.5 text-xs px-4 py-2 rounded-full whitespace-nowrap font-medium ${
+              savedOnly ? 'bg-ms-blue text-white' : 'bg-ms-surface text-ms-gray border border-ms-border hover:bg-ms-border'
+            }`}
+          >
+            <BookmarkCheck size={12} /> Guardadas{savedKeys.size > 0 ? ` (${savedKeys.size})` : ''}
+          </button>
           <button
             onClick={() => setOnlyToday(v => !v)}
-            className={`text-xs px-4 py-2 rounded-full whitespace-nowrap font-medium transition-colors ${
+            className={`chip-toggle text-xs px-4 py-2 rounded-full whitespace-nowrap font-medium ${
               onlyToday ? 'bg-ms-blue text-white' : 'bg-ms-surface text-ms-gray border border-ms-border hover:bg-ms-border'
             }`}
           >
@@ -581,7 +484,7 @@ export default function VagasPage() {
           </button>
           <button
             onClick={() => setHideOld(v => !v)}
-            className={`text-xs px-4 py-2 rounded-full whitespace-nowrap font-medium transition-colors ${
+            className={`chip-toggle text-xs px-4 py-2 rounded-full whitespace-nowrap font-medium ${
               hideOld ? 'bg-ms-blue text-white' : 'bg-ms-surface text-ms-gray border border-ms-border hover:bg-ms-border'
             }`}
           >
@@ -591,7 +494,7 @@ export default function VagasPage() {
             <button
               key={f.key}
               onClick={() => setActiveFilter(f.key)}
-              className={`text-xs px-4 py-2 rounded-full whitespace-nowrap font-medium transition-colors ${
+              className={`chip-toggle text-xs px-4 py-2 rounded-full whitespace-nowrap font-medium ${
                 activeFilter === f.key ? 'bg-ms-blue text-white' : 'bg-ms-surface text-ms-gray border border-ms-border hover:bg-ms-border'
               }`}
             >
@@ -599,6 +502,25 @@ export default function VagasPage() {
             </button>
           ))}
         </div>
+
+        {/* Vistas recentemente */}
+        {!searchQuery && !savedOnly && recentViews.length > 0 && (
+          <div className="mb-4">
+            <p className="text-[11px] font-semibold text-ms-gray uppercase tracking-wide mb-2 flex items-center gap-1"><Eye size={12} /> Vistas recentemente</p>
+            <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+              {recentViews.slice(0, 8).map((v) => (
+                <Link
+                  key={`${v.kind}:${v.id}`}
+                  href={v.kind === 'ext' ? `/vagas/externa/?id=${v.id}` : `/vagas/detalhe/?id=${v.id}`}
+                  className="flex-shrink-0 w-[190px] bg-white border border-ms-border rounded-xl px-3 py-2.5 hover:border-ms-blue/40 press"
+                >
+                  <p className="text-xs font-semibold text-ms-dark line-clamp-1">{v.title}</p>
+                  <p className="text-[10px] text-ms-gray line-clamp-1 mt-0.5">{v.company}</p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Vagas Recentes (internas + externas, visível sempre no topo) */}
         {(recentVagas.length > 0 || recentExternal.length > 0) && (
@@ -608,8 +530,8 @@ export default function VagasPage() {
               <h2 className="text-sm font-semibold text-ms-dark">Vagas Recentes <span className="text-xs font-normal text-ms-gray">(últimas 60h)</span></h2>
             </div>
             <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
-              {recentExternal.slice(0, 10).map(j => <ExternalJobCard key={j.id} j={j} variant="recent" />)}
-              {recentVagas.map(v => <JobCard key={v.id} v={v} variant="recent" />)}
+              {recentExternal.slice(0, 10).map((j, i) => <ExternalJobCard key={j.id} j={j} variant="recent" index={i} />)}
+              {recentVagas.map((v, i) => <JobCard key={v.id} v={v} variant="recent" index={i} />)}  
             </div>
           </section>
         )}
@@ -628,8 +550,8 @@ export default function VagasPage() {
             <p className="text-xs text-ms-gray mb-4">Lê o resumo de cada vaga sem precisar abrir. Ao candidatar, vais direto à fonte oficial da empresa.</p>
 
             {loadingExternal ? (
-              <div className="flex justify-center py-12">
-                <div className="w-8 h-8 border-2 border-ms-blue border-t-transparent rounded-full animate-spin" />
+              <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
+                {[0, 1, 2, 3, 4, 5].map(i => <JobCardSkeleton key={i} index={i} />)}
               </div>
             ) : externalError ? (
               <div className="text-center py-12">
@@ -645,8 +567,8 @@ export default function VagasPage() {
             ) : (
               <>
                 <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
-                  {olderExternal.slice((extPage - 1) * EXT_PAGE_SIZE, extPage * EXT_PAGE_SIZE).map((j) => (
-                    <ExternalJobCard key={j.id} j={j} variant="normal" />
+                  {olderExternal.slice((extPage - 1) * EXT_PAGE_SIZE, extPage * EXT_PAGE_SIZE).map((j, i) => (
+                    <ExternalJobCard key={j.id} j={j} variant="normal" index={i} />
                   ))}
                 </div>
                 {extOlderPages > 1 && (
@@ -692,7 +614,7 @@ export default function VagasPage() {
               <h2 className="text-sm font-semibold text-ms-dark">Vagas em Destaque</h2>
             </div>
             <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
-              {destaques.map(v => <JobCard key={v.id} v={v} variant="destaque" />)}
+              {destaques.map((v, i) => <JobCard key={v.id} v={v} variant="destaque" index={i} />)}
             </div>
           </section>
         )}
@@ -706,8 +628,13 @@ export default function VagasPage() {
             </>
           )}
           <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
-            {normais.map(v => <JobCard key={v.id} v={v} variant="normal" />)}
+            {normais.map((v, i) => <JobCard key={v.id} v={v} variant="normal" index={i} />)}
           </div>
+          {!vagasLoaded && (
+            <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0 mt-3">
+              {[0, 1, 2, 3].map(i => <JobCardSkeleton key={i} index={i} />)}
+            </div>
+          )}
         </section>
 
         {filteredVagas.length === 0 && (
@@ -722,6 +649,30 @@ export default function VagasPage() {
           </div>
         </div>
       </main>
+
+      <FilterSheet
+        open={showFilters}
+        onClose={() => setShowFilters(false)}
+        resultCount={resultsCount}
+        locations={uniqueLocations}
+        contract={activeContract}
+        setContract={setActiveContract}
+        modality={activeModality}
+        setModality={setActiveModality}
+        location={activeLocation}
+        setLocation={setActiveLocation}
+        onlyToday={onlyToday}
+        setOnlyToday={setOnlyToday}
+        hideOld={hideOld}
+        setHideOld={setHideOld}
+        onlyApply={onlyApply}
+        setOnlyApply={setOnlyApply}
+        onlySalary={onlySalary}
+        setOnlySalary={setOnlySalary}
+        contracts={CONTRATOS}
+        modalities={MODALIDADES}
+        onClear={() => { setActiveContract('Todos'); setActiveModality('Todas'); setActiveLocation('Todas'); setSearchQuery(''); setActiveFilter('Todas'); setOnlyApply(false); setOnlySalary(false); setOnlyToday(false); setHideOld(false); setSavedOnly(false) }}
+      />
     </div>
   )
 }

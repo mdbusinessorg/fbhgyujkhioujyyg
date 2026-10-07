@@ -4,9 +4,13 @@ import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
-import { ArrowLeft, MapPin, Send, Upload, MessageSquare, MessageCircle, LogIn } from 'lucide-react'
+import { ArrowLeft, MapPin, Send, Upload, MessageSquare, MessageCircle, LogIn, Bookmark } from 'lucide-react'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import AppHeader from '@/components/AppHeader'
+import ApplySuccess from '@/components/ApplySuccess'
+import { toast } from '@/lib/toast'
+import { useSavedJobs } from '@/lib/bookmarks'
+import { recordView } from '@/lib/recents'
 
 function VagaDetalheContent() {
   const searchParams = useSearchParams()
@@ -23,13 +27,19 @@ function VagaDetalheContent() {
   const [cvFile, setCvFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [respostas, setRespostas] = useState<Record<string, string>>({})
+  const [showSuccess, setShowSuccess] = useState(false)
+  const { keys: savedKeys, toggle: toggleSaved } = useSavedJobs()
+  const saved = !!vagaId && savedKeys.has(`int:${vagaId}`)
 
   useEffect(() => {
     const load = async () => {
       if (!vagaId) { setLoading(false); return }
 
       const { data } = await supabase.from('vagas').select('*').eq('id', vagaId).single()
-      if (data) setVaga(data)
+      if (data) {
+        setVaga(data)
+        recordView({ kind: 'int', id: vagaId, title: data.titulo || 'Vaga', company: data.empresa_nome || '' })
+      }
 
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
@@ -60,7 +70,7 @@ function VagaDetalheContent() {
       .maybeSingle()
 
     if (existing) {
-      alert('Já te candidataste a esta vaga!')
+      toast('Já te candidataste a esta vaga', 'info')
       setSending(false)
       setSent(true)
       return
@@ -99,9 +109,10 @@ function VagaDetalheContent() {
     })
 
     if (error) {
-      alert('Erro ao enviar candidatura: ' + error.message)
+      toast('Erro ao enviar candidatura. Tenta novamente.', 'error')
     } else {
       setSent(true)
+      setShowSuccess(true)
     }
     setSending(false)
   }
@@ -205,12 +216,7 @@ function VagaDetalheContent() {
         )}
 
         {/* Application form */}
-        {sent ? (
-          <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
-            <p className="text-sm font-medium text-green-700">Candidatura enviada com sucesso!</p>
-            <Link href="/dashboard/candidato/" className="text-xs text-ms-blue mt-2 inline-block">Ver as minhas candidaturas →</Link>
-          </div>
-        ) : isLoggedIn && userRole === 'candidato' ? (
+        {sent ? null : isLoggedIn && userRole === 'candidato' ? (
           <div className="mb-4">
             <h2 className="text-sm font-semibold text-ms-dark mb-2">Candidatar-se</h2>
             <textarea
@@ -265,8 +271,16 @@ function VagaDetalheContent() {
       {!sent && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-ms-border p-4 z-50">
           <div className="max-w-3xl mx-auto flex gap-3">
-            <button className="flex-shrink-0 border border-ms-border px-4 py-3 rounded-xl text-sm font-medium text-ms-dark hover:bg-ms-surface">
-              Guardar
+            <button
+              onClick={() => {
+                if (!vagaId || !vaga) return
+                const nowSaved = toggleSaved({ key: `int:${vagaId}`, kind: 'int', id: vagaId, title: vaga.titulo || 'Vaga', company: vaga.empresa_nome || '' })
+                toast(nowSaved ? 'Vaga guardada — encontra-a no filtro Guardadas' : 'Vaga removida das guardadas', nowSaved ? 'success' : 'info')
+              }}
+              className={`flex-shrink-0 inline-flex items-center gap-1.5 border px-4 py-3 rounded-xl text-sm font-medium press ${saved ? 'border-ms-blue bg-ms-blue/10 text-ms-blue' : 'border-ms-border text-ms-dark hover:bg-ms-surface'}`}
+            >
+              <Bookmark size={15} className={saved ? 'fill-ms-blue' : ''} />
+              {saved ? 'Guardada' : 'Guardar'}
             </button>
             <button
               onClick={handleCandidatar}
@@ -279,6 +293,12 @@ function VagaDetalheContent() {
           </div>
         </div>
       )}
+
+      <ApplySuccess
+        open={showSuccess}
+        onClose={() => setShowSuccess(false)}
+        message={`A tua candidatura para ${vaga.titulo} foi enviada para ${vaga.empresa_nome}. Boa sorte!`}
+      />
     </div>
   )
 }

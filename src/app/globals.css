@@ -308,3 +308,104 @@ html {
     animation: none !important;
   }
 }
+
+/* ===== Product micro-interactions (job-app reference) ===== */
+
+/* skeleton shimmer while data loads */
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #edf0f5 25%, #f7f9fc 37%, #edf0f5 63%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+}
+
+/* staggered card entrance */
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+.jobcard-enter {
+  animation: cardIn 0.5s cubic-bezier(0, 0.5, 0, 1) both;
+}
+
+/* bottom sheet */
+@keyframes sheetUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.sheet-up {
+  animation: sheetUp 0.35s cubic-bezier(0, 0.5, 0, 1) both;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.backdrop-in {
+  animation: fadeIn 0.25s ease both;
+}
+
+/* UI toasts */
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.95); }
+  to { opacity: 1; transform: none; }
+}
+.ui-toast {
+  animation: toastIn 0.3s cubic-bezier(0, 0.5, 0, 1) both;
+}
+
+/* bookmark pop */
+@keyframes pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+.anim-pop {
+  animation: pop 0.35s cubic-bezier(0, 0.5, 0, 1);
+}
+
+/* apply success screen */
+@keyframes circlePop {
+  0% { transform: scale(0); }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+.success-circle {
+  animation: circlePop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both;
+}
+.success-check {
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  animation: drawCheck 0.45s ease 0.55s forwards;
+}
+@keyframes drawCheck {
+  to { stroke-dashoffset: 0; }
+}
+.apply-success-in {
+  animation: fadeIn 0.25s ease both;
+}
+
+/* press feedback */
+.press {
+  transition: transform 0.12s ease, box-shadow 0.2s ease;
+}
+.press:active {
+  transform: scale(0.975);
+}
+
+/* chip transition */
+.chip-toggle {
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+.chip-toggle:active {
+  transform: scale(0.94);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jobcard-enter, .sheet-up, .ui-toast, .anim-pop, .success-circle, .success-check, .apply-success-in, .skeleton {
+    animation: none !important;
+  }
+  .success-check { stroke-dashoffset: 0; }
+}
