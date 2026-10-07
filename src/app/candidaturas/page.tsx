@@ -5,9 +5,10 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getExternalApplies, type ExternalCandidacy } from '@/lib/candidacies'
+import { getSavedJobs, removeSavedJob, type SavedJob } from '@/lib/savedJobs'
 import AppHeader from '@/components/AppHeader'
 import { CompanyLogo } from '@/components/CompanyLogo'
-import { Briefcase, MapPin, Clock, Globe, Mail, CheckCircle, XCircle, Hourglass, ChevronRight, ClipboardList } from 'lucide-react'
+import { Briefcase, MapPin, Clock, Globe, Mail, CheckCircle, XCircle, Hourglass, ChevronRight, ClipboardList, Bookmark, X } from 'lucide-react'
 
 type Status = 'enviada' | 'aprovada' | 'rejeitada' | 'externa'
 
@@ -34,6 +35,7 @@ export default function CandidaturasPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [rows, setRows] = useState<CandidacyRow[]>([])
+  const [savedJobs, setSavedJobs] = useState<SavedJob[]>([])
   const [filter, setFilter] = useState<'todas' | Status>('todas')
 
   useEffect(() => {
@@ -84,6 +86,7 @@ export default function CandidaturasPage() {
       }))
 
       setRows([...internal, ...external].sort((a, b) => b.date.localeCompare(a.date)))
+      setSavedJobs(getSavedJobs())
       setLoading(false)
     }
     load()
@@ -127,6 +130,42 @@ export default function CandidaturasPage() {
           {rows.length > 0 && <span className="text-xs font-bold bg-ms-blue/10 text-ms-blue px-2 py-0.5 rounded-full">{rows.length}</span>}
         </div>
         <p className="text-xs text-ms-gray mb-4">Acompanha o estado das tuas candidaturas MÔ SALO e externas.</p>
+
+        {/* Vagas guardadas (bookmark) */}
+        {savedJobs.length > 0 && (
+          <div className="mb-5">
+            <div className="flex items-center gap-2 mb-2">
+              <Bookmark size={15} className="text-ms-blue fill-ms-blue" />
+              <h2 className="text-sm font-bold text-ms-dark">Vagas guardadas</h2>
+              <span className="text-[10px] font-bold bg-ms-blue/10 text-ms-blue px-2 py-0.5 rounded-full">{savedJobs.length}</span>
+            </div>
+            <div className="space-y-2.5">
+              {savedJobs.map((j) => (
+                <div key={j.job_id} className="flex items-center gap-3 bg-white border border-ms-border rounded-2xl p-4">
+                  <CompanyLogo company={j.company} logoUrl={j.logo_url ?? undefined} size={40} rounded="rounded-xl" className="border border-ms-border flex-shrink-0" />
+                  <Link
+                    href={j.source === 'externa' ? `/vagas/externa/?id=${j.job_id}` : `/vagas/detalhe/?id=${j.job_id}`}
+                    className="flex-1 min-w-0"
+                  >
+                    <p className="text-sm font-bold text-ms-dark leading-snug line-clamp-2">{j.title}</p>
+                    <p className="text-xs text-ms-gray mt-0.5 truncate">
+                      {j.company}{j.location ? ` · ${j.location}` : ''}
+                      {j.source === 'externa' && <span className="text-amber-700"> · Externa</span>}
+                    </p>
+                  </Link>
+                  <button
+                    onClick={() => { removeSavedJob(j.job_id); setSavedJobs(getSavedJobs()) }}
+                    className="flex-shrink-0 w-8 h-8 rounded-lg text-ms-gray hover:text-red-600 hover:bg-red-50 flex items-center justify-center transition-colors"
+                    title="Remover das guardadas"
+                    aria-label="Remover das guardadas"
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-3 -mx-4 px-4">
           {FILTERS.map(f => (

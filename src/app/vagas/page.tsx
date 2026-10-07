@@ -3,10 +3,11 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { Search, SlidersHorizontal, Briefcase, Star, MapPin, Globe, Building2, X, Filter, ChevronDown, MessageCircle, LogIn, Check, Share2, Info } from 'lucide-react'
+import { Search, SlidersHorizontal, Briefcase, Star, MapPin, Globe, Building2, X, Filter, ChevronDown, MessageCircle, LogIn, Check, Share2, Info, Bookmark } from 'lucide-react'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import AppHeader from '@/components/AppHeader'
 import { sortByMatch, computeJobMatchScore } from '@/lib/match'
+import { getSavedJobs, toggleSavedJob } from '@/lib/savedJobs'
 
 const EXT_PAGE_SIZE = 20
 const THREE_WEEKS = 21 * 24 * 60 * 60 * 1000
@@ -73,6 +74,7 @@ export default function VagasPage() {
   const [loadingExternal, setLoadingExternal] = useState(false)
   const [externalError, setExternalError] = useState('')
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const [userRole, setUserRole] = useState('candidato')
   const [profile, setProfile] = useState<any>(null)
   const recentesRef = useRef<HTMLElement>(null)
@@ -109,8 +111,17 @@ export default function VagasPage() {
       syncUserFromSession(session)
     })
 
+    setSavedIds(new Set(getSavedJobs().map(j => j.job_id)))
+
     return () => subscription.unsubscribe()
   }, [])
+
+  const toggleSave = (e: React.MouseEvent, entry: { job_id: string; source: 'interna' | 'externa'; title: string; company: string; logo_url?: string | null; location?: string | null; salary?: string | null }) => {
+    e.preventDefault()
+    e.stopPropagation()
+    toggleSavedJob(entry)
+    setSavedIds(new Set(getSavedJobs().map(j => j.job_id)))
+  }
 
   const loadExternalJobs = async () => {
     if (extLoaded) return
@@ -276,68 +287,61 @@ export default function VagasPage() {
   const olderExternal = sortedExternal.filter(j => !isRecent(j.first_seen_at))
   const extOlderPages = Math.max(1, Math.ceil(olderExternal.length / EXT_PAGE_SIZE))
 
+  const SaveBtn = ({ entry }: { entry: { job_id: string; source: 'interna' | 'externa'; title: string; company: string; logo_url?: string | null; location?: string | null; salary?: string | null } }) => {
+    const saved = savedIds.has(entry.job_id)
+    return (
+      <button
+        onClick={(e) => toggleSave(e, entry)}
+        className={`p-1.5 rounded-lg transition-colors ${saved ? 'text-ms-blue bg-blue-50' : 'text-ms-gray hover:text-ms-blue hover:bg-blue-50'}`}
+        title={saved ? 'Remover das guardadas' : 'Guardar vaga'}
+        aria-label="Guardar vaga"
+      >
+        <Bookmark size={15} className={saved ? 'fill-ms-blue' : ''} />
+      </button>
+    )
+  }
+
   const JobCard = ({ v, variant }: { v: any; variant: 'recent' | 'destaque' | 'normal' }) => {
     const isDestaque = variant === 'destaque'
     const isRecent = variant === 'recent'
-    const baseBg = isDestaque ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200' : isRecent ? 'bg-green-50 border-green-200' : 'bg-ms-surface'
-    const borderClass = isDestaque ? 'border-2' : isRecent ? 'border' : ''
-    const iconColor = isDestaque ? 'text-amber-600' : isRecent ? 'text-green-600' : 'text-ms-blue'
-    const iconBg = isDestaque ? 'bg-white border-amber-200' : isRecent ? 'bg-white border-green-200' : 'bg-white border-ms-border'
 
     return (
       <Link key={v.id} href={`/vagas/detalhe/?id=${v.id}`} className="block">
-        <div className={`${baseBg} ${borderClass} rounded-xl p-4 hover:shadow-md transition-shadow relative overflow-hidden`}>
-          {isDestaque && (
-            <div className="absolute top-2 right-2">
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
-                <Star size={10} className="fill-amber-500 text-amber-500" /> DESTAQUE
-              </span>
-            </div>
-          )}
-          {isRecent && (
-            <div className="absolute top-2 right-2">
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">NOVA</span>
-            </div>
-          )}
+        <div className={`group bg-white border ${isDestaque ? 'border-amber-300' : 'border-ms-border'} rounded-2xl p-4 mb-3 transition-all duration-200 hover:border-ms-blue/40 hover:shadow-ios-sm`}>
           <div className="flex items-start gap-3">
-            <CompanyLogo company={v.empresa_nome} size={40} rounded="rounded-full" className="border border-ms-border" />
-            <div className="flex-1 min-w-0 pr-16">
-              <h3 className={`text-sm ${isDestaque ? 'font-semibold' : 'font-medium'} text-ms-dark line-clamp-2`}>{v.titulo}</h3>
-              <p className="text-xs text-ms-gray">{v.empresa_nome}</p>
-              {isLoggedIn ? (
-                <p className="text-xs text-ms-gray mt-1.5 line-clamp-3 sm:line-clamp-2">{stripHtml(v.descricao || '').slice(0, 220)}</p>
-              ) : (
-                <p className="text-xs text-ms-blue mt-1.5">Entre para ver a descrição completa</p>
-              )}
-              <div className="flex items-center gap-2 mt-2 flex-wrap">
-                {v.area && (
-                  <span className="text-[10px] text-ms-blue bg-ms-blue/10 px-2 py-0.5 rounded-full">{v.area}</span>
-                )}
-                {v.localizacao && (
-                  <span className="inline-flex items-center gap-0.5 text-[11px] text-ms-gray">
-                    <MapPin size={10} /> {v.localizacao}
-                  </span>
-                )}
-                {v.salario && (
-                  <span className="text-[11px] font-medium text-green-700 bg-green-100 px-2 py-0.5 rounded-full">{v.salario}</span>
-                )}
-                {matchPct(v) >= 40 && (
-                  <span className="text-[10px] font-bold text-white bg-ms-blue px-2 py-0.5 rounded-full">{matchPct(v)}% match</span>
-                )}
+            <CompanyLogo company={v.empresa_nome} size={44} rounded="rounded-xl" className="border border-ms-border flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-ms-dark group-hover:text-ms-blue transition-colors leading-snug line-clamp-2">{v.titulo}</h3>
               </div>
-              <div className="flex items-center justify-between mt-2">
-                <span className="text-[11px] text-ms-gray">{getTimeAgo(v.created_at)}</span>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={(e) => shareJob(e, `/vagas/detalhe/?id=${v.id}`, v.titulo)}
-                    className="inline-flex items-center gap-1 text-[10px] text-ms-gray hover:text-ms-blue border border-ms-border rounded-full px-2 py-1"
-                    aria-label="Partilhar vaga"
-                  >
-                    {sharedId === `/vagas/detalhe/?id=${v.id}` ? <><Check size={11} className="text-green-600" /> Copiado</> : <><Share2 size={11} /> Partilhar</>}
-                  </button>
-                  <span className="text-[11px] font-medium text-ms-blue bg-ms-blue/10 px-3 py-1 rounded-full">Candidatar</span>
-                </div>
-              </div>
+              <p className="text-xs text-ms-gray mt-0.5 truncate">
+                <span className="font-medium text-ms-blue">{v.empresa_nome}</span>{v.localizacao ? ` · ${v.localizacao}` : ''}
+              </p>
+              {!isLoggedIn && <p className="text-[11px] text-ms-blue mt-1">Entre para ver a descrição completa</p>}
+            </div>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {isRecent && <span className="bg-ms-green text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider">Nova</span>}
+              {isDestaque && <Star size={14} className="text-amber-400 fill-amber-400" />}
+              <button
+                onClick={(e) => shareJob(e, `/vagas/detalhe/?id=${v.id}`, v.titulo)}
+                className="text-ms-gray hover:text-ms-blue p-1.5 hover:bg-blue-50 rounded-lg transition-colors"
+                title="Partilhar"
+                aria-label="Partilhar vaga"
+              >
+                {sharedId === `/vagas/detalhe/?id=${v.id}` ? <Check size={15} className="text-ms-green" /> : <Share2 size={15} />}
+              </button>
+              <SaveBtn entry={{ job_id: v.id, source: 'interna', title: v.titulo, company: v.empresa_nome, logo_url: v.empresa_logo_url, location: v.localizacao, salary: v.salario }} />
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5 mt-3">
+            {v.area && <span className="text-[10px] font-medium text-ms-blue bg-ms-blue/10 px-2.5 py-1 rounded-full">{v.area}</span>}
+            {matchPct(v) >= 40 && <span className="text-[10px] font-bold text-white bg-ms-blue px-2.5 py-1 rounded-full">{matchPct(v)}% match</span>}
+          </div>
+          <div className="flex items-center justify-between mt-3 pt-3 border-t border-ms-border/70">
+            <span className="text-[11px] text-ms-gray">{getTimeAgo(v.created_at)}</span>
+            <div className="flex items-center gap-2">
+              {v.salario && <span className="text-xs font-bold text-ms-blue">{v.salario} <span className="text-ms-gray font-medium">/mês</span></span>}
+              <span className="text-[11px] font-bold text-white px-3 py-1.5 bg-ms-blue rounded-full group-hover:bg-ms-purple transition-colors">Candidatar</span>
             </div>
           </div>
         </div>
@@ -349,47 +353,45 @@ export default function VagasPage() {
     const isRecent = variant === 'recent'
     return (
       <Link key={j.id} href={`/vagas/externa/?id=${j.id}`} className="block">
-        <div className={`bg-white border ${isRecent ? 'border-green-200' : 'border-ms-border'} rounded-xl p-4 hover:shadow-md hover:border-ms-blue/30 transition-all relative overflow-hidden`}>
-          {isRecent && (
-            <div className="absolute top-2 right-2">
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">NOVA</span>
-            </div>
-          )}
-
+        <div className="group bg-white border border-ms-border rounded-2xl p-4 mb-3 transition-all duration-200 hover:border-ms-blue/40 hover:shadow-ios-sm">
           <div className="flex items-start gap-3">
-            <CompanyLogo company={j.company} logoUrl={j.logo_url} size={40} rounded="rounded-lg" className="border border-ms-border" />
+            <CompanyLogo company={j.company} logoUrl={j.logo_url} size={44} rounded="rounded-xl" className="border border-ms-border flex-shrink-0" />
             <div className="flex-1 min-w-0">
-              <h3 className="text-base font-bold text-ms-dark leading-snug mb-1 line-clamp-2">{j.title}</h3>
-              {j.company && <p className="text-xs text-ms-gray mb-1">{j.company}</p>}
-              {isLoggedIn ? (
-                <p className="text-xs text-ms-gray mt-1 line-clamp-4 sm:line-clamp-2">{stripHtml(j.excerpt || j.description)}</p>
-              ) : (
-                <p className="text-xs text-ms-blue mt-1">Entre para ver a descrição completa</p>
-              )}
-              <div className="flex items-center gap-2 mt-2 flex-wrap">
-                {j.location && <span className="inline-flex items-center gap-0.5 text-[11px] text-ms-gray"><MapPin size={10} /> {j.location}</span>}
-                {j.salary && <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">{j.salary}</span>}
-                {j.category && j.category !== 'Outro' && <span className="text-[10px] text-ms-blue bg-ms-blue/10 px-2 py-0.5 rounded-full">{j.category}</span>}
-                {j.modalidade && <span className="text-[10px] text-ms-dark bg-ms-surface border border-ms-border px-2 py-0.5 rounded-full">{j.modalidade}</span>}
-                {(j.score || 0) >= 20 && <span className="text-[10px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">Destaque</span>}
-                {matchPct(j) >= 40 && <span className="text-[10px] font-bold text-white bg-ms-blue px-2 py-0.5 rounded-full">{matchPct(j)}% match</span>}
-              </div>
-              <p className="inline-flex items-center gap-1 mt-2 text-[10px] text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-2 py-1">
-                <Info size={10} /> Vaga externa — a candidatura é feita na fonte oficial da empresa
+              <h3 className="font-bold text-ms-dark group-hover:text-ms-blue transition-colors leading-snug line-clamp-2">{j.title}</h3>
+              <p className="text-xs text-ms-gray mt-0.5 truncate">
+                {j.company && <span className="font-medium text-ms-blue">{j.company}</span>}
+                {j.company && j.location ? ' · ' : ''}
+                {j.location && <span>{j.location}</span>}
               </p>
-              <div className="flex items-center justify-between mt-2">
-                <span className="text-[11px] text-ms-gray">{getTimeAgo(j.first_seen_at || j.posted_at)}</span>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={(e) => shareJob(e, `/vagas/externa/?id=${j.id}`, j.title)}
-                    className="inline-flex items-center gap-1 text-[10px] text-ms-gray hover:text-ms-blue border border-ms-border rounded-full px-2 py-1"
-                    aria-label="Partilhar vaga"
-                  >
-                    {sharedId === `/vagas/externa/?id=${j.id}` ? <><Check size={11} className="text-green-600" /> Copiado</> : <><Share2 size={11} /> Partilhar</>}
-                  </button>
-                  <span className="text-[11px] font-medium text-ms-blue bg-ms-blue/10 px-3 py-1 rounded-full">Candidatar-se</span>
-                </div>
-              </div>
+              {!isLoggedIn && <p className="text-[11px] text-ms-blue mt-1">Entre para ver a descrição completa</p>}
+            </div>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {isRecent && <span className="bg-ms-green text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider">Nova</span>}
+              {(j.score || 0) >= 20 && <Star size={14} className="text-amber-400 fill-amber-400" />}
+              <button
+                onClick={(e) => shareJob(e, `/vagas/externa/?id=${j.id}`, j.title)}
+                className="text-ms-gray hover:text-ms-blue p-1.5 hover:bg-blue-50 rounded-lg transition-colors"
+                title="Partilhar"
+                aria-label="Partilhar vaga"
+              >
+                {sharedId === `/vagas/externa/?id=${j.id}` ? <Check size={15} className="text-ms-green" /> : <Share2 size={15} />}
+              </button>
+              <SaveBtn entry={{ job_id: String(j.id), source: 'externa', title: j.title, company: j.company, logo_url: j.logo_url, location: j.location, salary: j.salary }} />
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5 mt-3">
+            {j.modalidade && <span className="text-[10px] font-medium text-ms-dark bg-ms-surface border border-ms-border px-2.5 py-1 rounded-full">{j.modalidade}</span>}
+            {j.category && j.category !== 'Outro' && <span className="text-[10px] font-medium text-ms-blue bg-ms-blue/10 px-2.5 py-1 rounded-full">{j.category}</span>}
+            {matchPct(j) >= 40 && <span className="text-[10px] font-bold text-white bg-ms-blue px-2.5 py-1 rounded-full">{matchPct(j)}% match</span>}
+            <span className="inline-flex items-center gap-1 text-[10px] text-amber-800 bg-amber-50 border border-amber-100 rounded-full px-2.5 py-1">
+              <Info size={10} /> Externa
+            </span>
+          </div>
+          <div className="flex items-center justify-between mt-3 pt-3 border-t border-ms-border/70">
+            <span className="text-[11px] text-ms-gray">{getTimeAgo(j.first_seen_at || j.posted_at)}</span>
+            <div className="flex items-center gap-2">
+              {j.salary && <span className="text-xs font-bold text-ms-blue">{j.salary}</span>}
+              <span className="text-[11px] font-bold text-white px-3 py-1.5 bg-ms-blue rounded-full group-hover:bg-ms-purple transition-colors">Candidatar</span>
             </div>
           </div>
         </div>
@@ -628,8 +630,26 @@ export default function VagasPage() {
             <p className="text-xs text-ms-gray mb-4">Lê o resumo de cada vaga sem precisar abrir. Ao candidatar, vais direto à fonte oficial da empresa.</p>
 
             {loadingExternal ? (
-              <div className="flex justify-center py-12">
-                <div className="w-8 h-8 border-2 border-ms-blue border-t-transparent rounded-full animate-spin" />
+              <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
+                {[0, 1, 2, 3].map((i) => (
+                  <div key={i} className="bg-white border border-ms-border rounded-2xl p-4 mb-3 lg:mb-0">
+                    <div className="flex items-start gap-3">
+                      <div className="w-11 h-11 rounded-xl bg-ms-surface animate-pulse flex-shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-ms-surface rounded animate-pulse w-3/4" />
+                        <div className="h-3 bg-ms-surface rounded animate-pulse w-1/2" />
+                      </div>
+                    </div>
+                    <div className="flex gap-1.5 mt-3">
+                      <div className="h-5 w-16 bg-ms-surface rounded-full animate-pulse" />
+                      <div className="h-5 w-20 bg-ms-surface rounded-full animate-pulse" />
+                    </div>
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-ms-border/70">
+                      <div className="h-3 w-14 bg-ms-surface rounded animate-pulse" />
+                      <div className="h-6 w-20 bg-ms-surface rounded-full animate-pulse" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : externalError ? (
               <div className="text-center py-12">

@@ -4,9 +4,10 @@ import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
-import { ArrowLeft, MapPin, Send, Upload, MessageSquare, MessageCircle, LogIn } from 'lucide-react'
+import { ArrowLeft, MapPin, Send, Upload, MessageSquare, MessageCircle, LogIn, Bookmark, CheckCircle2, FileText } from 'lucide-react'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import AppHeader from '@/components/AppHeader'
+import { isJobSaved, toggleSavedJob } from '@/lib/savedJobs'
 
 function VagaDetalheContent() {
   const searchParams = useSearchParams()
@@ -23,6 +24,8 @@ function VagaDetalheContent() {
   const [cvFile, setCvFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [respostas, setRespostas] = useState<Record<string, string>>({})
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     const load = async () => {
@@ -30,6 +33,7 @@ function VagaDetalheContent() {
 
       const { data } = await supabase.from('vagas').select('*').eq('id', vagaId).single()
       if (data) setVaga(data)
+      setSaved(isJobSaved(vagaId))
 
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
@@ -50,6 +54,7 @@ function VagaDetalheContent() {
     if (!userId || !vagaId) return
 
     setSending(true)
+    setError('')
 
     // Check if already applied
     const { data: existing } = await supabase
@@ -60,7 +65,6 @@ function VagaDetalheContent() {
       .maybeSingle()
 
     if (existing) {
-      alert('Já te candidataste a esta vaga!')
       setSending(false)
       setSent(true)
       return
@@ -99,7 +103,7 @@ function VagaDetalheContent() {
     })
 
     if (error) {
-      alert('Erro ao enviar candidatura: ' + error.message)
+      setError('Erro ao enviar a candidatura. Tenta novamente.')
     } else {
       setSent(true)
     }
@@ -206,9 +210,18 @@ function VagaDetalheContent() {
 
         {/* Application form */}
         {sent ? (
-          <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
-            <p className="text-sm font-medium text-green-700">Candidatura enviada com sucesso!</p>
-            <Link href="/dashboard/candidato/" className="text-xs text-ms-blue mt-2 inline-block">Ver as minhas candidaturas →</Link>
+          <div className="bg-white border border-ms-border rounded-3xl p-8 text-center shadow-ios-sm mb-6">
+            <div className="w-16 h-16 bg-ms-blue rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 size={32} className="text-white" />
+            </div>
+            <h2 className="text-lg font-bold text-ms-dark mb-1">Parabéns!</h2>
+            <p className="text-sm text-ms-gray mb-5">A tua candidatura foi enviada com sucesso. Podes acompanhar o estado em Minhas Candidaturas.</p>
+            <Link href="/candidaturas/" className="block w-full bg-ms-blue text-white font-semibold py-3 rounded-2xl hover:bg-ms-purple transition-colors mb-2">
+              Ver as minhas candidaturas
+            </Link>
+            <Link href="/vagas/" className="block w-full border border-ms-border text-ms-dark font-semibold py-3 rounded-2xl hover:bg-ms-surface transition-colors">
+              Voltar às vagas
+            </Link>
           </div>
         ) : isLoggedIn && userRole === 'candidato' ? (
           <div className="mb-4">
@@ -244,10 +257,22 @@ function VagaDetalheContent() {
 
             {/* Document Upload */}
             <div className="mb-3">
+              <p className="text-xs font-semibold text-ms-dark mb-2">Upload CV/Currículo</p>
               <label className="block">
-                <div className="bg-ms-surface border border-dashed border-ms-border rounded-xl p-4 text-center cursor-pointer hover:border-ms-blue transition-colors">
-                  <Upload size={20} className="text-ms-gray mx-auto mb-1" />
-                  <p className="text-xs text-ms-gray">{cvFile ? cvFile.name : 'Anexar CV (PDF, opcional)'}</p>
+                <div className={`border-2 border-dashed rounded-2xl p-5 text-center cursor-pointer transition-colors ${cvFile ? 'border-ms-blue bg-blue-50/50' : 'border-ms-border bg-ms-surface hover:border-ms-blue'}`}>
+                  {cvFile ? (
+                    <>
+                      <FileText size={22} className="text-ms-blue mx-auto mb-1" />
+                      <p className="text-xs font-medium text-ms-dark">{cvFile.name}</p>
+                      <p className="text-[10px] text-ms-blue mt-0.5">Tocar para trocar</p>
+                    </>
+                  ) : (
+                    <>
+                      <Upload size={22} className="text-ms-gray mx-auto mb-1" />
+                      <p className="text-xs font-medium text-ms-blue">Procurar ficheiro</p>
+                      <p className="text-[10px] text-ms-gray mt-0.5">PDF ou Word, opcional</p>
+                    </>
+                  )}
                 </div>
                 <input type="file" className="hidden" accept=".pdf,.doc,.docx" onChange={(e) => setCvFile(e.target.files?.[0] || null)} />
               </label>
@@ -259,14 +284,24 @@ function VagaDetalheContent() {
             <Link href="/auth/registar/" className="text-sm text-ms-blue font-medium">Criar conta →</Link>
           </div>
         ) : null}
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-4">
+            <p className="text-sm text-red-700">{error}</p>
+          </div>
+        )}
       </main>
 
       {/* Sticky bottom bar */}
       {!sent && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-ms-border p-4 z-50">
           <div className="max-w-3xl mx-auto flex gap-3">
-            <button className="flex-shrink-0 border border-ms-border px-4 py-3 rounded-xl text-sm font-medium text-ms-dark hover:bg-ms-surface">
-              Guardar
+            <button
+              onClick={() => setSaved(toggleSavedJob({ job_id: vagaId!, source: 'interna', title: vaga.titulo, company: vaga.empresa_nome, logo_url: vaga.empresa_logo_url, location: vaga.localizacao, salary: vaga.salario }))}
+              className={`flex-shrink-0 border px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-1.5 transition-colors ${saved ? 'border-ms-blue text-ms-blue bg-blue-50' : 'border-ms-border text-ms-dark hover:bg-ms-surface'}`}
+            >
+              <Bookmark size={15} className={saved ? 'fill-ms-blue' : ''} />
+              {saved ? 'Guardada' : 'Guardar'}
             </button>
             <button
               onClick={handleCandidatar}

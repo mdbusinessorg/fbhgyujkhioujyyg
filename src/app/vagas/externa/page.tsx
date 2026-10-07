@@ -4,10 +4,11 @@ import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { ArrowLeft, MapPin, Clock, Linkedin, Send, MessageCircle, LogIn, Mail, Sparkles, Share2, Check } from 'lucide-react'
+import { ArrowLeft, MapPin, Clock, Linkedin, Send, MessageCircle, LogIn, Mail, Sparkles, Share2, Check, Bookmark } from 'lucide-react'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import AppHeader from '@/components/AppHeader'
 import { recordExternalApply, hasAppliedTo } from '@/lib/candidacies'
+import { isJobSaved, toggleSavedJob } from '@/lib/savedJobs'
 
 function ExternaContent() {
   const searchParams = useSearchParams()
@@ -20,6 +21,7 @@ function ExternaContent() {
   const [preparingEmail, setPreparingEmail] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
   const [alreadyApplied, setAlreadyApplied] = useState(false)
+  const [saved, setSaved] = useState(false)
 
   const markApplied = (via: 'site_oficial' | 'email') => {
     if (!job) return
@@ -45,6 +47,7 @@ function ExternaContent() {
         const res = await fetch(`/vagas-data/${encodeURIComponent(jobId)}.json`, { cache: 'no-store' })
         if (res.ok) setJob(await res.json())
         setAlreadyApplied(hasAppliedTo(jobId))
+        setSaved(isJobSaved(jobId))
       } catch {
         // ignore — handled by not-found state below
       }
@@ -257,6 +260,12 @@ function ExternaContent() {
               <Send size={16} /> Candidatar no site oficial
             </a>
           ) : null}
+          <button
+            onClick={() => setSaved(toggleSavedJob({ job_id: String(job.id || jobId), source: 'externa', title: job.title, company: job.company, logo_url: job.logo_url, location: job.location, salary: job.salary }))}
+            className={`sm:flex-shrink-0 border font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 ${saved ? 'border-ms-blue text-ms-blue bg-blue-50' : 'border-ms-border text-ms-dark hover:bg-ms-surface'}`}
+          >
+            <Bookmark size={16} className={saved ? 'fill-ms-blue' : ''} /> {saved ? 'Guardada' : 'Guardar'}
+          </button>
           <a
             href={linkedinUrl}
             target="_blank"
