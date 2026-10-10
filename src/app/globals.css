@@ -287,6 +287,21 @@ html {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
+/* ===== Identidade 2026 — navy imersivo + vidro ===== */
+.ms-hero-navy {
+  background:
+    radial-gradient(640px 320px at 88% -15%, rgba(85, 197, 232, 0.28), transparent 62%),
+    radial-gradient(560px 300px at -8% 115%, rgba(108, 71, 255, 0.32), transparent 60%),
+    linear-gradient(135deg, #0B1B3A 0%, #123063 55%, #1A56FF 140%);
+}
+.ms-glass {
+  background: rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+.text-ms-cyan { color: #55C5E8; }
+
 @media (prefers-reduced-motion: reduce) {
   .neo-reveal, .neo-hero-word > span, .neo-fade-up, .neo-caption-line {
     animation: none !important;
