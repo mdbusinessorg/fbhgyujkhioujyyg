@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { ArrowLeft, MapPin, Clock, Linkedin, Send, MessageCircle, LogIn, Mail, Sparkles, Share2, Check, Bookmark } from 'lucide-react'
+import { ArrowLeft, MapPin, Clock, Linkedin, Send, MessageCircle, LogIn, Mail, Sparkles, Share2, Check, Bookmark, Globe } from 'lucide-react'
 import { CompanyLogo } from '@/components/CompanyLogo'
 import AppHeader from '@/components/AppHeader'
 import ApplySuccess from '@/components/ApplySuccess'
@@ -78,6 +78,15 @@ function ExternaContent() {
   }, [jobId])
 
   const isMailtoApply = typeof job?.apply_url === 'string' && job.apply_url.toLowerCase().startsWith('mailto:')
+  const mailtoAddr = isMailtoApply ? (job!.apply_url!.replace(/^mailto:/i, '').split('?')[0].trim().split(/[;\s,]+/)[0] || '') : ''
+  const isValidMailto = /^[\w.+-]+@[\w-]+\.[\w.]+$/.test(mailtoAddr)
+
+  const cleanAiText = (s: string) => s
+    .replace(/[*_`#>]+/g, '')
+    .replace(/\[[^\]]{1,40}\]/g, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
 
   const buildFallbackEmail = () => {
     const nome = candidate?.nome || ''
@@ -107,10 +116,16 @@ function ExternaContent() {
         if (data.subject && data.body) email = data
       }
     } catch {}
+    // Limpa e limita o texto da IA — markdown, placeholders e emails muito longos partem o mailto:
+    email.subject = cleanAiText(String(email.subject || '')).split('\n')[0].replace(/^(assunto|subject)\s*:\s*/i, '').slice(0, 110) || `Candidatura — ${job.title}`
+    email.body = cleanAiText(String(email.body || ''))
+    if (email.body.length > 1500) {
+      const cut = email.body.slice(0, 1500)
+      email.body = cut.slice(0, Math.max(cut.lastIndexOf('\n'), 1200)).trim() || cut.trim()
+    }
     setPreparingEmail(false)
-    const address = job.apply_url.replace(/^mailto:/i, '').split('?')[0]
     markApplied('email')
-    window.location.href = `mailto:${address}?subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(email.body)}`
+    window.location.href = `mailto:${mailtoAddr}?subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(email.body)}`
   }
 
   const getTimeAgo = (date: string) => {
@@ -196,7 +211,7 @@ function ExternaContent() {
             <div><p className="text-[10px] text-ms-gray uppercase tracking-wide">Categoria</p><p className="text-xs font-medium text-ms-dark mt-0.5">{job.category}</p></div>
           )}
           <div><p className="text-[10px] text-ms-gray uppercase tracking-wide">Salário</p><p className="text-xs font-medium text-ms-dark mt-0.5">{job.salary || 'Não especificado'}</p></div>
-          <div><p className="text-[10px] text-ms-gray uppercase tracking-wide">Candidatura</p><p className="text-xs font-medium text-ms-dark mt-0.5">{isMailtoApply ? 'E-mail' : job.apply_url ? 'Site oficial' : 'Ver descrição'}</p></div>
+          <div><p className="text-[10px] text-ms-gray uppercase tracking-wide">Candidatura</p><p className="text-xs font-medium text-ms-dark mt-0.5">{isValidMailto ? 'E-mail' : job.apply_url && !isMailtoApply ? 'Site oficial' : 'LinkedIn / Google'}</p></div>
         </div>
 
         {job.description && (
@@ -247,7 +262,7 @@ function ExternaContent() {
           </p>
         )}
         <div className="max-w-3xl mx-auto flex flex-col sm:flex-row gap-3">
-          {job.apply_url && isMailtoApply ? (
+          {isValidMailto ? (
             <button
               onClick={handleEmailApply}
               disabled={preparingEmail}
@@ -259,7 +274,7 @@ function ExternaContent() {
                 <><Mail size={16} /> Candidatar por Email <span className="inline-flex items-center gap-0.5 text-[10px] font-bold bg-white/20 px-1.5 py-0.5 rounded-md"><Sparkles size={10} /> IA</span></>
               )}
             </button>
-          ) : job.apply_url ? (
+          ) : job.apply_url && !isMailtoApply ? (
             <a
               href={job.apply_url}
               target="_blank"
@@ -269,7 +284,26 @@ function ExternaContent() {
             >
               <Send size={16} /> Candidatar no site oficial
             </a>
-          ) : null}
+          ) : (
+            <a
+              href={linkedinUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 bg-ms-blue text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+            >
+              <Linkedin size={16} /> Procurar esta vaga no LinkedIn
+            </a>
+          )}
+          {!job.apply_url && job.company && (
+            <a
+              href={`https://www.google.com/search?q=${encodeURIComponent(`${job.company} Angola contactos`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="sm:flex-shrink-0 border border-ms-border text-ms-dark font-semibold py-3 px-4 rounded-xl hover:bg-ms-surface transition-colors flex items-center justify-center gap-2"
+            >
+              <Globe size={16} /> Site da empresa
+            </a>
+          )}
           <button
             onClick={() => {
               if (!jobId || !job) return
@@ -281,19 +315,21 @@ function ExternaContent() {
             <Bookmark size={16} className={saved ? 'fill-ms-blue' : ''} />
             {saved ? 'Guardada' : 'Guardar'}
           </button>
-          <a
-            href={linkedinUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`${job.apply_url ? 'sm:flex-shrink-0' : 'flex-1'} border border-ms-border text-ms-dark font-semibold py-3 px-4 rounded-xl hover:bg-ms-surface transition-colors flex items-center justify-center gap-2`}
-          >
-            <Linkedin size={16} className="text-[#0A66C2]" /> Ver no LinkedIn
-          </a>
+          {job.apply_url && (
+            <a
+              href={linkedinUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="sm:flex-shrink-0 border border-ms-border text-ms-dark font-semibold py-3 px-4 rounded-xl hover:bg-ms-surface transition-colors flex items-center justify-center gap-2"
+            >
+              <Linkedin size={16} className="text-[#0A66C2]" /> Ver no LinkedIn
+            </a>
+          )}
         </div>
         {!job.apply_url && (
-          <p className="text-[11px] text-ms-gray text-center mt-2">Link oficial indisponível — procura a vaga no LinkedIn.</p>
+          <p className="text-[11px] text-ms-gray text-center mt-2">Esta vaga não indicou email nem site oficial — usa o LinkedIn ou procura a empresa para te candidatares.</p>
         )}
-        {isMailtoApply && (
+        {isValidMailto && (
           <p className="text-[11px] text-ms-gray text-center mt-2">A IA escreve a mensagem com base no teu perfil (em inglês se a empresa for estrangeira) — revê e anexa o CV antes de enviar.</p>
         )}
       </div>
