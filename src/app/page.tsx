@@ -473,24 +473,35 @@ export default function HomePage() {
     <div className="min-h-screen bg-ms-surface pb-8">
       <AppHeader />
 
-      <main className="max-w-3xl lg:max-w-6xl mx-auto px-4 pt-4 lg:pt-6">
-        {/* Greeting */}
-        <div className="flex items-start justify-between gap-4 mb-5">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-ms-dark">Olá{userName ? `, ${userName.split(' ')[0]}` : ''}!</h1>
-            <p className="text-xs sm:text-sm text-ms-gray mt-1">
-              <span className="font-semibold text-ms-blue"><Counter to={heroStats.vagas} /></span> vagas ativas
-              <span className="mx-1.5 text-ms-border">·</span>
-              <span className="font-semibold text-ms-blue"><Counter to={heroStats.empresas} /></span> empresas
-              <span className="mx-1.5 text-ms-border">·</span>
-              <span className="font-semibold text-ms-blue"><Counter to={heroStats.novas} /></span> novas esta semana
-            </p>
+      {/* HERO — navy imersivo com stats em vidro */}
+      <section className="ms-hero-navy relative overflow-hidden">
+        <div className="max-w-3xl lg:max-w-6xl mx-auto px-4 pt-6 pb-6 lg:pt-11 lg:pb-9">
+          <Reveal>
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 sm:gap-6 mb-5 lg:mb-7">
+            <div className="min-w-0">
+              <p className="text-[10px] lg:text-[11px] font-bold tracking-[0.18em] text-white/55 uppercase mb-2">MÔ SALO · Emprego em Angola</p>
+              <h1 className="text-2xl sm:text-3xl lg:text-[42px] font-extrabold text-white leading-[1.12]">
+                {userName ? `Olá, ${userName.split(' ')[0]}!` : 'Encontra a tua próxima oportunidade em Angola.'}
+              </h1>
+            </div>
+            <div className="flex gap-2 sm:gap-3 flex-shrink-0">
+              {[
+                { n: heroStats.vagas, l: 'Vagas ativas' },
+                { n: heroStats.empresas, l: 'Empresas' },
+                { n: heroStats.novas, l: 'Novas esta semana' },
+              ].map(s => (
+                <div key={s.l} className="ms-glass rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 text-center min-w-[88px] sm:min-w-[104px]">
+                  <p className="text-lg sm:text-xl font-extrabold text-ms-cyan"><Counter to={s.n} /></p>
+                  <p className="text-[9px] sm:text-[10px] text-white/70 mt-0.5 leading-tight">{s.l}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+          </Reveal>
 
-        {/* Search bar */}
+          {/* Search bar */}
         <Reveal variant="fade-scale">
-        <section className="bg-white rounded-3xl border border-ms-border shadow-ios-sm p-4 sm:p-5 mb-6">
+        <section className="bg-white rounded-3xl border border-white/20 shadow-ios p-4 sm:p-5">
           <div className="flex flex-col gap-2 lg:grid lg:grid-cols-[1.3fr_1fr_1fr_1fr_auto] lg:gap-3 lg:items-end">
             <div className="flex gap-2 lg:contents">
               <div className="flex-1 min-w-0">
@@ -553,7 +564,10 @@ export default function HomePage() {
           </div>
         </section>
         </Reveal>
+        </div>
+      </section>
 
+      <main className="max-w-3xl lg:max-w-6xl mx-auto px-4 pt-4 lg:pt-6">
         {/* IA Match — visível no mobile (no desktop fica na sidebar) */}
         <Reveal variant="fade-scale" delay={40}>
         <section className="lg:hidden bg-gradient-to-br from-ms-blue to-ms-purple rounded-3xl p-5 mb-6 text-white">
