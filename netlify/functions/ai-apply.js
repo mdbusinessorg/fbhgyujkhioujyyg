@@ -1,6 +1,7 @@
 // Gera email de candidatura personalizado (assunto + corpo) com base no perfil do candidato e na vaga.
 // Escreve em inglês quando a vaga/empresa é estrangeira; caso contrário em português de Angola.
 const { groqChat } = require('./_groq')
+const { requireUser, rateLimit, rateLimitResponse, clientIp } = require('../lib/security')
 
 const headers = {
   'Content-Type': 'application/json',
@@ -12,6 +13,10 @@ const headers = {
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' }
   if (event.httpMethod !== 'POST') return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) }
+
+  if (!rateLimit(clientIp(event) + ':ai-apply', 10)) return rateLimitResponse(headers)
+  const denied = await requireUser(event)
+  if (denied.response) return { ...denied.response, headers }
 
   try {
     const { job, candidate } = JSON.parse(event.body || '{}')

@@ -1,5 +1,6 @@
 const { getStoreWithFallback } = require('../lib/store')
 const { emailConfigured, sendEmail, buildJobsHtml, MAX_EMAILS_PER_RUN } = require('../lib/email')
+const { isScheduledOrInternal } = require('../lib/security')
 
 const MAX_WEEKLY_EMAILS = parseInt(process.env.MAX_WEEKLY_EMAILS || '30', 10)
 
@@ -154,6 +155,11 @@ async function fetchUserEmails() {
 
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' }
+
+  // Só corre via agendamento Netlify ou com CRON_SECRET — não é um endpoint público.
+  if (!isScheduledOrInternal(event)) {
+    return { statusCode: 401, headers, body: JSON.stringify({ error: 'Não autorizado' }) }
+  }
 
   try {
     const [jobs, profiles, userEmails] = await Promise.all([fetchExternalJobs(), fetchProfiles(), fetchUserEmails()])

@@ -1,4 +1,5 @@
 const { groqChat } = require('./_groq')
+const { requireUser, rateLimit, rateLimitResponse, clientIp } = require('../lib/security')
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -9,6 +10,10 @@ const headers = {
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' }
   if (event.httpMethod !== 'POST') return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) }
+
+  if (!rateLimit(clientIp(event) + ':ai-cv', 10)) return rateLimitResponse(headers)
+  const denied = await requireUser(event)
+  if (denied.response) return { ...denied.response, headers }
 
   let payload
   try { payload = JSON.parse(event.body || '{}') } catch { payload = {} }

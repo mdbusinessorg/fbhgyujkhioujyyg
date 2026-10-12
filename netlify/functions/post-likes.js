@@ -1,4 +1,5 @@
 const { getStoreWithFallback } = require('../lib/store')
+const { requireUser, rateLimit, rateLimitResponse, clientIp } = require('../lib/security')
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -20,10 +21,14 @@ exports.handler = async (event) => {
   }
 
   if (event.httpMethod === 'POST') {
+    if (!rateLimit(clientIp(event) + ':post-likes', 60)) return rateLimitResponse(headers)
     let payload = {}
     try { payload = JSON.parse(event.body || '{}') } catch {}
     const { post_id, user_id } = payload
     if (!post_id || !user_id) return { statusCode: 400, headers, body: JSON.stringify({ error: 'post_id e user_id obrigatórios' }) }
+
+    const denied = await requireUser(event, user_id)
+    if (denied.response) return { ...denied.response, headers }
 
     const data = (await store.get(post_id)) || '[]'
     const likes = JSON.parse(data)
@@ -37,6 +42,9 @@ exports.handler = async (event) => {
     try { payload = JSON.parse(event.body || '{}') } catch {}
     const { post_id, user_id } = payload
     if (!post_id || !user_id) return { statusCode: 400, headers, body: JSON.stringify({ error: 'post_id e user_id obrigatórios' }) }
+
+    const denied = await requireUser(event, user_id)
+    if (denied.response) return { ...denied.response, headers }
 
     const data = (await store.get(post_id)) || '[]'
     let likes = JSON.parse(data)

@@ -1,4 +1,5 @@
 const { groqChat } = require('./_groq')
+const { rateLimit, rateLimitResponse, clientIp, str } = require('../lib/security')
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -9,11 +10,12 @@ const headers = {
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' }
   if (event.httpMethod !== 'POST') return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) }
+  if (!rateLimit(clientIp(event) + ':ai-support', 15)) return rateLimitResponse(headers)
 
   let payload = {}
   try { payload = JSON.parse(event.body || '{}') } catch {}
 
-  const message = (payload.message || '').trim()
+  const message = str(payload.message || '', 2000)
   const context = payload.context || {}
   const history = Array.isArray(payload.history) ? payload.history : []
 
@@ -33,7 +35,7 @@ Documentos/CV: ${context.numDocumentos || 0}`
   const messages = [
     { role: 'system', content: systemPrompt },
     { role: 'system', content: `Perfil do candidato:\n${profileSummary}` },
-    ...history.slice(-6).map((h) => ({ role: h.role === 'assistant' ? 'assistant' : 'user', content: h.content })),
+    ...history.slice(-6).map((h) => ({ role: h.role === 'assistant' ? 'assistant' : 'user', content: str(h.content, 2000) })),
     { role: 'user', content: message },
   ]
 

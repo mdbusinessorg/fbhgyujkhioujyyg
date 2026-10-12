@@ -1,5 +1,6 @@
 const { getStoreWithFallback } = require('../lib/store')
 const { getAdminClient } = require('../lib/supabase-admin')
+const { rateLimit, rateLimitResponse, clientIp } = require('../lib/security')
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -67,6 +68,7 @@ function ensureDiversity(sorted) {
 
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' }
+  if (!rateLimit(clientIp(event) + ':feed', 60)) return rateLimitResponse(headers)
 
   const params = event.queryStringParameters || {}
   const tab = params.tab || 'para-ti'

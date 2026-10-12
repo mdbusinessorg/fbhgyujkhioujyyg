@@ -1,4 +1,5 @@
 const { getStoreWithFallback } = require('../lib/store')
+const { requireUser, rateLimit, rateLimitResponse, clientIp } = require('../lib/security')
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -61,10 +62,14 @@ exports.handler = async (event) => {
   }
 
   if (event.httpMethod === 'POST') {
+    if (!rateLimit(clientIp(event) + ':msg-req', 30)) return rateLimitResponse(headers)
     let payload = {}
     try { payload = JSON.parse(event.body || '{}') } catch {}
     const { requester_id, recipient_id, requester } = payload
     if (!requester_id || !recipient_id) return { statusCode: 400, headers, body: JSON.stringify({ error: 'requester_id e recipient_id obrigatórios' }) }
+
+    const denied = await requireUser(event, requester_id)
+    if (denied.response) return { ...denied.response, headers }
 
     const requests = await all()
     const existing = requests.find(r =>
@@ -105,6 +110,10 @@ exports.handler = async (event) => {
     const requests = await all()
     const index = requests.findIndex(r => r.id === id)
     if (index === -1) return { statusCode: 404, headers, body: JSON.stringify({ error: 'Pedido não encontrado' }) }
+
+    const denied = await requireUser(event, requests[index].recipient_id)
+    if (denied.response) return { ...denied.response, headers }
+
     requests[index].status = status
     await save(requests)
 
@@ -126,6 +135,14 @@ exports.handler = async (event) => {
     const id = event.queryStringParameters?.id
     if (!id) return { statusCode: 400, headers, body: JSON.stringify({ error: 'id obrigatório' }) }
     let requests = await all()
+    const target = requests.find(r => r.id === id)
+    if (target) {
+      const auth = await requireUser(event)
+      if (auth.response) return { ...auth.response, headers }
+      if (auth.user.id !== target.requester_id && auth.user.id !== target.recipient_id) {
+        return { statusCode: 403, headers, body: JSON.stringify({ error: 'Sem permissão' }) }
+      }
+    }
     requests = requests.filter(r => r.id !== id)
     await save(requests)
     return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) }

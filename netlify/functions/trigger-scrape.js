@@ -7,6 +7,8 @@
 //         GH_REPO (default mdbusinessorg/fbhgyujkhioujyyg),
 //         GH_WORKFLOW (default scrape-jobs.yml)
 
+const { isScheduledOrInternal } = require('../lib/security')
+
 const REPO = process.env.GH_REPO || 'mdbusinessorg/fbhgyujkhioujyyg'
 const WORKFLOW = process.env.GH_WORKFLOW || 'scrape-jobs.yml'
 const TOKEN = process.env.GH_DISPATCH_TOKEN || ''
@@ -26,7 +28,11 @@ async function inFlight(headers) {
   )
 }
 
-exports.handler = async () => {
+exports.handler = async (event) => {
+  // Só corre via agendamento Netlify ou com CRON_SECRET — não é um endpoint público.
+  if (event && event.httpMethod && !isScheduledOrInternal(event)) {
+    return { statusCode: 401, body: JSON.stringify({ error: 'Não autorizado' }) }
+  }
   if (!TOKEN) {
     console.warn('GH_DISPATCH_TOKEN não configurado — trigger desativado.')
     return { statusCode: 200 }

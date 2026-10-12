@@ -1,3 +1,5 @@
+const { rateLimit, rateLimitResponse, clientIp } = require('../lib/security')
+
 const REFERER = 'https://www.mosalo.eu.cc/vagas/'
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -25,6 +27,7 @@ exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' }
   }
+  if (!rateLimit(clientIp(event) + ':vagas', 60)) return rateLimitResponse(headers)
 
   try {
     const params = event.queryStringParameters || {}

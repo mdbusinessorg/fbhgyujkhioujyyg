@@ -1,4 +1,5 @@
 const { getStoreWithFallback } = require('../lib/store')
+const { rateLimit, rateLimitResponse, clientIp } = require('../lib/security')
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -23,6 +24,7 @@ exports.handler = async (event) => {
   const ad = event.queryStringParameters?.ad || 'curso-preparatorio'
 
   if (event.httpMethod === 'POST') {
+    if (!rateLimit(clientIp(event) + ':ad-analytics', 120)) return rateLimitResponse(headers)
     const type = event.queryStringParameters?.event || 'impression'
     if (ad === 'all') {
       return { statusCode: 400, headers, body: JSON.stringify({ ok: false, error: 'Especifique um anúncio no POST.' }) }

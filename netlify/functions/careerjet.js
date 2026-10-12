@@ -8,10 +8,13 @@ const headers = {
   'Content-Type': 'application/json',
 }
 
+const { rateLimit, rateLimitResponse, clientIp } = require('../lib/security')
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' }
   }
+  if (!rateLimit(clientIp(event) + ':careerjet', 30)) return rateLimitResponse(headers)
 
   if (!AFFID) {
     return { statusCode: 200, headers, body: JSON.stringify({ jobs: [], error: 'CAREERJET_AFFID not configured' }) }

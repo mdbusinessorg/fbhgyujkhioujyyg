@@ -3,6 +3,7 @@
 // 2. Aviso ao recrutador quando a vaga interna tem 25+ dias
 // 3. Limpeza: stories expirados e notificações com mais de 30 dias
 const { getStoreWithFallback } = require('../lib/store')
+const { isScheduledOrInternal } = require('../lib/security')
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://gwnjigmsuqasvotsksmk.supabase.co'
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_d0CD9GsxB4rDVh-SmQUikA_owJjXbAQ'
@@ -115,7 +116,10 @@ async function cleanup() {
   return { statusesRemoved: statuses.length - activeStatuses.length, notificationsRemoved: notifications.length - keep.length }
 }
 
-exports.handler = async () => {
+exports.handler = async (event) => {
+  if (event && event.httpMethod && !isScheduledOrInternal(event)) {
+    return { statusCode: 401, headers, body: JSON.stringify({ error: 'Não autorizado' }) }
+  }
   const stateStore = getStoreWithFallback('daily-triggers')
   const results = {}
   for (const [name, fn] of [

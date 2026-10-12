@@ -1,4 +1,10 @@
 const { groqChat } = require('./_groq')
+const { requireUser, rateLimit, rateLimitResponse, clientIp } = require('../lib/security')
+
+// CVs são sempre carregados no Supabase Storage — nunca deixamos o proxy
+// buscar URLs arbitrários (SSRF).
+const ALLOWED_FILE_HOST = /^https:\/\/[a-z0-9-]+\.supabase\.co\//i
+const MAX_BODY_BYTES = 2 * 1024 * 1024
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -76,11 +82,23 @@ exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' }
   if (event.httpMethod !== 'POST') return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) }
 
+  if (!rateLimit(clientIp(event) + ':parse-cv', 10)) return rateLimitResponse(headers)
+  const denied = await requireUser(event)
+  if (denied.response) return { ...denied.response, headers }
+
+  if ((event.body || '').length > MAX_BODY_BYTES) {
+    return { statusCode: 413, headers, body: JSON.stringify({ error: 'Pedido demasiado grande' }) }
+  }
+
   let payload = {}
   try { payload = JSON.parse(event.body || '{}') } catch {}
 
   const fileUrl = (payload.fileUrl || '').trim()
-  const fallbackText = (payload.text || '').trim()
+  const fallbackText = (payload.text || '').trim().slice(0, 20000)
+
+  if (fileUrl && !ALLOWED_FILE_HOST.test(fileUrl)) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: 'Só aceitamos ficheiros do nosso armazenamento' }) }
+  }
 
   let text = ''
   try {

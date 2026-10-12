@@ -1,6 +1,7 @@
 // Cron diário: processa vagas inseridas recentemente que ainda não têm log,
 // ou logs com erro, respeitando o limite diário.
 const { headers, supabaseRest, processExternalJob } = require('./_auto-apply')
+const { isScheduledOrInternal } = require('../lib/security')
 
 async function fetchPendingJobs() {
   const rows = await supabaseRest(`/external_jobs?select=*&order=created_at.desc&limit=200`)
@@ -15,6 +16,9 @@ async function fetchPendingJobs() {
 
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' }
+  if (!isScheduledOrInternal(event)) {
+    return { statusCode: 401, headers, body: JSON.stringify({ error: 'Não autorizado' }) }
+  }
   if (event.httpMethod !== 'POST' && event.httpMethod !== 'GET') {
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) }
   }
