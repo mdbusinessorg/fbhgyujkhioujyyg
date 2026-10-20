@@ -3,9 +3,25 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase, SUPABASE_URL, STORAGE_BUCKET } from '@/lib/supabase'
-import { Send, User, FileText, Settings, History, Upload, Save, Loader2, Eye, CheckCircle, XCircle, AlertTriangle, Mail, Search, ChevronDown, ChevronUp } from 'lucide-react'
+import { Send, User, FileText, Settings, History, Upload, Save, Loader2, Eye, CheckCircle, XCircle, AlertTriangle, Mail, Search, ChevronDown, ChevronUp, Plus, Users, Server } from 'lucide-react'
 
-const MATIAS_EMAIL = 'matiasdomingos158@gmail.com'
+type Candidate = {
+  id?: string
+  user_id: string
+  full_name: string
+  bio_longa: string
+  formacao: string
+  certificacoes: string[]
+  skills: string[]
+  referencias: string[]
+  email_remetente?: string
+  smtp_host?: string
+  smtp_port?: number
+  smtp_secure?: boolean
+  smtp_user?: string
+  smtp_pass?: string
+  updated_at?: string
+}
 
 export default function AutoApplyAdminPage() {
   const router = useRouter()
@@ -14,7 +30,9 @@ export default function AutoApplyAdminPage() {
   const [activeTab, setActiveTab] = useState<'perfil' | 'cvs' | 'config' | 'historico'>('perfil')
   const [isAdmin, setIsAdmin] = useState(false)
 
-  const [profile, setProfile] = useState<any>(null)
+  const [candidates, setCandidates] = useState<Candidate[]>([])
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  const [profile, setProfile] = useState<Candidate | null>(null)
   const [cvs, setCvs] = useState<any[]>([])
   const [settings, setSettings] = useState<any>(null)
   const [logs, setLogs] = useState<any[]>([])
@@ -22,11 +40,17 @@ export default function AutoApplyAdminPage() {
   const [logFilter, setLogFilter] = useState('all')
   const [logSearch, setLogSearch] = useState('')
   const [expandedLog, setExpandedLog] = useState<string | null>(null)
+  const [newCandidateEmail, setNewCandidateEmail] = useState('')
 
   useEffect(() => {
     init()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    if (selectedUserId) loadCandidateData(selectedUserId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedUserId])
 
   async function init() {
     const { data: { session } } = await supabase.auth.getSession()
@@ -39,41 +63,36 @@ export default function AutoApplyAdminPage() {
     }
     setIsAdmin(true)
 
-    await Promise.all([loadProfile(), loadCVs(), loadSettings(), loadLogs()])
+    await Promise.all([loadCandidates(), loadSettings(), loadLogs()])
     setLoading(false)
   }
 
-  async function getMatiasUserId() {
-    const { data } = await supabase.from('users').select('id').eq('email', MATIAS_EMAIL).single()
-    return data?.id
+  async function loadCandidates() {
+    const { data } = await supabase.from('candidate_profile').select('*').order('full_name', { ascending: true })
+    const list = (data || []) as Candidate[]
+    setCandidates(list)
+    if (list.length > 0 && !selectedUserId) {
+      setSelectedUserId(list[0].user_id)
+    }
   }
 
-  async function loadProfile() {
-    const userId = await getMatiasUserId()
-    if (!userId) { setLoading(false); return }
-    const { data } = await supabase.from('candidate_profile').select('*').eq('user_id', userId).maybeSingle()
-    if (data) setProfile(data)
-    else {
-      const empty = {
+  async function loadCandidateData(userId: string) {
+    const { data: p } = await supabase.from('candidate_profile').select('*').eq('user_id', userId).maybeSingle()
+    if (p) {
+      setProfile(p as Candidate)
+    } else {
+      setProfile({
         user_id: userId,
-        full_name: 'Matias Domingos',
+        full_name: '',
         bio_longa: '',
         formacao: '',
         certificacoes: [],
         skills: [],
         referencias: [],
-      }
-      const { data: inserted } = await supabase.from('candidate_profile').insert(empty).select().single()
-      if (inserted) setProfile(inserted)
-      else setProfile(empty)
+      })
     }
-  }
-
-  async function loadCVs() {
-    const userId = await getMatiasUserId()
-    if (!userId) { setCvs([]); return }
-    const { data } = await supabase.from('candidate_cvs').select('*').eq('user_id', userId).order('created_at', { ascending: false })
-    setCvs(data || [])
+    const { data: c } = await supabase.from('candidate_cvs').select('*').eq('user_id', userId).order('created_at', { ascending: false })
+    setCvs(c || [])
   }
 
   async function loadSettings() {
@@ -98,18 +117,50 @@ export default function AutoApplyAdminPage() {
     setJobs(map)
   }
 
+  async function createCandidateFromEmail() {
+    if (!newCandidateEmail) return
+    setSaving(true)
+    const { data: user } = await supabase.from('users').select('id, email').eq('email', newCandidateEmail).single()
+    if (!user) {
+      alert('Utilizador não encontrado. O email precisa estar registado.')
+      setSaving(false)
+      return
+    }
+    const exists = candidates.find(c => c.user_id === user.id)
+    if (exists) {
+      setSelectedUserId(user.id)
+      setSaving(false)
+      return
+    }
+    const { data: inserted } = await supabase.from('candidate_profile').insert({
+      user_id: user.id,
+      full_name: user.email.split('@')[0],
+      bio_longa: '',
+      formacao: '',
+      certificacoes: [],
+      skills: [],
+      referencias: [],
+    }).select().single()
+    if (inserted) {
+      const c = inserted as Candidate
+      setCandidates([...candidates, c])
+      setSelectedUserId(c.user_id)
+    }
+    setSaving(false)
+    setNewCandidateEmail('')
+  }
+
   async function saveProfile() {
     if (!profile) return
     setSaving(true)
     const { id, ...rest } = profile
-    const userId = await getMatiasUserId()
-    const payload = { ...rest, user_id: userId, updated_at: new Date().toISOString() }
+    const payload = { ...rest, updated_at: new Date().toISOString() }
     if (id) {
       await supabase.from('candidate_profile').update(payload).eq('id', id)
-    } else if (userId) {
+    } else {
       await supabase.from('candidate_profile').insert(payload)
     }
-    await loadProfile()
+    await loadCandidates()
     setSaving(false)
     alert('Perfil guardado')
   }
@@ -133,11 +184,9 @@ export default function AutoApplyAdminPage() {
     const file = e.target.files?.[0]
     if (!file) return
     if (file.type !== 'application/pdf') { alert('Apenas PDFs'); return }
+    if (!selectedUserId) { alert('Seleciona um candidato primeiro'); return }
 
     setSaving(true)
-    const userId = await getMatiasUserId()
-    if (!userId) { setSaving(false); return }
-
     const ext = file.name.split('.').pop()
     const path = `cvs/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
     const { error: upError } = await supabase.storage.from(STORAGE_BUCKET).upload(path, file, { upsert: true })
@@ -145,7 +194,7 @@ export default function AutoApplyAdminPage() {
 
     const arquivoUrl = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`
     const { data: inserted } = await supabase.from('candidate_cvs').insert({
-      user_id: userId,
+      user_id: selectedUserId,
       titulo: file.name.replace(/\.pdf$/i, ''),
       cargo_alvo: '',
       arquivo_url: arquivoUrl,
@@ -159,7 +208,7 @@ export default function AutoApplyAdminPage() {
 
   async function updateCV(id: string, updates: any) {
     await supabase.from('candidate_cvs').update(updates).eq('id', id)
-    await loadCVs()
+    await loadCandidateData(selectedUserId!)
   }
 
   async function deleteCV(id: string, arquivoUrl: string) {
@@ -167,7 +216,7 @@ export default function AutoApplyAdminPage() {
     const path = arquivoUrl.replace(`${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/`, '')
     if (path && path !== arquivoUrl) await supabase.storage.from(STORAGE_BUCKET).remove([path])
     await supabase.from('candidate_cvs').delete().eq('id', id)
-    await loadCVs()
+    await loadCandidateData(selectedUserId!)
   }
 
   function parseList(value: string) {
@@ -208,12 +257,46 @@ export default function AutoApplyAdminPage() {
           </div>
           <div>
             <h1 className="text-lg font-bold text-ms-dark">Candidatura Automática</h1>
-            <p className="text-xs text-ms-gray">Módulo privado — {MATIAS_EMAIL}</p>
+            <p className="text-xs text-ms-gray">Módulo privado — multi-candidato</p>
           </div>
         </div>
       </header>
 
       <main className="max-w-5xl mx-auto px-4 pt-6">
+        <section className="bg-white rounded-2xl p-4 shadow-sm border border-ms-border mb-4">
+          <div className="flex flex-col md:flex-row md:items-center gap-3">
+            <div className="flex items-center gap-2 flex-1">
+              <Users size={18} className="text-ms-purple" />
+              <select
+                className="input-field py-2.5"
+                value={selectedUserId || ''}
+                onChange={e => setSelectedUserId(e.target.value)}
+              >
+                {candidates.map(c => (
+                  <option key={c.user_id} value={c.user_id}>{c.full_name || c.user_id}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="email"
+                placeholder="Email de novo candidato"
+                className="input-field py-2.5 text-sm"
+                value={newCandidateEmail}
+                onChange={e => setNewCandidateEmail(e.target.value)}
+              />
+              <button
+                onClick={createCandidateFromEmail}
+                disabled={saving || !newCandidateEmail}
+                className="btn-primary py-2.5 px-4 text-sm whitespace-nowrap"
+              >
+                {saving ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />}
+                Adicionar
+              </button>
+            </div>
+          </div>
+        </section>
+
         <nav className="flex gap-2 overflow-x-auto pb-4 mb-2">
           {[
             { key: 'perfil', label: 'Perfil', icon: User },
@@ -239,27 +322,57 @@ export default function AutoApplyAdminPage() {
             <div className="grid gap-4">
               <div>
                 <label className="block text-xs font-medium text-ms-gray mb-1">Nome completo</label>
-                <input className="input-field" value={profile?.full_name || ''} onChange={e => setProfile({ ...profile, full_name: e.target.value })} />
+                <input className="input-field" value={profile?.full_name || ''} onChange={e => setProfile({ ...profile!, full_name: e.target.value })} />
               </div>
               <div>
                 <label className="block text-xs font-medium text-ms-gray mb-1">Bio / percurso profissional</label>
-                <textarea className="input-field min-h-[120px]" value={profile?.bio_longa || ''} onChange={e => setProfile({ ...profile, bio_longa: e.target.value })} placeholder="INP, SLB (ESSO/NGC), experiências, funções..." />
+                <textarea className="input-field min-h-[120px]" value={profile?.bio_longa || ''} onChange={e => setProfile({ ...profile!, bio_longa: e.target.value })} placeholder="INP, SLB (ESSO/NGC), experiências, funções..." />
               </div>
               <div>
                 <label className="block text-xs font-medium text-ms-gray mb-1">Formação</label>
-                <input className="input-field" value={profile?.formacao || ''} onChange={e => setProfile({ ...profile, formacao: e.target.value })} />
+                <input className="input-field" value={profile?.formacao || ''} onChange={e => setProfile({ ...profile!, formacao: e.target.value })} />
               </div>
               <div>
                 <label className="block text-xs font-medium text-ms-gray mb-1">Certificações (separadas por vírgula ou nova linha)</label>
-                <textarea className="input-field min-h-[80px]" value={Array.isArray(profile?.certificacoes) ? profile.certificacoes.join('\n') : profile?.certificacoes || ''} onChange={e => setProfile({ ...profile, certificacoes: parseList(e.target.value) })} placeholder="IWCF, BST, HUET, Banksman & Slinger, First Aid, SIPP 1&2, NEST, CTA, Fire Watcher, Rigging and Slinging, MyPCP QHSE (GIN)" />
+                <textarea className="input-field min-h-[80px]" value={Array.isArray(profile?.certificacoes) ? profile.certificacoes.join('\n') : profile?.certificacoes || ''} onChange={e => setProfile({ ...profile!, certificacoes: parseList(e.target.value) })} placeholder="IWCF, BST, HUET, Banksman & Slinger, First Aid, SIPP 1&2, NEST, CTA, Fire Watcher, Rigging and Slinging, MyPCP QHSE (GIN)" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-ms-gray mb-1">Skills (separadas por vírgula ou nova linha)</label>
-                <textarea className="input-field min-h-[80px]" value={Array.isArray(profile?.skills) ? profile.skills.join('\n') : profile?.skills || ''} onChange={e => setProfile({ ...profile, skills: parseList(e.target.value) })} />
+                <textarea className="input-field min-h-[80px]" value={Array.isArray(profile?.skills) ? profile.skills.join('\n') : profile?.skills || ''} onChange={e => setProfile({ ...profile!, skills: parseList(e.target.value) })} />
               </div>
               <div>
                 <label className="block text-xs font-medium text-ms-gray mb-1">Referências (uso interno, nunca enviadas)</label>
-                <textarea className="input-field min-h-[80px]" value={Array.isArray(profile?.referencias) ? profile.referencias.join('\n') : profile?.referencias || ''} onChange={e => setProfile({ ...profile, referencias: parseList(e.target.value) })} />
+                <textarea className="input-field min-h-[80px]" value={Array.isArray(profile?.referencias) ? profile.referencias.join('\n') : profile?.referencias || ''} onChange={e => setProfile({ ...profile!, referencias: parseList(e.target.value) })} />
+              </div>
+
+              <div className="pt-4 border-t border-ms-border">
+                <h3 className="text-sm font-bold text-ms-dark flex items-center gap-2 mb-3"><Server size={16} className="text-ms-purple" /> Configuração de envio (SMTP)</h3>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="block text-xs font-medium text-ms-gray mb-1">Email remetente (ex: makiesseraimundo29@gmail.com)</label>
+                    <input type="email" className="input-field" value={profile?.email_remetente || ''} onChange={e => setProfile({ ...profile!, email_remetente: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-ms-gray mb-1">Servidor SMTP (ex: smtp.gmail.com)</label>
+                    <input className="input-field" value={profile?.smtp_host || ''} onChange={e => setProfile({ ...profile!, smtp_host: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-ms-gray mb-1">Porta SMTP (ex: 587)</label>
+                    <input type="number" className="input-field" value={profile?.smtp_port || ''} onChange={e => setProfile({ ...profile!, smtp_port: Number(e.target.value) || undefined })} />
+                  </div>
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-ms-surface">
+                    <input id="smtp_secure" type="checkbox" checked={!!profile?.smtp_secure} onChange={e => setProfile({ ...profile!, smtp_secure: e.target.checked })} className="w-5 h-5 rounded border-ms-border text-ms-blue" />
+                    <label htmlFor="smtp_secure" className="text-sm font-medium text-ms-dark cursor-pointer">Usar conexão segura (TLS/SSL)</label>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-ms-gray mb-1">Utilizador SMTP (normalmente o email)</label>
+                    <input className="input-field" value={profile?.smtp_user || ''} onChange={e => setProfile({ ...profile!, smtp_user: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-ms-gray mb-1">Password / App Password do SMTP</label>
+                    <input type="password" className="input-field" value={profile?.smtp_pass || ''} onChange={e => setProfile({ ...profile!, smtp_pass: e.target.value })} />
+                  </div>
+                </div>
               </div>
             </div>
             <div className="pt-2">
@@ -273,7 +386,7 @@ export default function AutoApplyAdminPage() {
 
         {activeTab === 'cvs' && (
           <section className="bg-white rounded-2xl p-6 shadow-sm border border-ms-border">
-            <h2 className="text-base font-bold text-ms-dark flex items-center gap-2 mb-4"><FileText size={18} className="text-ms-purple" /> Currículos</h2>
+            <h2 className="text-base font-bold text-ms-dark flex items-center gap-2 mb-4"><FileText size={18} className="text-ms-purple" /> Currículos — {profile?.full_name}</h2>
             <div className="mb-6">
               <label className="flex items-center gap-2 px-4 py-3 rounded-xl border border-dashed border-ms-blue text-ms-blue text-sm font-medium cursor-pointer hover:bg-blue-50 transition-colors">
                 <Upload size={18} />
@@ -317,7 +430,7 @@ export default function AutoApplyAdminPage() {
 
         {activeTab === 'config' && (
           <section className="bg-white rounded-2xl p-6 shadow-sm border border-ms-border space-y-4">
-            <h2 className="text-base font-bold text-ms-dark flex items-center gap-2"><Settings size={18} className="text-ms-purple" /> Configurações do Módulo</h2>
+            <h2 className="text-base font-bold text-ms-dark flex items-center gap-2"><Settings size={18} className="text-ms-purple" /> Configurações Globais do Módulo</h2>
             <div className="grid gap-4">
               <label className="flex items-center gap-3 p-4 rounded-xl bg-ms-surface cursor-pointer">
                 <input type="checkbox" checked={settings?.ativo || false} onChange={e => setSettings({ ...settings, ativo: e.target.checked })} className="w-5 h-5 rounded border-ms-border text-ms-blue" />
@@ -329,12 +442,12 @@ export default function AutoApplyAdminPage() {
                   <input type="number" min={0} max={100} className="input-field" value={settings?.score_minimo ?? 55} onChange={e => setSettings({ ...settings, score_minimo: Number(e.target.value) })} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-ms-gray mb-1">Limite diário de envios</label>
+                  <label className="block text-xs font-medium text-ms-gray mb-1">Limite diário de envios por candidato</label>
                   <input type="number" min={1} className="input-field" value={settings?.limite_diario ?? 15} onChange={e => setSettings({ ...settings, limite_diario: Number(e.target.value) })} />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-ms-gray mb-1">Email remetente</label>
+                <label className="block text-xs font-medium text-ms-gray mb-1">Email remetente global (fallback)</label>
                 <input type="email" className="input-field" value={settings?.email_remetente || ''} onChange={e => setSettings({ ...settings, email_remetente: e.target.value })} />
               </div>
             </div>
@@ -384,7 +497,7 @@ export default function AutoApplyAdminPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           {statusIcon}
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${log.status === 'enviado' ? 'bg-green-100 text-green-700' : log.status === 'sem_email' ? 'bg-amber-100 text-amber-700' : log.status === 'erro' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>{log.status}</span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${log.status === 'enviado' ? 'bg-green-100 text-green-700' : log.status === 'sem_email' ? 'bg-amber-100 text-amber-700' : log.status === 'erro' ? 'bg-red-100 text-ms-red' : 'bg-gray-100 text-gray-600'}`}>{log.status}</span>
                           <span className="text-xs text-ms-gray">{new Date(log.created_at).toLocaleString('pt-AO')}</span>
                           {log.score_match != null && <span className="text-xs font-medium text-ms-blue">score {log.score_match}</span>}
                         </div>

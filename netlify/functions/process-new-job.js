@@ -25,8 +25,8 @@ exports.handler = async (event) => {
   }
 
   try {
-    const result = await processExternalJob(record, { force: event.queryStringParameters?.force === 'true' })
-    return { statusCode: 200, headers, body: JSON.stringify({ ok: true, ...result }) }
+    const results = await processExternalJob(record, { force: event.queryStringParameters?.force === 'true' })
+    return { statusCode: 200, headers, body: JSON.stringify({ ok: true, results }) }
   } catch (err) {
     console.error('process-new-job error:', err)
     return { statusCode: 500, headers, body: JSON.stringify({ ok: false, error: String(err.message || err) }) }

@@ -41,6 +41,12 @@ CREATE TABLE IF NOT EXISTS candidate_profile (
   certificacoes jsonb default '[]',
   skills jsonb default '[]',
   referencias jsonb default '[]',
+  email_remetente text,
+  smtp_host text,
+  smtp_port integer,
+  smtp_secure boolean default false,
+  smtp_user text,
+  smtp_pass text,
   updated_at timestamptz default now(),
   unique(user_id)
 );
@@ -65,6 +71,7 @@ CREATE TABLE IF NOT EXISTS candidate_cvs (
 CREATE TABLE IF NOT EXISTS job_applications_log (
   id uuid primary key default gen_random_uuid(),
   external_job_id text references external_jobs(id) on delete cascade not null,
+  user_id uuid references public.users(id) on delete cascade not null,
   status text not null check (status in ('enviado','sem_email','sem_match','erro','duplicado')),
   cv_usado_id uuid references candidate_cvs(id),
   email_destino text,
@@ -74,7 +81,7 @@ CREATE TABLE IF NOT EXISTS job_applications_log (
   skills_destacadas jsonb default '[]',
   erro_detalhe text,
   created_at timestamptz default now(),
-  unique(external_job_id)
+  unique(external_job_id, user_id)
 );
 
 -- ============================================================
