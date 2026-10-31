@@ -150,7 +150,7 @@ ${cvsText || 'Nenhum CV registado.'}`
 }
 
 async function generateApplication(job, profile, cvs) {
-  const { system, user } = buildPrompt(job, profile, cvs)
+  const { system, user } = await buildPrompt(job, profile, cvs)
   const raw = await groqChat(
     [
       { role: 'system', content: system },
