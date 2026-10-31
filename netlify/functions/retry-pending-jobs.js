@@ -1,14 +1,27 @@
-// Cron diário: processa vagas inseridas recentemente que ainda não têm log,
-// ou logs com erro, respeitando o limite diário.
-const { headers, supabaseRest, processExternalJob } = require('./_auto-apply')
+// Cron: processa vagas recentes que ainda não têm log, ou logs com erro,
+// respeitando o limite diário. Lê o índice público de vagas (external-jobs.json)
+// e o estado em Netlify Blobs — não depende das tabelas Supabase do auto-apply.
+const { headers, processExternalJob } = require('./_auto-apply')
 const { isScheduledOrInternal } = require('../lib/security')
+const store = require('../lib/autoapply-store')
+
+const SITE_URL = process.env.URL || 'https://mosalo.eu.cc'
+const SCAN_LIMIT = 250
+
+async function fetchRecentJobs() {
+  const res = await fetch(`${SITE_URL}/external-jobs.json`, { headers: { 'User-Agent': 'netlify-function' } })
+  if (!res.ok) throw new Error(`external-jobs.json ${res.status}`)
+  const data = await res.json()
+  const jobs = Array.isArray(data) ? data : (data.jobs || [])
+  return jobs.slice(0, SCAN_LIMIT)
+}
 
 async function fetchPendingJobs() {
-  const rows = await supabaseRest(`/external_jobs?select=*&order=created_at.desc&limit=200`)
-  const logs = await supabaseRest(`/job_applications_log?select=external_job_id,status`)
-  const logMap = new Map((logs || []).map(l => [l.external_job_id, l.status]))
+  const jobs = await fetchRecentJobs()
+  const logs = await store.listLogs(3000)
+  const logMap = new Map(logs.map(l => [l.external_job_id, l.status]))
 
-  return (rows || []).filter(job => {
+  return jobs.filter(job => {
     const status = logMap.get(job.id)
     return !status || status === 'erro'
   })
@@ -30,14 +43,12 @@ exports.handler = async (event) => {
       try {
         const result = await processExternalJob(job)
         results.push({ id: job.id, ...result })
-        if (result.sent) {
-          // Stop when we hit the daily limit implicitly handled by processExternalJob.
-        }
+        if (result.reason === 'limite diário atingido') break
       } catch (err) {
         results.push({ id: job.id, error: String(err.message || err) })
       }
     }
-    return { statusCode: 200, headers, body: JSON.stringify({ ok: true, processed: results.length, results }) }
+    return { statusCode: 200, headers, body: JSON.stringify({ ok: true, scanned: pending.length, processed: results.length, results }) }
   } catch (err) {
     console.error('retry-pending-jobs error:', err)
     return { statusCode: 500, headers, body: JSON.stringify({ ok: false, error: String(err.message || err) }) }

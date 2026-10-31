@@ -13,7 +13,7 @@
   schedule = "0 7 * * *"
 
 [functions."retry-pending-jobs"]
-  schedule = "0 8 * * *"
+  schedule = "25 * * * *"
 
 [functions."trigger-scrape"]
   schedule = "5 * * * *"
@@ -160,6 +160,11 @@
 [[redirects]]
   from = "/api/community-memberships"
   to = "/.netlify/functions/community-memberships"
+  status = 200
+
+[[redirects]]
+  from = "/api/auto-apply-admin"
+  to = "/.netlify/functions/auto-apply-admin"
   status = 200
 
 [[redirects]]

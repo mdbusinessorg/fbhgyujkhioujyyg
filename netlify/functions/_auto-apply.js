@@ -1,6 +1,9 @@
 // Shared logic for the private auto-apply module (Matias only).
+// Estado guardado em Netlify Blobs (netlify/lib/autoapply-store.js) —
+// não depende das tabelas external_jobs/candidate_*/auto_apply_* do Supabase.
 const { groqChat } = require('./_groq')
-const nodemailer = require('nodemailer')
+const { emailConfigured, sendEmail } = require('../lib/email')
+const store = require('../lib/autoapply-store')
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://gwnjigmsuqasvotsksmk.supabase.co'
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -50,14 +53,7 @@ function todayDate() {
 }
 
 async function getSettings() {
-  const rows = await supabaseRest('/auto_apply_settings?limit=1')
-  return rows?.[0] || {
-    id: '00000000-0000-0000-0000-000000000001',
-    ativo: true,
-    score_minimo: 55,
-    limite_diario: 15,
-    email_remetente: 'suporte@mosalo.eu.cc',
-  }
+  return store.getSettings()
 }
 
 async function getAdminUserId() {
@@ -65,13 +61,13 @@ async function getAdminUserId() {
   return rows?.[0]?.id
 }
 
-async function getProfile(userId) {
-  const rows = await supabaseRest(`/candidate_profile?user_id=eq.${userId}&limit=1`)
-  return rows?.[0]
+async function getProfile() {
+  return store.getProfile()
 }
 
-async function getActiveCVs(userId) {
-  return supabaseRest(`/candidate_cvs?user_id=eq.${userId}&ativo=eq.true&order=created_at.desc`)
+async function getActiveCVs() {
+  const cvs = await store.getCVs()
+  return cvs.filter(c => c.ativo !== false)
 }
 
 async function getCVFileBuffer(arquivoUrl) {
@@ -87,23 +83,20 @@ async function getCVFileBuffer(arquivoUrl) {
 }
 
 async function countSentToday() {
-  const today = todayDate()
-  const rows = await supabaseRest(`/job_applications_log?status=eq.enviado&created_at=gte.${encodeURIComponent(today)}T00:00:00Z&created_at=lt.${encodeURIComponent(today)}T23:59:59.999Z&select=count`)
-  // Supabase returns count in a header; fallback to array length.
-  return Array.isArray(rows) ? rows.length : 0
+  return store.countSentToday()
 }
 
 async function findLog(jobId) {
-  const rows = await supabaseRest(`/job_applications_log?external_job_id=eq.${encodeURIComponent(jobId)}&limit=1`)
-  return rows?.[0] || null
+  return store.findLog(jobId)
 }
 
 async function insertLog(payload) {
-  return supabaseRest('/job_applications_log', { method: 'POST', body: payload })
+  return store.saveLog(payload.external_job_id, { ...payload, created_at: new Date().toISOString() })
 }
 
-async function updateLog(id, payload) {
-  return supabaseRest(`/job_applications_log?id=eq.${id}`, { method: 'PATCH', body: payload })
+async function updateLog(jobId, payload) {
+  const existing = await store.findLog(jobId) || {}
+  return store.saveLog(jobId, { ...existing, ...payload })
 }
 
 async function buildPrompt(job, profile, cvs) {
@@ -183,17 +176,15 @@ async function generateApplication(job, profile, cvs) {
   }
 }
 
-async function sendApplicationEmail({ to, subject, body, cvUrl, fromEmail, smtpConfig }) {
-  const cfg = smtpConfig || {
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: Number(process.env.SMTP_PORT) || 587,
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: {
-      user: process.env.SMTP_USER || fromEmail,
-      pass: process.env.SMTP_PASS || '',
-    },
-  }
-  const transporter = nodemailer.createTransport(cfg)
+function textToHtml(text) {
+  return String(text || '')
+    .split(/\n{2,}/)
+    .map(p => `<p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#1A1A2E;">${p.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')}</p>`)
+    .join('')
+}
+
+async function sendApplicationEmail({ to, subject, body, cvUrl, fromEmail }) {
+  if (!emailConfigured()) throw new Error('EMAIL_API_KEY/EMAIL_FROM não configurados no site')
   const attachments = []
   if (cvUrl) {
     const buf = await getCVFileBuffer(cvUrl)
@@ -202,14 +193,13 @@ async function sendApplicationEmail({ to, subject, body, cvUrl, fromEmail, smtpC
       content: buf,
     })
   }
-  const info = await transporter.sendMail({
-    from: fromEmail,
-    to,
+  return sendEmail({
+    to: { email: to },
     subject,
-    text: body,
+    html: `<!doctype html><html><body style="font-family:Arial,Helvetica,sans-serif;">${textToHtml(body)}</body></html>`,
     attachments,
+    replyTo: fromEmail || undefined,
   })
-  return info
 }
 
 async function processExternalJob(job, { force = false, dryRun = false } = {}) {
@@ -218,17 +208,14 @@ async function processExternalJob(job, { force = false, dryRun = false } = {}) {
     return { skipped: true, reason: 'módulo desativado' }
   }
 
-  const userId = await getAdminUserId()
-  if (!userId) {
-    throw new Error('Admin user matiasdomingos158@gmail.com not found')
-  }
-
   // Duplicate check
   const existing = await findLog(job.id)
-  if (existing) {
-    if (!dryRun) await updateLog(existing.id, { status: 'duplicado' })
-    return { skipped: true, status: 'duplicado', logId: existing.id }
+  if (existing && !force) {
+    return { skipped: true, status: 'duplicado', logId: existing.id || job.id }
   }
+
+  // Guardar no log o título/empresa para o histórico do admin.
+  const jobMeta = { job_title: job.title || '', job_company: job.company || '', job_location: job.location || '' }
 
   // Daily limit
   const sentToday = await countSentToday()
@@ -240,6 +227,7 @@ async function processExternalJob(job, { force = false, dryRun = false } = {}) {
   const emailDestino = extractEmail(`${job.description || ''} ${job.apply_url || ''} ${job.excerpt || ''}`)
   if (!emailDestino) {
     const payload = {
+      ...jobMeta,
       external_job_id: job.id,
       status: 'sem_email',
       score_match: 0,
@@ -250,8 +238,8 @@ async function processExternalJob(job, { force = false, dryRun = false } = {}) {
   }
 
   // Load profile and CVs
-  const profile = await getProfile(userId)
-  const cvs = await getActiveCVs(userId)
+  const profile = await getProfile()
+  const cvs = await getActiveCVs()
   if (!profile || cvs.length === 0) {
     throw new Error('Perfil ou CVs do candidato não configurados')
   }
@@ -262,6 +250,7 @@ async function processExternalJob(job, { force = false, dryRun = false } = {}) {
   // Threshold
   if (ai.score_match < settings.score_minimo && !force) {
     const payload = {
+      ...jobMeta,
       external_job_id: job.id,
       status: 'sem_match',
       score_match: ai.score_match,
@@ -291,6 +280,7 @@ async function processExternalJob(job, { force = false, dryRun = false } = {}) {
         })
       }
       const payload = {
+        ...jobMeta,
         external_job_id: job.id,
         status: 'enviado',
         cv_usado_id: cvUsado.id,
@@ -310,6 +300,7 @@ async function processExternalJob(job, { force = false, dryRun = false } = {}) {
 
   // All retries failed
   const payload = {
+    ...jobMeta,
     external_job_id: job.id,
     status: 'erro',
     cv_usado_id: cvUsado.id,
