@@ -1,5 +1,6 @@
 // Syncs scraped external jobs from public/external-jobs.json into Supabase external_jobs.
-// Intended to run after the scraping workflow so the auto-apply webhook can be triggered.
+// When the external_jobs table does not exist, falls back to calling the site's
+// auto-apply webhook directly (state lives in Netlify Blobs, not Supabase).
 //
 // Usage:
 //   node scripts/sync-external-jobs-to-supabase.mjs
@@ -7,6 +8,8 @@
 // Env:
 //   NEXT_PUBLIC_SUPABASE_URL
 //   SUPABASE_SERVICE_ROLE_KEY
+//   SITE_URL            (default https://mosalo.eu.cc)
+//   NEW_JOB_WINDOW_MIN  (default 50 — dispatch jobs first seen in the last N minutes)
 
 import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
@@ -88,13 +91,13 @@ async function main() {
   }
 
   // Probe the table first: if external_jobs does not exist in the project
-  // (PGRST205), skip the sync instead of failing — the auto-apply module is
-  // optional and the public feed lives in external-jobs.json.
+  // (PGRST205), dispatch the fresh jobs straight to the site's auto-apply
+  // webhook — the module stores state in Netlify Blobs, no table needed.
   try {
     await rest('/external_jobs?select=id&limit=1')
   } catch (e) {
     if (String(e).includes('PGRST205')) {
-      console.warn('external_jobs table not found in Supabase — skipping sync (auto-apply disabled). Run supabase/auto-apply.sql to re-enable it.')
+      await dispatchToWebhook(jobs)
       return
     }
     throw e
@@ -112,6 +115,37 @@ async function main() {
   const rows = newJobs.map(mapJob)
   await rest('/external_jobs', { method: 'POST', body: rows })
   console.log(`Synced ${newJobs.length} new jobs to external_jobs.`)
+}
+
+// Dispatches jobs seen recently to the site webhook (auto-apply via Blobs).
+// Idempotent: the function dedupes by job id, so overlapping windows are safe.
+async function dispatchToWebhook(jobs) {
+  const siteUrl = (process.env.SITE_URL || 'https://mosalo.eu.cc').replace(/\/$/, '')
+  const secret = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!secret) {
+    console.warn('external_jobs missing and no SUPABASE_SERVICE_ROLE_KEY — cannot dispatch.')
+    return
+  }
+  const windowMin = Number(process.env.NEW_JOB_WINDOW_MIN) || 50
+  const cutoff = Date.now() - windowMin * 60 * 1000
+  const fresh = jobs
+    .filter(j => {
+      const ts = Date.parse(j.first_seen_at || '')
+      return Number.isFinite(ts) && ts >= cutoff
+    })
+    .slice(0, 50)
+  if (fresh.length === 0) {
+    console.log('external_jobs missing — no fresh jobs in the window to dispatch.')
+    return
+  }
+  const res = await fetch(`${siteUrl}/api/process-new-job`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-webhook-secret': secret },
+    body: JSON.stringify({ jobs: fresh.map(mapJob) }),
+  })
+  const txt = await res.text()
+  if (!res.ok) throw new Error(`Webhook ${res.status}: ${txt.slice(0, 300)}`)
+  console.log(`external_jobs missing — dispatched ${fresh.length} jobs to ${siteUrl}/api/process-new-job`)
 }
 
 main().catch((e) => {

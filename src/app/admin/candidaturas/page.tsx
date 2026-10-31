@@ -18,7 +18,7 @@ export default function AutoApplyAdminPage() {
   const [cvs, setCvs] = useState<any[]>([])
   const [settings, setSettings] = useState<any>(null)
   const [logs, setLogs] = useState<any[]>([])
-  const [jobs, setJobs] = useState<Record<string, any>>({})
+  const [token, setToken] = useState('')
   const [logFilter, setLogFilter] = useState('all')
   const [logSearch, setLogSearch] = useState('')
   const [expandedLog, setExpandedLog] = useState<string | null>(null)
@@ -38,95 +38,61 @@ export default function AutoApplyAdminPage() {
       return
     }
     setIsAdmin(true)
-
-    await Promise.all([loadProfile(), loadCVs(), loadSettings(), loadLogs()])
+    setToken(session.access_token)
+    await loadAll(session.access_token)
     setLoading(false)
   }
 
-  async function getMatiasUserId() {
-    const { data } = await supabase.from('users').select('id').eq('email', MATIAS_EMAIL).single()
-    return data?.id
+  async function apiGet() {
+    const res = await fetch('/api/auto-apply-admin', { headers: { Authorization: `Bearer ${token}` } })
+    if (!res.ok) throw new Error(`API ${res.status}`)
+    return res.json()
   }
 
-  async function loadProfile() {
-    const userId = await getMatiasUserId()
-    if (!userId) { setLoading(false); return }
-    const { data } = await supabase.from('candidate_profile').select('*').eq('user_id', userId).maybeSingle()
-    if (data) setProfile(data)
-    else {
-      const empty = {
-        user_id: userId,
-        full_name: 'Matias Domingos',
-        bio_longa: '',
-        formacao: '',
-        certificacoes: [],
-        skills: [],
-        referencias: [],
-      }
-      const { data: inserted } = await supabase.from('candidate_profile').insert(empty).select().single()
-      if (inserted) setProfile(inserted)
-      else setProfile(empty)
-    }
+  async function apiPost(action: string, body: Record<string, any>) {
+    const res = await fetch('/api/auto-apply-admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ action, ...body }),
+    })
+    if (!res.ok) throw new Error(`API ${res.status}`)
+    return res.json()
   }
 
-  async function loadCVs() {
-    const userId = await getMatiasUserId()
-    if (!userId) { setCvs([]); return }
-    const { data } = await supabase.from('candidate_cvs').select('*').eq('user_id', userId).order('created_at', { ascending: false })
-    setCvs(data || [])
-  }
-
-  async function loadSettings() {
-    const { data } = await supabase.from('auto_apply_settings').select('*').limit(1).maybeSingle()
-    if (data) setSettings(data)
-    else {
-      const def = { ativo: true, score_minimo: 55, limite_diario: 15, email_remetente: 'suporte@mosalo.eu.cc' }
-      const { data: inserted } = await supabase.from('auto_apply_settings').insert(def).select().single()
-      setSettings(inserted || def)
-    }
-  }
-
-  async function loadLogs() {
-    const { data } = await supabase.from('job_applications_log').select('*').order('created_at', { ascending: false }).limit(200)
-    setLogs(data || [])
-
-    const ids = (data || []).map(l => l.external_job_id).filter(Boolean)
-    if (ids.length === 0) return
-    const { data: extJobs } = await supabase.from('external_jobs').select('id,title,company,location').in('id', ids)
-    const map: Record<string, any> = {}
-    ;(extJobs || []).forEach((j: any) => { map[j.id] = j })
-    setJobs(map)
+  async function loadAll(t?: string) {
+    const res = await fetch('/api/auto-apply-admin', { headers: { Authorization: `Bearer ${t || token}` } })
+    if (!res.ok) return
+    const data = await res.json()
+    if (data.profile) setProfile(data.profile)
+    setCvs(data.cvs || [])
+    setSettings(data.settings || null)
+    setLogs(data.logs || [])
   }
 
   async function saveProfile() {
     if (!profile) return
     setSaving(true)
-    const { id, ...rest } = profile
-    const userId = await getMatiasUserId()
-    const payload = { ...rest, user_id: userId, updated_at: new Date().toISOString() }
-    if (id) {
-      await supabase.from('candidate_profile').update(payload).eq('id', id)
-    } else if (userId) {
-      await supabase.from('candidate_profile').insert(payload)
+    try {
+      const { profile: saved } = await apiPost('saveProfile', { profile })
+      if (saved) setProfile(saved)
+      alert('Perfil guardado')
+    } catch (e: any) {
+      alert('Erro ao guardar: ' + (e.message || e))
     }
-    await loadProfile()
     setSaving(false)
-    alert('Perfil guardado')
   }
 
   async function saveSettings() {
     if (!settings) return
     setSaving(true)
-    const { id, ...rest } = settings
-    const payload = { ...rest, updated_at: new Date().toISOString() }
-    if (id) {
-      await supabase.from('auto_apply_settings').update(payload).eq('id', id)
-    } else {
-      await supabase.from('auto_apply_settings').insert(payload)
+    try {
+      const { settings: saved } = await apiPost('saveSettings', { settings })
+      if (saved) setSettings(saved)
+      alert('Configurações guardadas')
+    } catch (e: any) {
+      alert('Erro ao guardar: ' + (e.message || e))
     }
-    await loadSettings()
     setSaving(false)
-    alert('Configurações guardadas')
   }
 
   async function uploadCV(e: React.ChangeEvent<HTMLInputElement>) {
@@ -135,39 +101,37 @@ export default function AutoApplyAdminPage() {
     if (file.type !== 'application/pdf') { alert('Apenas PDFs'); return }
 
     setSaving(true)
-    const userId = await getMatiasUserId()
-    if (!userId) { setSaving(false); return }
+    try {
+      const ext = file.name.split('.').pop()
+      const path = `cvs/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+      const { error: upError } = await supabase.storage.from(STORAGE_BUCKET).upload(path, file, { upsert: true })
+      if (upError) { alert('Erro ao carregar CV: ' + upError.message); setSaving(false); return }
 
-    const ext = file.name.split('.').pop()
-    const path = `cvs/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-    const { error: upError } = await supabase.storage.from(STORAGE_BUCKET).upload(path, file, { upsert: true })
-    if (upError) { alert('Erro ao carregar CV: ' + upError.message); setSaving(false); return }
-
-    const arquivoUrl = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`
-    const { data: inserted } = await supabase.from('candidate_cvs').insert({
-      user_id: userId,
-      titulo: file.name.replace(/\.pdf$/i, ''),
-      cargo_alvo: '',
-      arquivo_url: arquivoUrl,
-      skills_cobertas: [],
-      ativo: true,
-    }).select().single()
-
-    if (inserted) setCvs([inserted, ...cvs])
+      const arquivoUrl = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`
+      const { cv } = await apiPost('upsertCV', {
+        cv: { titulo: file.name.replace(/\.pdf$/i, ''), cargo_alvo: '', arquivo_url: arquivoUrl, skills_cobertas: [], ativo: true },
+      })
+      if (cv) setCvs([cv, ...cvs])
+    } catch (e: any) {
+      alert('Erro: ' + (e.message || e))
+    }
     setSaving(false)
   }
 
   async function updateCV(id: string, updates: any) {
-    await supabase.from('candidate_cvs').update(updates).eq('id', id)
-    await loadCVs()
+    const cv = cvs.find(c => c.id === id)
+    if (!cv) return
+    const merged = { ...cv, ...updates }
+    setCvs(cvs.map(c => c.id === id ? merged : c))
+    try { await apiPost('upsertCV', { cv: merged }) } catch {}
   }
 
   async function deleteCV(id: string, arquivoUrl: string) {
     if (!confirm('Remover este CV?')) return
     const path = arquivoUrl.replace(`${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/`, '')
     if (path && path !== arquivoUrl) await supabase.storage.from(STORAGE_BUCKET).remove([path])
-    await supabase.from('candidate_cvs').delete().eq('id', id)
-    await loadCVs()
+    try { await apiPost('deleteCV', { id }) } catch {}
+    setCvs(cvs.filter(c => c.id !== id))
   }
 
   function parseList(value: string) {
@@ -177,7 +141,7 @@ export default function AutoApplyAdminPage() {
   const filteredLogs = useMemo(() => {
     return logs.filter(l => {
       if (logFilter !== 'all' && l.status !== logFilter) return false
-      const job = jobs[l.external_job_id]
+      const job = { title: l.job_title, company: l.job_company, location: l.job_location }
       const q = logSearch.toLowerCase()
       if (!q) return true
       return (
@@ -187,7 +151,7 @@ export default function AutoApplyAdminPage() {
         (l.status || '').toLowerCase().includes(q)
       )
     })
-  }, [logs, logFilter, logSearch, jobs])
+  }, [logs, logFilter, logSearch])
 
   if (loading) {
     return (
@@ -368,7 +332,7 @@ export default function AutoApplyAdminPage() {
             <div className="space-y-3">
               {filteredLogs.length === 0 && <p className="text-sm text-ms-gray text-center py-8">Nenhum registo.</p>}
               {filteredLogs.map((log: any) => {
-                const job = jobs[log.external_job_id]
+                const job = { title: log.job_title, company: log.job_company, location: log.job_location }
                 const open = expandedLog === log.id
                 const statusIcon = ({
                   enviado: <CheckCircle size={16} className="text-green-600" />,

@@ -109,37 +109,48 @@ function buildJobsHtml({ nome, jobs, siteUrl }) {
 </body></html>`
 }
 
-async function sendBrevo({ to, subject, html }) {
+async function sendBrevo({ to, subject, html, attachments, replyTo }) {
+  const payload = {
+    sender: { name: EMAIL_FROM_NAME, email: EMAIL_FROM },
+    to: [{ email: to.email, name: to.nome || undefined }],
+    subject,
+    htmlContent: html,
+  }
+  if (replyTo) payload.replyTo = { email: replyTo }
+  if (attachments && attachments.length) {
+    // Brevo: attachment = [{ name, content(base64) }]
+    payload.attachment = attachments.map(a => ({ name: a.filename, content: a.content.toString('base64') }))
+  }
   const res = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
     headers: { 'api-key': EMAIL_API_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      sender: { name: EMAIL_FROM_NAME, email: EMAIL_FROM },
-      to: [{ email: to.email, name: to.nome || undefined }],
-      subject,
-      htmlContent: html,
-    }),
+    body: JSON.stringify(payload),
   })
   if (!res.ok) throw new Error(`Brevo ${res.status}: ${(await res.text()).slice(0, 300)}`)
 }
 
-async function sendResend({ to, subject, html }) {
+async function sendResend({ to, subject, html, attachments, replyTo }) {
+  const payload = {
+    from: `${EMAIL_FROM_NAME} <${EMAIL_FROM}>`,
+    to: [to.email],
+    subject,
+    html,
+  }
+  if (replyTo) payload.reply_to = replyTo
+  if (attachments && attachments.length) {
+    payload.attachments = attachments.map(a => ({ filename: a.filename, content: a.content.toString('base64') }))
+  }
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${EMAIL_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      from: `${EMAIL_FROM_NAME} <${EMAIL_FROM}>`,
-      to: [to.email],
-      subject,
-      html,
-    }),
+    body: JSON.stringify(payload),
   })
   if (!res.ok) throw new Error(`Resend ${res.status}: ${(await res.text()).slice(0, 300)}`)
 }
 
-async function sendEmail({ to, subject, html }) {
-  if (EMAIL_PROVIDER === 'resend') return sendResend({ to, subject, html })
-  return sendBrevo({ to, subject, html })
+async function sendEmail({ to, subject, html, attachments, replyTo }) {
+  if (EMAIL_PROVIDER === 'resend') return sendResend({ to, subject, html, attachments, replyTo })
+  return sendBrevo({ to, subject, html, attachments, replyTo })
 }
 
 module.exports = { emailConfigured, sendEmail, buildJobsHtml, MAX_EMAILS_PER_RUN }
