@@ -9,6 +9,7 @@ import JobListCard from '@/components/JobListCard'
 import FilterSheet from './FilterSheet'
 import { sortByMatch, computeJobMatchScore } from '@/lib/match'
 import { useSavedJobs } from '@/lib/bookmarks'
+import { loadExternalJobs as fetchExternalJobs } from '@/lib/externalJobs'
 import { useRecents, recordSearch } from '@/lib/recents'
 import { toast } from '@/lib/toast'
 
@@ -130,10 +131,8 @@ export default function VagasPage() {
     setLoadingExternal(true)
     setExternalError('')
     try {
-      const res = await fetch('/external-jobs.json', { cache: 'no-store' })
-      if (!res.ok) throw new Error('fetch failed')
-      const data = await res.json()
-      setAllExternal(Array.isArray(data.jobs) ? data.jobs : [])
+      const jobs = await fetchExternalJobs((jobs) => setAllExternal(jobs))
+      if (!jobs.length) setExternalError('Não foi possível carregar vagas agora.')
     } catch {
       setExternalError('Não foi possível carregar vagas agora.')
       setAllExternal([])
@@ -549,11 +548,11 @@ export default function VagasPage() {
             <p className="text-xs text-ms-gray mb-1">{filteredExternal.length} vagas encontradas</p>
             <p className="text-xs text-ms-gray mb-4">Lê o resumo de cada vaga sem precisar abrir. Ao candidatar, vais direto à fonte oficial da empresa.</p>
 
-            {loadingExternal ? (
+            {loadingExternal && filteredExternal.length === 0 ? (
               <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
                 {[0, 1, 2, 3, 4, 5].map(i => <JobCardSkeleton key={i} index={i} />)}
               </div>
-            ) : externalError ? (
+            ) : externalError && filteredExternal.length === 0 ? (
               <div className="text-center py-12">
                 <Globe size={32} className="text-ms-gray mx-auto mb-3" />
                 <p className="text-sm text-ms-gray">{externalError}</p>

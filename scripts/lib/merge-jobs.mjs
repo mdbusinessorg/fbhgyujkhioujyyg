@@ -176,13 +176,48 @@ export async function writeJson(jobs, { dataDir, indexPath }) {
     beneficios: j.beneficios || '',
   }))
 
+  const updatedAt = new Date().toISOString()
   await writeFile(
     indexPath,
-    JSON.stringify({ updated_at: new Date().toISOString(), count: index.length, jobs: index })
+    JSON.stringify({ updated_at: updatedAt, count: index.length, jobs: index })
+  )
+
+  // Versão estável do dataset: só muda quando o conteúdo muda (cache no browser).
+  let hash = 5381
+  const indexJson = JSON.stringify(index)
+  for (let i = 0; i < indexJson.length; i++) {
+    hash = ((hash << 5) + hash + indexJson.charCodeAt(i)) | 0
+  }
+  const version = (hash >>> 0).toString(36)
+
+  // Índice em chunks pequenos: a página mostra as primeiras vagas em <1s
+  // e carrega o resto em background (o ficheiro único tem MBs).
+  const CHUNK_SIZE = 100
+  const publicDir = dirname(indexPath)
+  const chunksDir = join(publicDir, 'external-jobs-chunks')
+  await mkdir(chunksDir, { recursive: true })
+  const chunkCount = Math.max(1, Math.ceil(index.length / CHUNK_SIZE))
+  for (let i = 0; i < chunkCount; i++) {
+    await writeFile(
+      join(chunksDir, `c-${i}.json`),
+      JSON.stringify({ jobs: index.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE) })
+    )
+  }
+  try {
+    for (const f of await readdir(chunksDir)) {
+      const m = /^c-(\d+)\.json$/.exec(f)
+      if (m && Number(m[1]) >= chunkCount) await unlink(join(chunksDir, f)).catch(() => {})
+    }
+  } catch {
+    // dir recém-criado
+  }
+  await writeFile(
+    join(publicDir, 'external-jobs-meta.json'),
+    JSON.stringify({ updated_at: updatedAt, v: version, count: index.length, chunk_size: CHUNK_SIZE, chunks: chunkCount })
   )
 
   for (const j of enriched) {
     await writeFile(join(dataDir, `${j.id}.json`), JSON.stringify(j))
   }
-  console.log(`wrote ${indexPath} (${index.length}) + ${dataDir}/*.json`)
+  console.log(`wrote ${indexPath} (${index.length}) + ${dataDir}/*.json + ${chunkCount} chunks`)
 }
