@@ -9,6 +9,7 @@ import { ATS } from '@/components/ATS'
 import JarvisPanel from '@/components/JarvisPanel'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { loadExternalJobs } from '@/lib/externalJobs'
 import { Search, Bell, Briefcase, Users, UserCheck, Shield, Settings, CreditCard, CheckCircle, XCircle, Eye, TrendingUp, Plus, AlertTriangle, LogOut, Menu, X, Download, Linkedin, ExternalLink, Trash2, Edit2, Wallet, Zap, Home as HomeIcon, Globe, GitBranch, Megaphone, Sparkles } from 'lucide-react'
 
 export default function AdminDashboard() {
@@ -86,9 +87,8 @@ export default function AdminDashboard() {
 
     // External scraped jobs
     try {
-      const extRes = await fetch('/external-jobs.json')
-      const extData = extRes.ok ? await extRes.json() : { jobs: [] }
-      setExternalJobs(extData.jobs || [])
+      const extJobs = await loadExternalJobs()
+      setExternalJobs(extJobs)
     } catch {
       setExternalJobs([])
     }

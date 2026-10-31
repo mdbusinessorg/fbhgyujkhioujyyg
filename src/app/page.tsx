@@ -18,6 +18,7 @@ import InstallPWA from '@/components/InstallPWA'
 import Logo from '@/components/Logo'
 import PaidAdsCarousel from '@/components/PaidAdsCarousel'
 import AppHeader from '@/components/AppHeader'
+import { loadExternalJobs } from '@/lib/externalJobs'
 
 const CATEGORIAS_HOME = [
   { key: 'TI', label: 'Tecnologia', icon: Monitor, match: 'Tecnologia' },
@@ -219,11 +220,7 @@ export default function HomePage() {
       if (ljobs) setLinkedinJobs(ljobs)
 
       try {
-        const res = await fetch('/external-jobs.json', { cache: 'no-store' })
-        if (res.ok) {
-          const ext = await res.json()
-          setAllExternal(Array.isArray(ext.jobs) ? ext.jobs : [])
-        }
+        await loadExternalJobs((jobs) => setAllExternal(jobs))
       } catch {
         setAllExternal([])
       }

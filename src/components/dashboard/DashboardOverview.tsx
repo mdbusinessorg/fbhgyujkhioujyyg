@@ -7,6 +7,7 @@ import { DonutCard } from './DonutCard'
 import { LatestList } from './LatestList'
 import { ProBanner } from './ProBanner'
 import { PeriodFilter, type Period } from './PeriodFilter'
+import { loadExternalJobs } from '@/lib/externalJobs'
 import { groupByPeriod, countInPeriod, countByField, countByStatus, formatDate } from './utils'
 
 export interface AdminData {
@@ -56,9 +57,8 @@ export function DashboardOverview({ role, data, onTabChange }: DashboardOverview
   const [period, setPeriod] = useState<Period>('day')
 
   useEffect(() => {
-    fetch('/external-jobs.json', { cache: 'no-store' })
-      .then((r) => r.json())
-      .then((j) => setExternalJobs(j.jobs || []))
+    loadExternalJobs()
+      .then((jobs) => setExternalJobs(jobs))
       .catch(() => setExternalJobs([]))
   }, [])
 

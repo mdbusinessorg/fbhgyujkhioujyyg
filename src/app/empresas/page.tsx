@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import AppHeader from '@/components/AppHeader'
 import { CompanyLogo } from '@/components/CompanyLogo'
+import { loadExternalJobs } from '@/lib/externalJobs'
 import { Building2, Search, MapPin, Briefcase, ChevronRight, TrendingUp } from 'lucide-react'
 
 interface CompanyRow {
@@ -23,9 +24,7 @@ export default function EmpresasPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch('/external-jobs.json', { cache: 'no-store' })
-        const data = await res.json()
-        const jobs: any[] = Array.isArray(data) ? data : (data.jobs || [])
+        const jobs: any[] = await loadExternalJobs()
         const map = new Map<string, CompanyRow>()
         for (const j of jobs) {
           const name = (j.company || '').trim()

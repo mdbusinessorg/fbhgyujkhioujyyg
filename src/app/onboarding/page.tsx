@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { loadExternalJobs } from '@/lib/externalJobs'
 import { AREAS, PROVINCIAS_ANGOLA } from '@/lib/types'
 import Logo from '@/components/Logo'
 import { Search, X, Plus, Check, ArrowRight, Briefcase, MapPin, GraduationCap, Award, Sparkles } from 'lucide-react'
@@ -119,9 +120,7 @@ function OnboardingContent() {
 
     let jobs: any[] = []
     try {
-      const res = await fetch('/external-jobs.json', { cache: 'no-store' })
-      const j = await res.json()
-      jobs = j.jobs || []
+      jobs = await loadExternalJobs()
     } catch {
       jobs = []
     }
