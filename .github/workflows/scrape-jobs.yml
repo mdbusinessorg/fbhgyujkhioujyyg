@@ -16,7 +16,6 @@ on:
 
 permissions:
   contents: write
-  actions: read
 
 concurrency:
   group: scrape-jobs
@@ -107,7 +106,20 @@ jobs:
         run: |
           node scripts/ingest-yoyota.mjs --json
 
+      - name: Verificar se ja houve deploy na ultima hora
+        id: deploygate
+        run: |
+          TS=$(cat public/.last-deploy 2>/dev/null || echo 0)
+          NOW=$(date +%s)
+          if [ "$((NOW - TS))" -lt 3600 ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Deploy feito ha menos de 1h - as vagas ficam publicadas na proxima ronda."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Commit se houver alterações
+        if: ${{ steps.deploygate.outputs.skip != 'true' }}
         run: |
           git config user.name "mosalo-bot"
           git config user.email "bot@mosalo.eu.cc"
@@ -121,23 +133,29 @@ jobs:
             echo "PUSHED=true" >> "$GITHUB_ENV"
           fi
 
-      - name: Disparar deploy na Netlify
+      - name: Build e publicar na Netlify
         if: ${{ env.PUSHED == 'true' }}
+        continue-on-error: true
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
         run: |
-          RUNS_URL="https://api.github.com/repos/$REPO/actions/workflows/deploy-netlify.yml/runs?per_page=5&status=success"
-          LAST=$(curl -s -H "Authorization: Bearer $GH_TOKEN" "$RUNS_URL" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const r=JSON.parse(d).workflow_runs||[];console.log(r.length?new Date(r[0].updated_at).getTime():'0')}catch(e){console.log('0')}})")
-          NOW=$(date +%s%3N)
-          # O deploy demora ~3 min; no maximo 1 a cada 60 min.
-          if [ "$LAST" != "0" ] && [ $((NOW - LAST)) -lt 3600000 ]; then
-            echo "Ultimo deploy ha menos de 60 min - a publicar na proxima ronda com mudancas."
-            exit 0
+          set -e
+          npm run build
+          DEPLOY_JSON=$(npx netlify-cli deploy --dir=out --functions=netlify/functions --site=$NETLIFY_SITE_ID --auth=$NETLIFY_AUTH_TOKEN --json --message="Deploy $(date -u +%Y%m%d-%H%M%S)")
+          DEPLOY_ID=$(node -e "let d=''; process.stdin.on('data', c => d += c); process.stdin.on('end', () => { const j = JSON.parse(d); if (!j.deploy_id) throw new Error('deploy_id missing'); console.log(j.deploy_id); });" <<< "$DEPLOY_JSON")
+          echo "Draft deploy ID: $DEPLOY_ID"
+          curl -fsS -X POST -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" "https://api.netlify.com/api/v1/sites/$NETLIFY_SITE_ID/deploys/$DEPLOY_ID/restore"
+          echo "Publicado na Netlify."
+          date +%s > public/.last-deploy
+          git config user.name "mosalo-bot"
+          git config user.email "bot@mosalo.eu.cc"
+          git pull --rebase --autostash origin main || true
+          git add public/.last-deploy
+          if ! git diff --staged --quiet; then
+            git commit -m "chore(deploy): registo da ultima publicacao"
+            git push || true
           fi
-          CODE=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$REPO/actions/workflows/deploy-netlify.yml/dispatches" -d '{"ref":"main"}')
-          echo "Dispatch do deploy: HTTP $CODE"
-          [ "$CODE" = "204" ] || exit 1
 
       - name: Sincronizar novas vagas com Supabase
         continue-on-error: true
