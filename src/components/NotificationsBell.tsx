@@ -2,9 +2,20 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Bell, X, UserPlus, Check, MessageSquare } from 'lucide-react'
+import { Bell, X, UserPlus, Check, CheckCheck, MessageSquare, Briefcase, Clock, Sparkles } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { social, type Notification } from '@/lib/social'
+
+const TYPE_STYLE: Record<string, { bg: string; icon: typeof Bell }> = {
+  job_match: { bg: 'bg-blue-100 text-ms-blue', icon: Briefcase },
+  vaga_expiring: { bg: 'bg-amber-100 text-amber-600', icon: Clock },
+  network_request: { bg: 'bg-violet-100 text-violet-600', icon: UserPlus },
+  network_accepted: { bg: 'bg-violet-100 text-violet-600', icon: UserPlus },
+  message: { bg: 'bg-green-100 text-green-600', icon: MessageSquare },
+  welcome: { bg: 'bg-sky-100 text-sky-600', icon: Sparkles },
+  profile_reminder: { bg: 'bg-sky-100 text-sky-600', icon: Sparkles },
+}
+const DEFAULT_STYLE = { bg: 'bg-ms-surface text-ms-gray', icon: Bell }
 
 function getAvatarUrl(avatar?: string | null) {
   if (!avatar) return null
@@ -74,6 +85,12 @@ export default function NotificationsBell() {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
   }
 
+  const markAllRead = async () => {
+    const ids = notifications.filter(n => !n.read).map(n => n.id)
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+    await Promise.all(ids.map(id => social.markNotificationRead(id).catch(() => {})))
+  }
+
   const handleAccept = async (n: Notification) => {
     const requestId = n.data?.request_id
     const requesterId = n.data?.requester_id || n.sender?.id
@@ -141,31 +158,40 @@ export default function NotificationsBell() {
       : d.toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })
   }
 
-  const renderItem = (n: Notification) => {
+  const renderItem = (n: Notification, i: number) => {
     const avatar = getAvatarUrl(n.sender?.avatar_url)
+    const st = TYPE_STYLE[n.type] || DEFAULT_STYLE
+    const Icon = st.icon
     return (
-      <div key={n.id} className={`flex gap-3 p-3 rounded-2xl border ${n.read ? 'bg-white border-ms-border/60' : 'bg-blue-50 border-blue-100'}`}>
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-ms-blue to-ms-purple flex items-center justify-center flex-shrink-0 overflow-hidden text-white">
-          {avatar ? <img src={avatar} alt="" className="w-full h-full object-cover" /> : <UserPlus size={18} />}
+      <div
+        key={n.id}
+        role="button"
+        tabIndex={0}
+        onClick={() => { if (n.type !== 'network_request') handleOpen(n) }}
+        onKeyDown={(e) => { if (e.key === 'Enter' && n.type !== 'network_request') handleOpen(n) }}
+        className={`jobcard-enter relative flex gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-ms-surface/70 active:bg-ms-surface ${n.read ? '' : 'bg-ms-blue/[0.06]'}`}
+        style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
+      >
+        {!n.read && <span className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-ms-blue" />}
+        <div className="relative flex-shrink-0">
+          {avatar ? (
+            <img src={avatar} alt="" className="w-11 h-11 rounded-full object-cover" />
+          ) : (
+            <div className={`w-11 h-11 rounded-full flex items-center justify-center ${st.bg}`}><Icon size={19} /></div>
+          )}
+          {avatar && <span className={`absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full flex items-center justify-center ring-2 ring-white ${st.bg}`}><Icon size={11} /></span>}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <p className="text-sm font-semibold text-ms-dark">{n.title}</p>
-            <span className="text-[10px] text-ms-gray whitespace-nowrap">{fmtDate(n.created_at)}</span>
-          </div>
-          <p className="text-xs text-ms-gray mt-0.5">{n.body}</p>
-          <div className="flex items-center gap-2 mt-2">
-            {n.type === 'network_request' && (
-              <>
-                <button onClick={() => handleAccept(n)} className="flex items-center gap-1 px-3 py-1.5 bg-ms-blue text-white text-xs font-medium rounded-lg hover:bg-blue-700"><Check size={12} /> Aceitar</button>
-                <button onClick={() => handleReject(n)} className="px-3 py-1.5 text-xs font-medium text-ms-gray hover:text-red-500">Rejeitar</button>
-              </>
-            )}
-            {n.type !== 'network_request' && (
-              <button onClick={() => handleOpen(n)} className="flex items-center gap-1 px-3 py-1.5 bg-ms-surface text-ms-dark text-xs font-medium rounded-lg hover:bg-ms-purple-light hover:text-ms-purple"><MessageSquare size={12} /> Ver</button>
-            )}
-          </div>
+          <p className={`text-[13px] leading-snug text-ms-dark ${n.read ? 'font-medium' : 'font-bold'}`}>{n.title}</p>
+          {n.body && <p className="text-xs text-ms-gray mt-0.5 line-clamp-2">{n.body}</p>}
+          {n.type === 'network_request' && (
+            <div className="flex items-center gap-2 mt-2">
+              <button onClick={(e) => { e.stopPropagation(); handleAccept(n) }} className="inline-flex items-center gap-1 px-4 py-1.5 bg-ms-blue text-white text-xs font-bold rounded-full press"><Check size={12} /> Aceitar</button>
+              <button onClick={(e) => { e.stopPropagation(); handleReject(n) }} className="px-4 py-1.5 text-xs font-bold text-ms-gray border border-ms-border rounded-full press">Ignorar</button>
+            </div>
+          )}
         </div>
+        <span className={`text-[10px] whitespace-nowrap pt-0.5 ${n.read ? 'text-ms-gray' : 'text-ms-blue font-bold'}`}>{fmtDate(n.created_at)}</span>
       </div>
     )
   }
@@ -174,46 +200,61 @@ export default function NotificationsBell() {
 
   return (
     <>
-      <button onClick={() => { setOpen(true); if (typeof Notification !== 'undefined' && Notification.permission === 'default') { try { Notification.requestPermission() } catch {} } }} className="relative p-2 text-ms-dark hover:text-ms-blue rounded-full bg-ms-surface transition-colors">
-        <Bell size={20} />
+      <button
+        onClick={() => { setOpen(true); if (typeof Notification !== 'undefined' && Notification.permission === 'default') { try { Notification.requestPermission() } catch {} } }}
+        className="relative flex-shrink-0 w-9 h-9 flex items-center justify-center text-ms-dark hover:text-ms-blue rounded-full hover:bg-ms-surface transition-colors press"
+        aria-label={`Notificações${unreadCount ? ` (${unreadCount} novas)` : ''}`}
+      >
+        <Bell size={20} className={unreadCount > 0 ? 'ms-bell-ring' : ''} />
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border border-white">{unreadCount > 9 ? '9+' : unreadCount}</span>
+          <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-ms-red text-white text-[10px] font-bold flex items-center justify-center rounded-full ring-2 ring-white anim-pop">{unreadCount > 9 ? '9+' : unreadCount}</span>
         )}
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-[100] bg-black/40 flex items-end sm:items-center justify-center" onClick={() => setOpen(false)}>
-          <div ref={modalRef} className="bg-white w-full max-w-md sm:rounded-2xl rounded-t-2xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-4 pb-2 border-b border-ms-border">
-              <h2 className="text-base font-bold text-ms-dark">Notificações</h2>
-              <button onClick={() => setOpen(false)} className="p-1 text-ms-gray hover:text-ms-dark"><X size={20} /></button>
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-start justify-center sm:justify-end sm:p-4 sm:pt-16">
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px] backdrop-in" onClick={() => setOpen(false)} />
+          <div ref={modalRef} className="sheet-up sm:ms-menu-in relative w-full sm:max-w-[400px] max-h-[82vh] flex flex-col rounded-t-[28px] sm:rounded-3xl bg-white/95 backdrop-blur-2xl border border-white/80 shadow-[0_24px_60px_-16px_rgba(33,33,33,0.35)] overflow-hidden">
+            <span className="sm:hidden mx-auto mt-2 w-10 h-1 rounded-full bg-ms-border" />
+            <div className="flex items-center justify-between px-4 pt-3 pb-2">
+              <h2 className="text-lg font-extrabold text-ms-dark tracking-tight">Notificações</h2>
+              <div className="flex items-center gap-1">
+                {unreadCount > 0 && (
+                  <button onClick={markAllRead} className="inline-flex items-center gap-1 text-[11px] font-bold text-ms-blue px-2.5 py-1.5 rounded-full hover:bg-ms-blue/10 press"><CheckCheck size={13} /> Marcar lidas</button>
+                )}
+                <button onClick={() => setOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-ms-surface text-ms-gray hover:text-ms-dark press" aria-label="Fechar"><X size={16} /></button>
+              </div>
             </div>
-            <div className="flex gap-2 px-4 py-3 border-b border-ms-border">
+            <div className="mx-4 mb-2 grid grid-cols-3 p-1 rounded-full bg-ms-surface">
               {([['todas', 'Todas'], ['pessoas', 'Pessoas'], ['vagas', 'Vagas']] as const).map(([k, label]) => (
                 <button
                   key={k}
                   onClick={() => setTab(k)}
-                  className={`text-xs font-semibold px-4 py-1.5 rounded-full transition-colors ${tab === k ? 'bg-ms-blue text-white' : 'bg-ms-surface text-ms-gray hover:text-ms-dark'}`}
+                  className={`text-xs font-bold py-1.5 rounded-full transition-all ${tab === k ? 'bg-white text-ms-dark shadow-sm' : 'text-ms-gray'}`}
                 >
                   {label}
                 </button>
               ))}
             </div>
-            <div className="overflow-y-auto p-4 space-y-4">
+            <div className="overflow-y-auto flex-1">
               {filtered.length === 0 ? (
-                <div className="text-center py-10 text-ms-gray text-sm">Nenhuma notificação</div>
+                <div className="text-center py-12 px-6">
+                  <span className="mx-auto w-14 h-14 rounded-full bg-ms-surface flex items-center justify-center text-ms-gray mb-3"><Bell size={24} /></span>
+                  <p className="text-sm font-bold text-ms-dark">Sem notificações</p>
+                  <p className="text-xs text-ms-gray mt-1">Vagas com match, mensagens e ligações aparecem aqui.</p>
+                </div>
               ) : (
                 <>
                   {fresh.length > 0 && (
                     <div>
-                      <p className="text-[11px] font-bold text-ms-dark mb-2">Novas</p>
-                      <div className="space-y-2">{fresh.map(renderItem)}</div>
+                      <p className="px-4 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-ms-gray">Novas</p>
+                      <div className="divide-y divide-ms-border/50">{fresh.map(renderItem)}</div>
                     </div>
                   )}
                   {older.length > 0 && (
                     <div>
-                      <p className="text-[11px] font-bold text-ms-dark mb-2">Anteriores</p>
-                      <div className="space-y-2">{older.map(renderItem)}</div>
+                      <p className="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-ms-gray">Anteriores</p>
+                      <div className="divide-y divide-ms-border/50">{older.map(renderItem)}</div>
                     </div>
                   )}
                 </>
@@ -221,7 +262,8 @@ export default function NotificationsBell() {
             </div>
             <button
               onClick={() => { setOpen(false); router.push('/notificacoes/') }}
-              className="w-full text-center text-xs font-semibold text-ms-blue py-3 border-t border-ms-border press"
+              className="w-full text-center text-xs font-bold text-ms-blue py-3.5 border-t border-ms-border/70 press"
+              style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 14px)' }}
             >
               Ver todas as notificações
             </button>

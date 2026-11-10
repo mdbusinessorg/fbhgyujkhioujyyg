@@ -144,7 +144,7 @@ export default function NotificacoesPage() {
               return (
                 <section key={g.key}>
                   <p className="text-[11px] font-bold text-ms-gray uppercase tracking-wide mb-2">{g.label}</p>
-                  <div className="space-y-2">
+                  <div className="ms-card overflow-hidden divide-y divide-ms-border/50">
                     {items.map((n, i) => {
                       const st = TYPE_STYLE[n.type] || DEFAULT_STYLE
                       const Icon = st.icon
@@ -152,7 +152,7 @@ export default function NotificacoesPage() {
                         <button
                           key={n.id}
                           onClick={() => handleOpen(n)}
-                          className={`jobcard-enter w-full text-left flex gap-3 p-3 rounded-2xl border press ${n.read ? 'bg-white border-ms-border/60' : 'bg-blue-50/70 border-ms-blue/20'}`}
+                          className={`jobcard-enter w-full text-left flex gap-3 px-4 py-3.5 transition-colors hover:bg-ms-surface/70 active:bg-ms-surface ${n.read ? '' : 'bg-ms-blue/[0.06]'}`}
                           style={{ animationDelay: `${Math.min(i, 10) * 35}ms` }}
                         >
                           <div className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 ${st.bg}`}>

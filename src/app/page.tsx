@@ -417,7 +417,7 @@ export default function HomePage() {
     const chip = 'inline-flex items-center text-[10px] font-medium text-ms-gray bg-ms-surface border border-ms-border px-2 py-0.5 rounded-md'
     return (
       <Link key={job.favId} href={jobHref(job)} className="block h-full group">
-        <div className={`ms-lift relative h-full bg-white rounded-3xl border p-4 sm:p-5 transition-all group-hover:shadow-ios group-hover:border-ms-blue/40 ${featured || recommended ? 'border-ms-blue/25' : 'border-ms-border'}`}>
+        <div className={`relative h-full ms-card p-4 transition-shadow group-hover:shadow-ios ${featured || recommended ? '!border-ms-blue/30' : ''}`}>
           <div className="flex items-center justify-between mb-3">
             <span className="text-[11px] text-ms-gray">{fmtShortDate(date) || getTimeAgo(date)}</span>
             <div className="flex items-center gap-1.5">
@@ -456,8 +456,8 @@ export default function HomePage() {
             ) : (
               <span className="text-[11px] text-ms-gray flex items-center gap-1"><Clock size={11} />{getTimeAgo(date)}</span>
             )}
-            <span className="inline-flex items-center gap-1 bg-ms-dark text-white text-[11px] font-semibold px-4 py-2 rounded-full group-hover:bg-ms-blue transition-colors">
-              Detalhes
+            <span className="inline-flex items-center gap-1 text-ms-blue border border-ms-blue/40 text-[11px] font-bold px-4 py-1.5 rounded-full group-hover:bg-ms-blue group-hover:text-white transition-colors">
+              Ver vaga
             </span>
           </div>
         </div>
@@ -471,28 +471,26 @@ export default function HomePage() {
       <AppHeader />
 
       <main className="max-w-3xl lg:max-w-6xl mx-auto px-4 pt-4 lg:pt-6">
-        {/* Greeting / hero */}
-        <div className="relative overflow-hidden rounded-[28px] ms-hero-bg border border-white/70 px-5 py-5 sm:px-6 mb-6 ms-page-enter">
-          <div className="ms-blob absolute -top-12 -right-12 w-44 h-44 rounded-full bg-ms-blue/10 pointer-events-none" />
-          <div className="ms-blob-slow absolute -bottom-14 -left-10 w-48 h-48 rounded-full bg-ms-purple/10 pointer-events-none" />
-          <div className="relative">
-            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-ms-gray mb-1.5">
-              <MapPin size={12} className="text-ms-blue" /> Luanda, Angola
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-ms-dark tracking-tight">Olá{userName ? `, ${userName.split(' ')[0]}` : ''}!</h1>
-            <p className="text-xs sm:text-sm text-ms-gray mt-1.5">
-              <span className="font-bold text-ms-blue ms-shimmer-text"><Counter to={heroStats.vagas} /></span> vagas ativas
+        {/* Saudação compacta (sem banner) */}
+        <div className="flex items-end justify-between gap-3 mb-4 ms-page-enter">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-extrabold text-ms-dark tracking-tight truncate">{userName ? `Olá, ${userName.split(' ')[0]}` : 'Encontra o teu próximo emprego'}</h1>
+            <p className="text-xs text-ms-gray mt-1">
+              <span className="font-bold text-ms-dark"><Counter to={heroStats.vagas} /></span> vagas activas
               <span className="mx-1.5 text-ms-border">·</span>
-              <span className="font-bold text-ms-blue ms-shimmer-text"><Counter to={heroStats.empresas} /></span> empresas
+              <span className="font-bold text-ms-dark"><Counter to={heroStats.empresas} /></span> empresas
               <span className="mx-1.5 text-ms-border">·</span>
-              <span className="font-bold text-ms-blue ms-shimmer-text"><Counter to={heroStats.novas} /></span> novas esta semana
+              <span className="font-bold text-ms-blue"><Counter to={heroStats.novas} /></span> novas esta semana
             </p>
           </div>
+          <Link href="/vagas/" className="hidden sm:inline-flex flex-shrink-0 items-center gap-1.5 text-xs font-bold text-white bg-ms-blue rounded-full px-4 py-2 press">
+            <Briefcase size={14} /> Ver todas as vagas
+          </Link>
         </div>
 
         {/* Search bar */}
         <Reveal variant="fade-scale">
-        <section className="bg-white rounded-3xl border border-ms-border shadow-ios-sm p-4 sm:p-5 mb-6">
+        <section className="hidden lg:block ms-card p-5 mb-6">
           <div className="flex flex-col gap-2 lg:grid lg:grid-cols-[1.3fr_1fr_1fr_1fr_auto] lg:gap-3 lg:items-end">
             <div className="flex gap-2 lg:contents">
               <div className="flex-1 min-w-0">
@@ -558,19 +556,12 @@ export default function HomePage() {
 
         {/* IA Match — visível no mobile (no desktop fica na sidebar) */}
         <Reveal variant="fade-scale" delay={40}>
-        <section className="lg:hidden bg-gradient-to-br from-ms-blue to-ms-purple rounded-3xl p-5 mb-6 text-white">
-          <div className="flex items-center gap-2 mb-1">
-            <Sparkles size={18} />
-            <h3 className="text-base font-bold">Deixa a IA encontrar a tua vaga ideal</h3>
+        <section className="lg:hidden ms-card p-4 mb-5 flex items-center gap-3">
+          <span className="w-11 h-11 rounded-full bg-ms-blue/10 text-ms-blue flex items-center justify-center flex-shrink-0"><Sparkles size={19} /></span>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-bold text-ms-dark leading-tight">Vagas à medida do teu CV</h3>
+            <p className="text-[11px] text-ms-gray mt-0.5 line-clamp-2">{cvMsg || 'Carrega o CV e a IA mostra as vagas que combinam contigo.'}</p>
           </div>
-          <p className="text-xs text-white/80 mb-4">Carrega o teu CV e recebe correspondências instantâneas.</p>
-          <button
-            onClick={() => { if (isLoggedIn) cvInputRef.current?.click(); else router.push('/auth/login/') }}
-            disabled={cvUploading}
-            className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-white/40 rounded-2xl py-4 text-white/90 text-xs mb-3 hover:border-white/70 transition-colors disabled:opacity-60"
-          >
-            <Upload size={18} /> {cvUploading ? cvMsg : 'Carrega o CV aqui'}
-          </button>
           <button
             onClick={() => {
               if (!isLoggedIn) { router.push('/auth/login/'); return }
@@ -578,18 +569,17 @@ export default function HomePage() {
               else cvInputRef.current?.click()
             }}
             disabled={cvUploading}
-            className="w-full bg-white text-ms-blue text-sm font-bold py-3 rounded-2xl hover:bg-blue-50 transition-colors disabled:opacity-60"
+            className="flex-shrink-0 inline-flex items-center gap-1.5 text-xs font-bold text-white bg-ms-blue rounded-full px-3.5 py-2 press disabled:opacity-60"
           >
-            Encontrar Match
+            <Upload size={13} /> {cvUploading ? 'A ler…' : profile?.documentos?.length ? 'Ver match' : 'Carregar'}
           </button>
-          {cvMsg && !cvUploading && <p className="text-[11px] text-white/80 text-center mt-2">{cvMsg}</p>}
         </section>
         </Reveal>
 
-        <div className="lg:grid lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-6">
+        <div className="lg:grid lg:grid-cols-[250px_minmax(0,1fr)] xl:grid-cols-[250px_minmax(0,1fr)_280px] lg:gap-5 lg:items-start">
         {/* Sidebar (desktop) */}
-        <aside className="hidden lg:flex flex-col gap-4 mb-6 lg:mb-0">
-          <div className="bg-white rounded-3xl border border-ms-border p-5 shadow-ios-sm">
+        <aside className="hidden lg:flex flex-col gap-4 mb-6 lg:mb-0 sticky top-[72px]">
+          <div className="ms-card p-5">
             <h3 className="text-base font-bold text-ms-dark">Deixa a IA encontrar a tua vaga ideal</h3>
             <p className="text-xs text-ms-gray mt-1 mb-4">Carrega o teu CV e recebe correspondências instantâneas.</p>
             <input
@@ -619,7 +609,7 @@ export default function HomePage() {
             </button>
             {cvMsg && !cvUploading && <p className="text-[10px] text-ms-gray text-center mt-2">{cvMsg}</p>}
           </div>
-          <div className="bg-white rounded-3xl border border-ms-border p-5 shadow-ios-sm space-y-4">
+          <div className="ms-card p-5 space-y-4">
             <h3 className="text-sm font-bold text-ms-dark">Filtros rápidos</h3>
             <div>
               <label className="text-[10px] text-ms-gray mb-1 block">Indústria</label>
@@ -670,35 +660,6 @@ export default function HomePage() {
         </aside>
         <div className="min-w-0">
 
-        {/* Atalhos rápidos */}
-        <Reveal variant="fade-left" delay={60}>
-        <section className="mb-6">
-          <h2 className="text-sm font-bold text-ms-dark mb-3">Acesso Rápido</h2>
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
-            {[
-              { href: '/vagas/', label: 'Ver Vagas', icon: Briefcase, bg: 'bg-ms-blue', text: 'text-white' },
-              { href: '/trabalho-rapido/', label: 'Trabalho Rápido', icon: Zap, bg: 'bg-sky-50', text: 'text-sky-600' },
-              { href: '/pessoas/', label: 'Rede', icon: Users, bg: 'bg-ms-purple-light', text: 'text-ms-purple' },
-              { href: '/modelos-cv/', label: 'Modelos CV', icon: FileText, bg: 'bg-emerald-50', text: 'text-emerald-600' },
-            ].map(item => {
-              const Icon = item.icon
-              const solid = item.bg === 'bg-ms-blue' || item.bg === 'bg-ms-dark'
-              return (
-                <Link key={item.label} href={item.href} className={`flex-shrink-0 w-[160px] sm:w-auto sm:flex-1 flex flex-col gap-3 rounded-3xl p-4 border transition-all hover:shadow-ios ${solid ? `${item.bg} border-transparent` : 'bg-white border-ms-border hover:border-ms-blue/30'}`}>
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${solid ? 'bg-white/20' : item.bg}`}>
-                    <Icon size={18} className={item.text} />
-                  </div>
-                  <div>
-                    <p className={`text-sm font-bold leading-tight ${solid ? 'text-white' : 'text-ms-dark'}`}>{item.label}</p>
-                    <p className={`text-[10px] mt-0.5 ${solid ? 'text-white/70' : 'text-ms-gray'}`}>Abrir</p>
-                  </div>
-                </Link>
-              )
-            })}
-          </div>
-        </section>
-        </Reveal>
-
         {/* Quick filter chips */}
         <div className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-hide">
           {QUICK_FILTERS.map(f => (
@@ -706,7 +667,7 @@ export default function HomePage() {
               key={f.key}
               onClick={() => setActiveFilter(f.key)}
               className={`flex-shrink-0 text-xs px-4 py-2 rounded-full font-medium transition-colors whitespace-nowrap ${
-                activeFilter === f.key ? 'bg-ms-blue text-white shadow-sm' : 'bg-white text-ms-gray border border-ms-border hover:bg-ms-surface'
+                activeFilter === f.key ? 'bg-ms-dark text-white' : 'bg-white text-ms-dark border border-ms-border hover:border-ms-dark'
               }`}
             >
               {f.label === 'Favoritos' ? <span className="flex items-center gap-1"><Heart size={12} /> Favoritos</span> : f.label}
@@ -737,28 +698,6 @@ export default function HomePage() {
                 </Link>
               )
             })}
-          </div>
-        </section>
-        </Reveal>
-
-        {/* Info cards: Trabalho Rápido + Perfil */}
-        <Reveal variant="fade-scale" delay={100}>
-        <section className="mb-6">
-          <div className="grid grid-cols-2 gap-3">
-            <Link href="/trabalho-rapido/" className="neo-card bg-gradient-to-br from-ms-blue to-sky-500 rounded-3xl p-4 text-white relative overflow-hidden shadow-ios-sm">
-              <div className="absolute -bottom-4 -right-4 w-20 h-20 bg-white/10 rounded-full" />
-              <Zap size={24} className="mb-3" />
-              <h3 className="text-sm font-bold mb-1">Trabalho Rápido</h3>
-              <p className="text-[10px] text-white/80 mb-3">Empregos diretos. Paga uma taxa mensal e acede aos contactos.</p>
-              <span className="inline-flex items-center text-[10px] font-bold bg-white/20 px-2 py-1 rounded-lg">Saber mais</span>
-            </Link>
-            <Link href={isLoggedIn ? `/dashboard/${userRole}/?tab=perfil` : '/auth/registar/'} className="neo-card bg-gradient-to-br from-ms-blue to-ms-purple rounded-3xl p-4 text-white relative overflow-hidden shadow-ios-sm">
-              <div className="absolute -bottom-4 -right-4 w-20 h-20 bg-white/10 rounded-full" />
-              <User size={24} className="mb-3" />
-              <h3 className="text-sm font-bold mb-1">Perfil de Candidato</h3>
-              <p className="text-[10px] text-white/80 mb-3">Completa o teu perfil e deixa as empresas encontrarem-te.</p>
-              <span className="inline-flex items-center text-[10px] font-bold bg-white/20 px-2 py-1 rounded-lg">Criar perfil</span>
-            </Link>
           </div>
         </section>
         </Reveal>
@@ -807,7 +746,7 @@ export default function HomePage() {
         {/* Últimas Notícias */}
         {noticias.length > 0 && (
           <Reveal variant="fade-left">
-          <section className="mb-8">
+          <section className="mb-8 xl:hidden">
             <div className="flex items-center justify-between mb-3">
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
@@ -945,6 +884,24 @@ export default function HomePage() {
           </Reveal>
         )}
         </div>
+        {/* Coluna direita (desktop largo): notícias em lista, estilo LinkedIn */}
+        <aside className="hidden xl:flex flex-col gap-4">
+          {noticias.length > 0 && (
+            <div className="ms-card p-4 sticky top-[72px]">
+              <h3 className="text-sm font-bold text-ms-dark flex items-center gap-2 mb-3"><Newspaper size={15} className="text-red-600" /> Notícias de Angola</h3>
+              <ul className="space-y-3">
+                {noticias.slice(0, 6).map((news: any, idx: number) => (
+                  <li key={news.id || idx}>
+                    <a href={news.link || '#'} target="_blank" rel="noopener noreferrer" className="group block">
+                      <p className="text-[13px] font-semibold text-ms-dark leading-snug line-clamp-2 group-hover:text-ms-blue transition-colors">{news.title}</p>
+                      <p className="text-[11px] text-ms-gray mt-0.5">{getTimeAgo(news.date)} · {news.source || 'Jornal de Angola'}</p>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </aside>
         </div>
       </main>
 

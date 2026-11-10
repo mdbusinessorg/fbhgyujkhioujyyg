@@ -8,6 +8,7 @@ import { ArrowLeft, MapPin, Clock, Linkedin, Send, MessageCircle, LogIn, Mail, S
 import { CompanyLogo } from '@/components/CompanyLogo'
 import AppHeader from '@/components/AppHeader'
 import ApplySuccess from '@/components/ApplySuccess'
+import ApplyProgress, { ApplyPhase, APPLY_MIN_MS, APPLY_FLY_MS, wait } from '@/components/ApplyProgress'
 import { recordExternalApply, hasAppliedTo } from '@/lib/candidacies'
 import { toast } from '@/lib/toast'
 import { useSavedJobs } from '@/lib/bookmarks'
@@ -25,6 +26,8 @@ function ExternaContent() {
   const [linkCopied, setLinkCopied] = useState(false)
   const [alreadyApplied, setAlreadyApplied] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [applyPhase, setApplyPhase] = useState<ApplyPhase>('idle')
+  const [appliedVia, setAppliedVia] = useState<'site_oficial' | 'email'>('email')
   const { keys: savedKeys, toggle: toggleSaved } = useSavedJobs()
   const saved = !!jobId && savedKeys.has(`ext:${jobId}`)
 
@@ -32,6 +35,7 @@ function ExternaContent() {
     if (!job) return
     recordExternalApply({ job_id: job.id || jobId || '', title: job.title, company: job.company, logo_url: job.logo_url, location: job.location, via })
     setAlreadyApplied(true)
+    setAppliedVia(via)
     setShowSuccess(true)
   }
 
@@ -101,6 +105,8 @@ function ExternaContent() {
   const handleEmailApply = async () => {
     if (!isLoggedIn) { router.push('/auth/login/'); return }
     setPreparingEmail(true)
+    setApplyPhase('working')
+    const startedAt = Date.now()
     let email = buildFallbackEmail()
     try {
       const res = await fetch('/api/ai-apply', {
@@ -123,6 +129,10 @@ function ExternaContent() {
       const cut = email.body.slice(0, 1500)
       email.body = cut.slice(0, Math.max(cut.lastIndexOf('\n'), 1200)).trim() || cut.trim()
     }
+    await wait(APPLY_MIN_MS - (Date.now() - startedAt))
+    setApplyPhase('flying')
+    await wait(APPLY_FLY_MS)
+    setApplyPhase('idle')
     setPreparingEmail(false)
     markApplied('email')
     window.location.href = `mailto:${mailtoAddr}?subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(email.body)}`
@@ -160,7 +170,7 @@ function ExternaContent() {
   const linkedinUrl = `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(job.title || '')}&location=Angola`
 
   return (
-    <div className="min-h-screen bg-white pb-28">
+    <div className="min-h-screen bg-white pb-32 lg:pb-28">
       <AppHeader />
 
       <div className="max-w-3xl mx-auto px-4 pt-3">
@@ -255,21 +265,21 @@ function ExternaContent() {
       </main>
 
       {/* Sticky bottom apply bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-ms-border p-4 z-50">
+      <div className="ms-cta-bar ms-page-enter">
         {alreadyApplied && (
           <p className="max-w-3xl mx-auto inline-flex items-center gap-1.5 text-[11px] font-semibold text-green-700 bg-green-50 border border-green-100 rounded-lg px-3 py-1.5 mb-2">
             <Check size={12} /> Candidatura registada — vê em <Link href="/candidaturas/" className="underline">Minhas candidaturas</Link>
           </p>
         )}
-        <div className="max-w-3xl mx-auto flex flex-col sm:flex-row gap-3">
+        <div className="max-w-3xl mx-auto flex gap-2">
           {isValidMailto ? (
             <button
               onClick={handleEmailApply}
               disabled={preparingEmail}
-              className="flex-1 bg-gradient-to-r from-ms-blue to-ms-purple text-white font-semibold py-3 rounded-xl hover:opacity-95 transition-opacity flex items-center justify-center gap-2 disabled:opacity-60"
+              className="ms-btn-apply pulse flex-1 min-w-0 bg-ms-blue text-white text-sm font-bold py-3 rounded-full flex items-center justify-center gap-2 disabled:opacity-60"
             >
               {preparingEmail ? (
-                <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> A preparar a tua candidatura...</>
+                <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> A preparar…</>
               ) : (
                 <><Mail size={16} /> Candidatar por Email <span className="inline-flex items-center gap-0.5 text-[10px] font-bold bg-white/20 px-1.5 py-0.5 rounded-md"><Sparkles size={10} /> IA</span></>
               )}
@@ -280,18 +290,18 @@ function ExternaContent() {
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => markApplied('site_oficial')}
-              className="flex-1 bg-ms-blue text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+              className="ms-btn-apply flex-1 min-w-0 bg-ms-blue text-white text-sm font-bold py-3 rounded-full flex items-center justify-center gap-2"
             >
-              <Send size={16} /> Candidatar no site oficial
+              <Send size={16} /> <span className="truncate">Candidatar no site oficial</span>
             </a>
           ) : (
             <a
               href={linkedinUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 bg-ms-blue text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+              className="ms-btn-apply flex-1 min-w-0 bg-ms-blue text-white text-sm font-bold py-3 rounded-full flex items-center justify-center gap-2"
             >
-              <Linkedin size={16} /> Procurar esta vaga no LinkedIn
+              <Linkedin size={16} /> <span className="truncate">Procurar no LinkedIn</span>
             </a>
           )}
           {!job.apply_url && job.company && (
@@ -299,9 +309,9 @@ function ExternaContent() {
               href={`https://www.google.com/search?q=${encodeURIComponent(`${job.company} Angola contactos`)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="sm:flex-shrink-0 border border-ms-border text-ms-dark font-semibold py-3 px-4 rounded-xl hover:bg-ms-surface transition-colors flex items-center justify-center gap-2"
+              className="flex-shrink-0 border border-ms-border bg-white text-ms-dark text-sm font-semibold h-[46px] min-w-[46px] sm:px-4 rounded-full hover:bg-ms-surface transition-colors flex items-center justify-center gap-2 press"
             >
-              <Globe size={16} /> Site da empresa
+              <Globe size={16} /> <span className="hidden sm:inline">Site da empresa</span>
             </a>
           )}
           <button
@@ -310,35 +320,45 @@ function ExternaContent() {
               const nowSaved = toggleSaved({ key: `ext:${jobId}`, kind: 'ext', id: jobId, title: job.title || 'Vaga', company: job.company || '' })
               toast(nowSaved ? 'Vaga guardada — encontra-a no filtro Guardadas' : 'Vaga removida das guardadas', nowSaved ? 'success' : 'info')
             }}
-            className={`sm:flex-shrink-0 inline-flex items-center justify-center gap-1.5 border font-semibold py-3 px-4 rounded-xl press ${saved ? 'border-ms-blue bg-ms-blue/10 text-ms-blue' : 'border-ms-border text-ms-dark hover:bg-ms-surface'}`}
+            aria-label={saved ? 'Guardada' : 'Guardar'}
+            className={`flex-shrink-0 inline-flex items-center justify-center gap-1.5 border text-sm font-semibold h-[46px] min-w-[46px] sm:px-4 rounded-full press ${saved ? 'border-ms-blue bg-ms-blue/10 text-ms-blue' : 'border-ms-border text-ms-dark hover:bg-ms-surface'}`}
           >
             <Bookmark size={16} className={saved ? 'fill-ms-blue' : ''} />
-            {saved ? 'Guardada' : 'Guardar'}
+            <span className="hidden sm:inline">{saved ? 'Guardada' : 'Guardar'}</span>
           </button>
           {job.apply_url && (
             <a
               href={linkedinUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="sm:flex-shrink-0 border border-ms-border text-ms-dark font-semibold py-3 px-4 rounded-xl hover:bg-ms-surface transition-colors flex items-center justify-center gap-2"
+              className="flex-shrink-0 border border-ms-border bg-white text-ms-dark text-sm font-semibold h-[46px] min-w-[46px] sm:px-4 rounded-full hover:bg-ms-surface transition-colors flex items-center justify-center gap-2 press"
             >
-              <Linkedin size={16} className="text-[#0A66C2]" /> Ver no LinkedIn
+              <Linkedin size={16} className="text-[#0A66C2]" /> <span className="hidden sm:inline">Ver no LinkedIn</span>
             </a>
           )}
         </div>
         {!job.apply_url && (
-          <p className="text-[11px] text-ms-gray text-center mt-2">Esta vaga não indicou email nem site oficial — usa o LinkedIn ou procura a empresa para te candidatares.</p>
+          <p className="hidden sm:block text-[11px] text-ms-gray text-center mt-2">Esta vaga não indicou email nem site oficial — usa o LinkedIn ou procura a empresa para te candidatares.</p>
         )}
         {isValidMailto && (
-          <p className="text-[11px] text-ms-gray text-center mt-2">A IA escreve a mensagem com base no teu perfil (em inglês se a empresa for estrangeira) — revê e anexa o CV antes de enviar.</p>
+          <p className="hidden sm:block text-[11px] text-ms-gray text-center mt-2">A IA escreve a mensagem com base no teu perfil (em inglês se a empresa for estrangeira) — revê e anexa o CV antes de enviar.</p>
         )}
       </div>
+
+      <ApplyProgress
+        phase={applyPhase}
+        title="A preparar a tua candidatura"
+        steps={['A ler o teu perfil…', 'A IA está a escrever o email…', 'A rever a mensagem…']}
+        doneLabel="A abrir o teu email…"
+      />
 
       <ApplySuccess
         open={showSuccess}
         onClose={() => setShowSuccess(false)}
-        title="Candidatura Registada!"
-        message={`A tua candidatura para ${job.title} foi registada — fica atenta às respostas de ${job.company || 'a empresa'}.`}
+        title={appliedVia === 'email' ? 'Email pronto a enviar!' : 'Candidatura Registada!'}
+        message={appliedVia === 'email'
+          ? `Abrimos o teu email com a mensagem para ${job.company || 'a empresa'} já escrita. Anexa o CV e carrega em enviar.`
+          : `A tua candidatura para ${job.title} foi registada — fica atento às respostas de ${job.company || 'a empresa'}.`}
       />
     </div>
   )

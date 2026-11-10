@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { askSupport } from '@/lib/ai'
 import { X, Send, User } from 'lucide-react'
@@ -16,6 +17,9 @@ const SUGGESTIONS = [
 
 export default function FloatingAssistant() {
   const [open, setOpen] = useState(false)
+  const pathname = usePathname() || ''
+  // Nas páginas de vaga a barra de candidatura ocupa esse espaço no telemóvel.
+  const liftAboveCta = pathname.startsWith('/vagas/detalhe') || pathname.startsWith('/vagas/externa')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const [profile, setProfile] = useState<any>(null)
@@ -77,7 +81,7 @@ export default function FloatingAssistant() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed z-50 bottom-24 right-5 sm:right-6 lg:bottom-8 lg:right-8 w-12 h-12 sm:w-14 sm:h-14 rounded-full text-white flex items-center justify-center animate-float hover:scale-110 transition-all overflow-hidden bg-[#B3C3DA] ring-2 ring-white/80 shadow-ios-lg"
+          className={`fixed z-50 ${liftAboveCta ? 'bottom-44 lg:bottom-24' : 'bottom-24 lg:bottom-8'} right-5 sm:right-6 lg:right-8 w-12 h-12 sm:w-14 sm:h-14 rounded-full text-white flex items-center justify-center animate-float hover:scale-110 transition-all overflow-hidden bg-[#B3C3DA] ring-2 ring-white/80 shadow-ios-lg`}
           aria-label="Abrir assistente MÔ SALO"
         >
           <img src="/mosalito.png?v=3" alt="Mosalito" className="w-full h-full object-contain p-1" />

@@ -8,6 +8,7 @@ import { ArrowLeft, MapPin, Send, Upload, MessageSquare, MessageCircle, LogIn, B
 import { CompanyLogo } from '@/components/CompanyLogo'
 import AppHeader from '@/components/AppHeader'
 import ApplySuccess from '@/components/ApplySuccess'
+import ApplyProgress, { ApplyPhase, APPLY_MIN_MS, APPLY_FLY_MS, wait } from '@/components/ApplyProgress'
 import { toast } from '@/lib/toast'
 import { useSavedJobs } from '@/lib/bookmarks'
 import { recordView } from '@/lib/recents'
@@ -28,6 +29,7 @@ function VagaDetalheContent() {
   const [uploading, setUploading] = useState(false)
   const [respostas, setRespostas] = useState<Record<string, string>>({})
   const [showSuccess, setShowSuccess] = useState(false)
+  const [applyPhase, setApplyPhase] = useState<ApplyPhase>('idle')
   const { keys: savedKeys, toggle: toggleSaved } = useSavedJobs()
   const saved = !!vagaId && savedKeys.has(`int:${vagaId}`)
 
@@ -60,6 +62,8 @@ function VagaDetalheContent() {
     if (!userId || !vagaId) return
 
     setSending(true)
+    setApplyPhase('working')
+    const startedAt = Date.now()
 
     // Check if already applied
     const { data: existing } = await supabase
@@ -70,6 +74,7 @@ function VagaDetalheContent() {
       .maybeSingle()
 
     if (existing) {
+      setApplyPhase('idle')
       toast('Já te candidataste a esta vaga', 'info')
       setSending(false)
       setSent(true)
@@ -109,8 +114,13 @@ function VagaDetalheContent() {
     })
 
     if (error) {
+      setApplyPhase('idle')
       toast('Erro ao enviar candidatura. Tenta novamente.', 'error')
     } else {
+      await wait(APPLY_MIN_MS - (Date.now() - startedAt))
+      setApplyPhase('flying')
+      await wait(APPLY_FLY_MS)
+      setApplyPhase('idle')
       setSent(true)
       setShowSuccess(true)
     }
@@ -137,7 +147,7 @@ function VagaDetalheContent() {
   }
 
   return (
-    <div className="min-h-screen bg-white pb-24">
+    <div className="min-h-screen bg-white pb-28 lg:pb-24">
       <AppHeader />
 
       <div className="max-w-3xl mx-auto px-4 pt-3">
@@ -269,15 +279,15 @@ function VagaDetalheContent() {
 
       {/* Sticky bottom bar */}
       {!sent && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-ms-border p-4 z-50">
-          <div className="max-w-3xl mx-auto flex gap-3">
+        <div className="ms-cta-bar ms-page-enter">
+          <div className="max-w-3xl mx-auto flex gap-2">
             <button
               onClick={() => {
                 if (!vagaId || !vaga) return
                 const nowSaved = toggleSaved({ key: `int:${vagaId}`, kind: 'int', id: vagaId, title: vaga.titulo || 'Vaga', company: vaga.empresa_nome || '' })
                 toast(nowSaved ? 'Vaga guardada — encontra-a no filtro Guardadas' : 'Vaga removida das guardadas', nowSaved ? 'success' : 'info')
               }}
-              className={`flex-shrink-0 inline-flex items-center gap-1.5 border px-4 py-3 rounded-xl text-sm font-medium press ${saved ? 'border-ms-blue bg-ms-blue/10 text-ms-blue' : 'border-ms-border text-ms-dark hover:bg-ms-surface'}`}
+              className={`flex-shrink-0 inline-flex items-center gap-1.5 border px-4 py-3 rounded-full text-sm font-semibold press ${saved ? 'border-ms-blue bg-ms-blue/10 text-ms-blue' : 'border-ms-border text-ms-dark hover:bg-ms-surface'}`}
             >
               <Bookmark size={15} className={saved ? 'fill-ms-blue' : ''} />
               {saved ? 'Guardada' : 'Guardar'}
@@ -285,7 +295,7 @@ function VagaDetalheContent() {
             <button
               onClick={handleCandidatar}
               disabled={sending}
-              className="flex-1 bg-ms-blue text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="ms-btn-apply pulse flex-1 bg-ms-blue text-white font-bold py-3 rounded-full disabled:opacity-60 flex items-center justify-center gap-2"
             >
               <Send size={16} />
               {sending ? 'A enviar...' : isLoggedIn ? 'Candidatar Agora' : 'Registar para Candidatar'}
@@ -293,6 +303,13 @@ function VagaDetalheContent() {
           </div>
         </div>
       )}
+
+      <ApplyProgress
+        phase={applyPhase}
+        title="A enviar a tua candidatura"
+        steps={[uploading ? 'A carregar o teu CV…' : 'A preparar o teu perfil…', `A entregar a ${vaga.empresa_nome || 'empresa'}…`, 'Quase lá…']}
+        doneLabel="Enviada!"
+      />
 
       <ApplySuccess
         open={showSuccess}
