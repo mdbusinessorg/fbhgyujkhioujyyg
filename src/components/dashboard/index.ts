@@ -1,6 +1,7 @@
 export { DashboardOverview } from './DashboardOverview'
 export type { AdminData, RecrutadorData, CandidatoData } from './DashboardOverview'
 export { DashboardHeader } from './DashboardHeader'
+export { KpiCard } from './KpiCard'
 export { StatChartCard } from './StatChartCard'
 export { DonutCard } from './DonutCard'
 export { LatestList } from './LatestList'

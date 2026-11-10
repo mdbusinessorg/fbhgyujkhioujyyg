@@ -7,6 +7,8 @@ import { DonutCard } from './DonutCard'
 import { LatestList } from './LatestList'
 import { ProBanner } from './ProBanner'
 import { PeriodFilter, type Period } from './PeriodFilter'
+import { KpiCard } from './KpiCard'
+import { Users, Briefcase, FileText, Wallet, Zap } from 'lucide-react'
 import { loadExternalJobs } from '@/lib/externalJobs'
 import { groupByPeriod, countInPeriod, countByField, countByStatus, formatDate } from './utils'
 
@@ -21,6 +23,7 @@ export interface AdminData {
   quickJobs: any[]
   pendentes: any[]
   vagasPendentes: any[]
+  pendingAds: any[]
 }
 
 export interface RecrutadorData {
@@ -78,6 +81,42 @@ export function DashboardOverview({ role, data, onTabChange }: DashboardOverview
         { name: 'Outras', value: d.vagas.length - activeVagas.length - d.vagasPendentes.length, color: '#6B7280' },
       ].filter((s) => s.value > 0)
 
+      const recruitersApproved = d.users.filter((u: any) => u.role === 'recrutador' && u.aprovado).length
+      const approvedPayments = d.paymentRequests.filter((p: any) => p.status === 'approved')
+      const pendingPayments = d.paymentRequests.filter((p: any) => p.status === 'pending')
+      const revenue = approvedPayments.reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0)
+
+      const kpis = [
+        {
+          title: 'Utilizadores',
+          value: d.users.length,
+          subtitle: `${recruitersApproved} recrutadores aprovados`,
+          icon: Users,
+          color: '#1A56FF',
+        },
+        {
+          title: 'Vagas abertas',
+          value: activeVagas.length,
+          subtitle: `${d.vagas.length} publicadas no total`,
+          icon: Briefcase,
+          color: '#10B981',
+        },
+        {
+          title: 'Candidaturas',
+          value: d.candidaturas.length,
+          subtitle: `${countInPeriod(d.candidaturas, 'data_candidatura', period)} no período`,
+          icon: FileText,
+          color: '#6C47FF',
+        },
+        {
+          title: 'Receita aprovada',
+          value: `${revenue.toLocaleString('pt-PT')} Kz`,
+          subtitle: `${approvedPayments.length} pagos • ${pendingPayments.length} pendentes`,
+          icon: Wallet,
+          color: '#F59E0B',
+        },
+      ]
+
       const latestItems = [
         ...(d.pendentes.length > 0
           ? d.pendentes.slice(0, 3).map((u: any) => ({
@@ -99,6 +138,22 @@ export function DashboardOverview({ role, data, onTabChange }: DashboardOverview
               action: () => onTabChange('vagas'),
             }))
           : []),
+        ...pendingPayments.slice(0, 3).map((p: any) => ({
+          id: `pay-${p.id}`,
+          icon: 'file' as const,
+          title: `Pagamento ${p.plan || p.plano || 'Premium'}`,
+          subtitle: p.user?.nome || p.user?.email || 'Utilizador',
+          meta: 'Rever',
+          action: () => onTabChange('pagamentos'),
+        })),
+        ...(d.pendingAds || []).slice(0, 3).map((a: any) => ({
+          id: `ad-${a.id}`,
+          icon: 'briefcase' as const,
+          title: `Anúncio "${a.title}"`,
+          subtitle: a.advertiser_name || 'Anúncio pago',
+          meta: 'Rever',
+          action: () => onTabChange('jarvis'),
+        })),
         ...d.candidaturas
           .slice(0, 5)
           .map((c: any) => ({
@@ -114,7 +169,8 @@ export function DashboardOverview({ role, data, onTabChange }: DashboardOverview
         title: 'Visão Geral',
         subtitle: 'Painel de Administração',
         userName: 'Admin',
-        notifications: d.pendentes.length + d.vagasPendentes.length,
+        notifications: d.pendentes.length + d.vagasPendentes.length + pendingPayments.length + (d.pendingAds || []).length,
+        kpis,
         chartCards: [
           {
             title: 'Candidaturas recebidas',
@@ -189,6 +245,7 @@ export function DashboardOverview({ role, data, onTabChange }: DashboardOverview
         latestTitle: 'Candidatos recentes',
         latestItems,
         proDays: d.daysRemaining,
+        kpis: [],
       }
     }
 
@@ -237,6 +294,7 @@ export function DashboardOverview({ role, data, onTabChange }: DashboardOverview
       latestTitle: 'Candidaturas recentes',
       latestItems,
       proDays: d.daysRemaining,
+      kpis: [],
     }
   }, [role, data, externalJobs, period, onTabChange])
 
@@ -249,6 +307,23 @@ export function DashboardOverview({ role, data, onTabChange }: DashboardOverview
         notifications={content.notifications}
         onNotificationsClick={() => onTabChange('home')}
       />
+
+      {role === 'admin' && (
+        <div className="flex items-center gap-3 rounded-2xl border border-ms-blue/20 bg-gradient-to-r from-ms-blue/10 to-ms-purple/10 px-4 py-3">
+          <Zap size={18} className="flex-shrink-0 text-ms-blue" />
+          <p className="text-xs text-ms-dark">
+            Aprovação automática activa — recrutadores, vagas, pagamentos e anúncios são aprovados automaticamente a cada 30 minutos.
+          </p>
+        </div>
+      )}
+
+      {content.kpis.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {content.kpis.map((kpi, i) => (
+            <KpiCard key={i} {...kpi} />
+          ))}
+        </div>
+      )}
 
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium text-gray-700">Estatísticas</p>

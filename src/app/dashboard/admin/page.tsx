@@ -410,6 +410,7 @@ export default function AdminDashboard() {
               quickJobs,
               pendentes,
               vagasPendentes,
+              pendingAds,
             } as AdminData}
             onTabChange={setActiveTab}
           />

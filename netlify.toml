@@ -18,6 +18,9 @@
 [functions."trigger-scrape"]
   schedule = "5 * * * *"
 
+[functions."auto-approve-requests"]
+  schedule = "*/30 * * * *"
+
 [[headers]]
   for = "/external-jobs.json"
   [headers.values]
