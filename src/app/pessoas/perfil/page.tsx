@@ -287,7 +287,7 @@ function PerfilContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-ms-surface flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-ms-blue border-t-transparent rounded-full animate-spin" />
       </div>
     )
@@ -295,7 +295,7 @@ function PerfilContent() {
 
   if (!person) {
     return (
-      <div className="min-h-screen bg-ms-surface flex flex-col items-center justify-center p-6 text-center">
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
         <Users size={40} className="text-ms-gray mx-auto mb-3" />
         <p className="text-ms-gray text-sm">Perfil não encontrado.</p>
         <Link href="/pessoas/" className="mt-4 text-ms-blue text-sm font-medium">Voltar às Pessoas</Link>
@@ -307,7 +307,7 @@ function PerfilContent() {
   const isMe = currentUser?.id === person.id
 
   return (
-    <div className="min-h-screen bg-ms-surface">
+    <div className="min-h-screen bg-white">
       <header className="sticky top-0 bg-white z-50 px-4 py-3 shadow-sm">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <button onClick={() => router.back()} className="p-1 -ml-2 text-ms-dark hover:text-ms-blue"><ArrowLeft size={22} /></button>
@@ -480,7 +480,7 @@ function PerfilContent() {
 export default function PerfilPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-ms-surface flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-ms-blue border-t-transparent rounded-full animate-spin" />
       </div>
     }>

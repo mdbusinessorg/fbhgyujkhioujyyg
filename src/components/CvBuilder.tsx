@@ -118,7 +118,7 @@ export default function CvBuilder() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-ms-surface p-6 flex items-center justify-center">
+      <div className="min-h-screen bg-white p-6 flex items-center justify-center">
         <div className="card p-8 shadow-ios-sm text-center max-w-md">
           <h1 className="text-lg font-bold text-ms-dark mb-2">Inicia sessão</h1>
           <p className="text-sm text-ms-gray mb-4">Precisas de estar logado para gerares o teu CV.</p>
@@ -129,7 +129,7 @@ export default function CvBuilder() {
   }
 
   return (
-    <div className="min-h-screen bg-ms-surface pb-24">
+    <div className="min-h-screen bg-white pb-24">
       <header className="bg-white border-b border-ms-border sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center gap-3">
           <Link href="/" className="p-2 hover:bg-ms-surface rounded-full"><ArrowLeft size={20} className="text-ms-dark" /></Link>

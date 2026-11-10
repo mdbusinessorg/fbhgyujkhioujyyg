@@ -119,7 +119,7 @@ export default function CandidaturasPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-ms-surface">
+    <div className="min-h-screen bg-white">
       <AppHeader />
 
       <main className="max-w-3xl mx-auto px-4 pt-5 pb-16">

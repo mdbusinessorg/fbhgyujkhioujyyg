@@ -1,6 +1,15 @@
 {
-  "updatedAt": "2026-11-10T13:32:52.818Z",
+  "updatedAt": "2026-11-10T14:05:33.993Z",
   "items": [
+    {
+      "id": "699238",
+      "link": "https://jornaldeangola.ao/noticias/1/mundo/699238/acidente-na-bulgaria-com-50-veiculos-deixa-11-mortos-e-varios-feridos",
+      "source": "Jornal de Angola",
+      "title": "Acidente na Bulgária com 50 veículos deixa 11 mortos e vários feridos",
+      "excerpt": "Pelo menos 11 pessoas morreram e 48 ficaram feridas na sequência de um acidente rodoviário que envolveu cerca de 50 veículos numa auto-estrada da Bulgária, anunciaram, hoje, as autoridades locais.",
+      "image": "https://kiami-back.jornaldeangola.ao/cms/Infrastructure/Files/Repositorio/Imagens/6290327_imagem.webp",
+      "date": "2026-11-10T14:40:43.000Z"
+    },
     {
       "id": "699237",
       "link": "https://jornaldeangola.ao/noticias/1/mundo/699237/shelter-afrique-mobiliza-60-mil-milhoes-de-francos-cfa-para-financiar-habitacao-na-africa-ocidental",
@@ -45,15 +54,6 @@
       "excerpt": "O ministro de Estado para a Coordenação Económica, José de Lima Massano, garantiu segunda-feira, em Mbanza Kongo, a conclusão do Hospital Geral do Zaire e do futuro Aeroporto Internacional “Nimi a Lukeni” no primeiro semestre de 2027.",
       "image": "https://kiami-back.jornaldeangola.ao/cms/Infrastructure/Files/Repositorio/Imagens/6290321_imagem.jpeg",
       "date": "2026-11-10T13:55:22.000Z"
-    },
-    {
-      "id": "699233",
-      "link": "https://jornaldeangola.ao/noticias/1/politica/699233/presidente-joao-lourenco-recebe-ceo-da-multinacional-embraer",
-      "source": "Jornal de Angola",
-      "title": "Presidente João Lourenço recebe CEO da multinacional EMBRAER",
-      "excerpt": "O Chefe de Estado, João Lourenço, recebeu no final da manhã desta terça-feira, em Luanda, o presidente e CEO da gigante brasileira da aviação EMBRAER, Bosco Costa Júnior.",
-      "image": "https://kiami-back.jornaldeangola.ao/cms/Infrastructure/Files/Repositorio/Imagens/6290322_imagem.jpeg",
-      "date": "2026-11-10T13:53:57.000Z"
     }
   ]
 }

@@ -109,7 +109,7 @@ export default function AnunciosPage() {
   const supportLink = `https://wa.me/${supportWhatsapp}?text=${encodeURIComponent(supportMessage)}`
 
   return (
-    <div className="min-h-screen bg-ms-surface pb-24">
+    <div className="min-h-screen bg-white pb-24">
       <AppHeader />
 
       <div className="max-w-3xl mx-auto px-4 pt-3">

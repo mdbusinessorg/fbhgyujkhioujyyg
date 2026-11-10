@@ -110,7 +110,7 @@ export default function ComunidadesPage() {
   )
 
   return (
-    <div className="min-h-screen bg-ms-surface">
+    <div className="min-h-screen bg-white">
       <AppHeader />
 
       <main className="max-w-4xl mx-auto px-4 pt-5 pb-16">

@@ -467,7 +467,7 @@ export default function HomePage() {
 
 
   return (
-    <div className="min-h-screen bg-ms-surface pb-8">
+    <div className="min-h-screen bg-white pb-8">
       <AppHeader />
 
       <main className="max-w-3xl lg:max-w-6xl mx-auto px-4 pt-4 lg:pt-6">

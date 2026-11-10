@@ -68,14 +68,14 @@ export default function SuportePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-ms-surface flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-ms-purple border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-ms-surface pb-20">
+    <div className="min-h-screen bg-white pb-20">
       <AppHeader />
       <div className="max-w-3xl mx-auto px-4 pt-3 flex items-center justify-between">
         <button onClick={() => router.back()} className="inline-flex items-center gap-1.5 text-xs font-semibold text-ms-gray hover:text-ms-blue"><ArrowLeft size={14} /> Voltar</button>

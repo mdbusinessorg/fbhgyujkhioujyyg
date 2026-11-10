@@ -9,7 +9,7 @@
     -webkit-tap-highlight-color: transparent;
   }
   body {
-    @apply bg-ms-surface text-ms-dark font-sans antialiased;
+    @apply bg-white text-ms-dark font-sans antialiased;
     font-feature-settings: 'kern' 1, 'liga' 1;
   }
 }

@@ -81,7 +81,7 @@ export default function EmpresasPage() {
   )
 
   return (
-    <div className="min-h-screen bg-ms-surface">
+    <div className="min-h-screen bg-white">
       <AppHeader />
 
       <main className="max-w-5xl mx-auto px-4 pt-5 pb-16">

@@ -695,7 +695,7 @@ function PessoasPageContent() {
   )
 
   return (
-    <div className="min-h-screen bg-ms-surface pb-8">
+    <div className="min-h-screen bg-white pb-8">
       <AppHeader />
 
       {renderMobileDrawer()}
@@ -775,7 +775,7 @@ function PessoasPageContent() {
 
 export default function PessoasPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-ms-surface flex items-center justify-center"><div className="w-8 h-8 border-2 border-ms-blue border-t-transparent rounded-full animate-spin" /></div>}>
+    <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center"><div className="w-8 h-8 border-2 border-ms-blue border-t-transparent rounded-full animate-spin" /></div>}>
       <PessoasPageContent />
     </Suspense>
   )
