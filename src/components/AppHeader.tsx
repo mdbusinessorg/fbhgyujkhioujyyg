@@ -146,7 +146,7 @@ export default function AppHeader({ searchDefault = '' }: { searchDefault?: stri
   )
 
   return (
-    <header className="sticky top-0 z-50 bg-white shadow-sm border-b border-ms-border">
+    <header className="sticky top-0 z-50 bg-white/85 backdrop-blur-xl shadow-sm border-b border-ms-border/70">
       {/* Desktop */}
       <div className="hidden lg:flex max-w-7xl mx-auto items-center justify-between px-4 py-1.5 gap-6">
         <div className="flex items-center gap-4 flex-shrink-0">

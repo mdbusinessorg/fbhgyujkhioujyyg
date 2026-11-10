@@ -471,16 +471,21 @@ export default function HomePage() {
       <AppHeader />
 
       <main className="max-w-3xl lg:max-w-6xl mx-auto px-4 pt-4 lg:pt-6">
-        {/* Greeting */}
-        <div className="flex items-start justify-between gap-4 mb-5">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-ms-dark">Olá{userName ? `, ${userName.split(' ')[0]}` : ''}!</h1>
-            <p className="text-xs sm:text-sm text-ms-gray mt-1">
-              <span className="font-semibold text-ms-blue"><Counter to={heroStats.vagas} /></span> vagas ativas
+        {/* Greeting / hero */}
+        <div className="relative overflow-hidden rounded-[28px] ms-hero-bg border border-white/70 px-5 py-5 sm:px-6 mb-6 ms-page-enter">
+          <div className="ms-blob absolute -top-12 -right-12 w-44 h-44 rounded-full bg-ms-blue/10 pointer-events-none" />
+          <div className="ms-blob-slow absolute -bottom-14 -left-10 w-48 h-48 rounded-full bg-ms-purple/10 pointer-events-none" />
+          <div className="relative">
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-ms-gray mb-1.5">
+              <MapPin size={12} className="text-ms-blue" /> Luanda, Angola
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-ms-dark tracking-tight">Olá{userName ? `, ${userName.split(' ')[0]}` : ''}!</h1>
+            <p className="text-xs sm:text-sm text-ms-gray mt-1.5">
+              <span className="font-bold text-ms-blue ms-shimmer-text"><Counter to={heroStats.vagas} /></span> vagas ativas
               <span className="mx-1.5 text-ms-border">·</span>
-              <span className="font-semibold text-ms-blue"><Counter to={heroStats.empresas} /></span> empresas
+              <span className="font-bold text-ms-blue ms-shimmer-text"><Counter to={heroStats.empresas} /></span> empresas
               <span className="mx-1.5 text-ms-border">·</span>
-              <span className="font-semibold text-ms-blue"><Counter to={heroStats.novas} /></span> novas esta semana
+              <span className="font-bold text-ms-blue ms-shimmer-text"><Counter to={heroStats.novas} /></span> novas esta semana
             </p>
           </div>
         </div>

@@ -1,6 +1,15 @@
 {
-  "updatedAt": "2026-11-10T13:10:37.898Z",
+  "updatedAt": "2026-11-10T13:32:52.818Z",
   "items": [
+    {
+      "id": "699237",
+      "link": "https://jornaldeangola.ao/noticias/1/mundo/699237/shelter-afrique-mobiliza-60-mil-milhoes-de-francos-cfa-para-financiar-habitacao-na-africa-ocidental",
+      "source": "Jornal de Angola",
+      "title": "Shelter Afrique mobiliza 60 mil milhões de francos CFA para financiar habitação na África Ocidental",
+      "excerpt": "O Banco de Desenvolvimento Shelter Afrique (ShafDB) concluiu a sua primeira emissão de obrigações sustentáveis, no valor de 60 mil milhões de francos CFA, destinada ao financiamento de projectos de habitação acessível e sustentável nos países da União Económica e Monetária da África Ocidental (UEMOA).",
+      "image": "https://kiami-back.jornaldeangola.ao/cms/Infrastructure/Files/Repositorio/Imagens/6290326_imagem.jpeg",
+      "date": "2026-11-10T14:20:25.000Z"
+    },
     {
       "id": "699236",
       "link": "https://jornaldeangola.ao/noticias/1/regioes/699236/icolo-e-bengo-inaugura-da-delegacao-provincial-do-sme",
@@ -45,15 +54,6 @@
       "excerpt": "O Chefe de Estado, João Lourenço, recebeu no final da manhã desta terça-feira, em Luanda, o presidente e CEO da gigante brasileira da aviação EMBRAER, Bosco Costa Júnior.",
       "image": "https://kiami-back.jornaldeangola.ao/cms/Infrastructure/Files/Repositorio/Imagens/6290322_imagem.jpeg",
       "date": "2026-11-10T13:53:57.000Z"
-    },
-    {
-      "id": "699231",
-      "link": "https://jornaldeangola.ao/noticias/1/desporto/699231/estudantes-somam-nota-positiva-no-decimo-teste",
-      "source": "Jornal de Angola",
-      "title": "Estudantes somam nota positiva no décimo teste",
-      "excerpt": "“Toda a espera tem a sua recompensa”, assim aconteceu com a Académica do Lobito, após nove jogos sem conhecer o sabor da vitória, a décima foi de vez. Os estudantes aprovaram no teste frente ao Recreativo da Caála, com a nota positiva de duas bolas a uma.",
-      "image": "https://kiami-back.jornaldeangola.ao/cms/Infrastructure/Files/Repositorio/Imagens/6290320_imagem.jpeg",
-      "date": "2026-11-10T13:53:36.000Z"
     }
   ]
 }
