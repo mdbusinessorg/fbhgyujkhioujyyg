@@ -195,6 +195,7 @@ export function DashboardOverview({ role, data, onTabChange }: DashboardOverview
         latestTitle: 'Actividade recente',
         latestItems,
         proDays: null,
+        pendingPaymentsCount: pendingPayments.length,
       }
     }
 
@@ -246,6 +247,7 @@ export function DashboardOverview({ role, data, onTabChange }: DashboardOverview
         latestItems,
         proDays: d.daysRemaining,
         kpis: [],
+        pendingPaymentsCount: 0,
       }
     }
 
@@ -295,6 +297,7 @@ export function DashboardOverview({ role, data, onTabChange }: DashboardOverview
       latestItems,
       proDays: d.daysRemaining,
       kpis: [],
+      pendingPaymentsCount: 0,
     }
   }, [role, data, externalJobs, period, onTabChange])
 
@@ -308,11 +311,24 @@ export function DashboardOverview({ role, data, onTabChange }: DashboardOverview
         onNotificationsClick={() => onTabChange('home')}
       />
 
+      {role === 'admin' && content.pendingPaymentsCount > 0 && (
+        <button
+          onClick={() => onTabChange('pagamentos')}
+          className="w-full flex items-center gap-3 rounded-2xl border-2 border-red-200 bg-red-50 px-4 py-3 text-left hover:bg-red-100 transition-colors"
+        >
+          <Wallet size={20} className="flex-shrink-0 text-ms-red animate-pulse" />
+          <div>
+            <p className="text-sm font-bold text-ms-red">{content.pendingPaymentsCount} pagamento(s) pendente(s)</p>
+            <p className="text-xs text-ms-gray">Confirma manualmente para activar o premium — os pagamentos não são aprovados automaticamente.</p>
+          </div>
+        </button>
+      )}
+
       {role === 'admin' && (
         <div className="flex items-center gap-3 rounded-2xl border border-ms-blue/20 bg-gradient-to-r from-ms-blue/10 to-ms-purple/10 px-4 py-3">
           <Zap size={18} className="flex-shrink-0 text-ms-blue" />
           <p className="text-xs text-ms-dark">
-            Aprovação automática activa — recrutadores, vagas, pagamentos e anúncios são aprovados automaticamente a cada 30 minutos.
+            Aprovação automática activa — recrutadores, vagas e anúncios são aprovados automaticamente a cada 30 minutos. Pagamentos ficam pendentes até confirmação manual.
           </p>
         </div>
       )}

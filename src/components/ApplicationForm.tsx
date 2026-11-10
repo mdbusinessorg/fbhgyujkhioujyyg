@@ -97,9 +97,16 @@ export default function ApplicationForm({ vagaId, vagaTitulo }: ApplicationFormP
 
   if (submitted) {
     return (
-      <div className="card p-5 bg-green-50 border-green-200">
-        <div className="flex flex-col items-center text-center gap-2">
-          <CheckCircle size={32} className="text-green-600" />
+      <div className="card p-5 bg-green-50 border-green-200 ms-pop-in">
+        <div className="flex flex-col items-center text-center gap-2 relative">
+          <span className="ms-confetti absolute -top-2 left-1/2 w-2 h-2 rounded-full bg-ms-blue" style={{ animationDelay: '0.1s' }} />
+          <span className="ms-confetti absolute top-0 left-1/3 w-2 h-2 rounded-full bg-ms-purple" style={{ animationDelay: '0.25s' }} />
+          <span className="ms-confetti absolute -top-1 right-1/3 w-2 h-2 rounded-full bg-ms-green" style={{ animationDelay: '0.4s' }} />
+          <svg className="success-circle" width="64" height="64" viewBox="0 0 88 88" fill="none">
+            <circle cx="44" cy="44" r="40" stroke="#66BB6A" strokeWidth="5" opacity="0.15" />
+            <circle cx="44" cy="44" r="40" stroke="#66BB6A" strokeWidth="5" strokeLinecap="round" strokeDasharray="252" strokeDashoffset="63" />
+            <path className="success-check" d="M28 45 L39 56 L61 33" stroke="#66BB6A" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+          </svg>
           <h3 className="font-semibold text-green-800">Candidatura Enviada!</h3>
           <p className="text-sm text-green-700">A tua candidatura para &quot;{vagaTitulo}&quot; foi enviada ao recrutador.</p>
           <Link href="/dashboard/candidato/" className="text-sm text-k10-accent hover:underline mt-2">
@@ -142,7 +149,7 @@ export default function ApplicationForm({ vagaId, vagaTitulo }: ApplicationFormP
 
   // Logged in - show application form
   return (
-    <div className="card p-5 space-y-4">
+    <div className="card p-5 space-y-4 ms-page-enter">
       <h3 className="font-semibold text-sm text-gray-800">Candidatar-me</h3>
       <p className="text-xs text-gray-500">Olá, {userName}! Envia a tua candidatura.</p>
       
@@ -165,7 +172,7 @@ export default function ApplicationForm({ vagaId, vagaTitulo }: ApplicationFormP
         <button
           type="submit"
           disabled={submitting}
-          className="btn-primary w-full flex items-center justify-center gap-2"
+          className="btn-primary ms-btn-apply pulse w-full flex items-center justify-center gap-2"
         >
           {submitting ? (
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />

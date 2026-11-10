@@ -399,3 +399,109 @@ html {
   }
   .success-check { stroke-dashoffset: 0; }
 }
+
+/* ===== MÔ SALO motion kit (redesign 2026-11) ===== */
+@keyframes msFadeUp {
+  from { opacity: 0; transform: translateY(22px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes msPop {
+  0% { opacity: 0; transform: scale(0.92); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes msSlideInRight {
+  from { opacity: 0; transform: translateX(28px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes msPulseRing {
+  0% { box-shadow: 0 0 0 0 rgba(66, 165, 245, 0.45); }
+  70% { box-shadow: 0 0 0 14px rgba(66, 165, 245, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(66, 165, 245, 0); }
+}
+@keyframes msShimmerText {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+.ms-page-enter { animation: msFadeUp 0.6s cubic-bezier(0, 0.5, 0, 1) both; }
+.ms-pop-in { animation: msPop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.ms-slide-in { animation: msSlideInRight 0.5s cubic-bezier(0, 0.5, 0, 1) both; }
+
+/* staggered children entrance */
+.ms-stagger > * {
+  opacity: 0;
+  animation: msFadeUp 0.55s cubic-bezier(0, 0.5, 0, 1) forwards;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+/* card hover lift */
+.ms-lift {
+  transition: transform 0.25s cubic-bezier(0, 0.5, 0, 1), box-shadow 0.25s cubic-bezier(0, 0.5, 0, 1);
+}
+.ms-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 34px rgba(33, 33, 33, 0.1);
+}
+.ms-lift:active { transform: translateY(-1px) scale(0.99); }
+
+/* primary button with attention pulse (apply CTA) */
+.ms-btn-apply {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.25s ease, filter 0.2s ease;
+}
+.ms-btn-apply:hover { filter: brightness(1.06); box-shadow: 0 10px 26px rgba(66, 165, 245, 0.4); }
+.ms-btn-apply:active { transform: scale(0.97); }
+.ms-btn-apply.pulse { animation: msPulseRing 2s ease-out infinite; }
+
+/* shimmer text for highlights */
+.ms-shimmer-text {
+  background: linear-gradient(90deg, #42A5F5, #8B7CF6, #42A5F5);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: msShimmerText 4s linear infinite;
+}
+
+/* animated gradient hero background */
+@keyframes msGradientMove {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.ms-hero-bg {
+  background: linear-gradient(120deg, #EAF4FF 0%, #F5F0FF 45%, #EDF7F0 100%);
+  background-size: 220% 220%;
+  animation: msGradientMove 14s ease-in-out infinite;
+}
+
+/* floating decorative blobs */
+@keyframes msBlob {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(18px, -22px) scale(1.06); }
+  66% { transform: translate(-14px, 16px) scale(0.96); }
+}
+.ms-blob { animation: msBlob 12s ease-in-out infinite; }
+.ms-blob-slow { animation: msBlob 18s ease-in-out infinite reverse; }
+
+/* success confetti pieces */
+@keyframes msConfetti {
+  0% { opacity: 1; transform: translateY(0) rotate(0deg); }
+  100% { opacity: 0; transform: translateY(90px) rotate(220deg); }
+}
+.ms-confetti { animation: msConfetti 1.4s ease-in forwards; }
+
+/* page transition on route change (App Router) */
+@keyframes msRouteIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.ms-route { animation: msRouteIn 0.35s ease both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ms-page-enter, .ms-pop-in, .ms-slide-in, .ms-stagger > *, .ms-lift, .ms-btn-apply, .ms-shimmer-text, .ms-hero-bg, .ms-blob, .ms-blob-slow, .ms-confetti, .ms-route {
+    animation: none !important;
+    transition: none !important;
+  }
+  .ms-stagger > * { opacity: 1; }
+}

@@ -417,7 +417,7 @@ export default function HomePage() {
     const chip = 'inline-flex items-center text-[10px] font-medium text-ms-gray bg-ms-surface border border-ms-border px-2 py-0.5 rounded-md'
     return (
       <Link key={job.favId} href={jobHref(job)} className="block h-full group">
-        <div className={`relative h-full bg-white rounded-3xl border p-4 sm:p-5 transition-all group-hover:shadow-ios group-hover:border-ms-blue/40 ${featured || recommended ? 'border-ms-blue/25' : 'border-ms-border'}`}>
+        <div className={`ms-lift relative h-full bg-white rounded-3xl border p-4 sm:p-5 transition-all group-hover:shadow-ios group-hover:border-ms-blue/40 ${featured || recommended ? 'border-ms-blue/25' : 'border-ms-border'}`}>
           <div className="flex items-center justify-between mb-3">
             <span className="text-[11px] text-ms-gray">{fmtShortDate(date) || getTimeAgo(date)}</span>
             <div className="flex items-center gap-1.5">
